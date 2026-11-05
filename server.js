@@ -121,6 +121,18 @@ const server = http.createServer((req, res) => {
     return auth.verificar(token);
   };
 
+  // diagnostico publico minimo (sem dados de clientes)
+  if (caminho === '/api/ping') {
+    return json(200, {
+      ok: true,
+      versao: 'v2',
+      mesasNoServidor: Array.isArray(desks) ? desks.length : -1,
+      primeiraMesa: Array.isArray(desks) && desks[0] ? { id: desks[0].id, x: desks[0].x, y: desks[0].y, w: desks[0].w } : null,
+      jogadores: players.size,
+      armazenamento: armazem.modoArmazenamento(),
+    });
+  }
+
   // primeiro arranque: diz se ainda nao existe nenhuma conta
   if (caminho === '/api/setup') {
     if (req.method === 'GET') {
