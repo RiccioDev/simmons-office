@@ -5,3 +5,4 @@ log.txt
 url_publica.txt
 mesas.json
 *.log
+backups/
