@@ -51,6 +51,13 @@ O sino **🔔** no topo liga e desliga o som das batidas. A escolha fica guardad
 
 Se quem bateu se afastar ou sair, o painel fecha sozinho.
 
+## Os botões dizem o estado de um relance
+
+- **Microfone** e **câmara** desligados: o botão ganha uma **linha vermelha** por cima —
+  vê-se logo que estás cortado, mesmo de longe
+- **Partilha de ecrã** ligada: o botão do computador fica com **brilho verde** e uma barra
+  verde em baixo; ao parar, volta ao normal
+
 ## Partilhar o ecrã
 
 Carrega em **🖥️** no topo (ou **Ctrl+T**). O Chrome pergunta o que queres partilhar — ecrã

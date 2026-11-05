@@ -359,3 +359,41 @@ body{
 
 /* no modo reunião: o ecrã ocupa a linha de cima */
 .tile.telaGrelha{grid-column:1 / -1}
+
+
+/* ---------- botões desligados: linha vermelha a cortar ---------- */
+.topo button{
+  position:relative;
+}
+.topo button.desligado{
+  opacity:1;            /* já não fica esbatido: fica cortado */
+  filter:none;
+  color:#8b939f;
+  background:#171c23;
+}
+.topo button.desligado::after{
+  content:'';
+  position:absolute;left:1px;right:1px;top:50%;height:2.5px;
+  background:#e04b4b;border-radius:2px;
+  transform:rotate(-28deg);
+  box-shadow:0 0 6px rgba(224,75,75,.65);
+  pointer-events:none;
+}
+
+/* ---------- partilha de ecrã ligada: brilho verde ---------- */
+#btnTela.ativo{
+  background:rgba(60,200,120,.18);
+  border-color:#3cc878;
+  color:#8ff0bd;
+  box-shadow:0 0 0 1px rgba(60,200,120,.55), 0 0 14px 2px rgba(60,200,120,.45);
+  animation:brilhoVerde 2s ease-in-out infinite;
+}
+@keyframes brilhoVerde{
+  0%,100%{box-shadow:0 0 0 1px rgba(60,200,120,.5), 0 0 10px 1px rgba(60,200,120,.35)}
+  50%{box-shadow:0 0 0 1px rgba(60,200,120,.8), 0 0 18px 4px rgba(60,200,120,.6)}
+}
+#btnTela.ativo::before{
+  content:'';position:absolute;left:3px;right:3px;bottom:2px;height:2.5px;
+  background:#3cc878;border-radius:3px;
+  box-shadow:0 0 8px 1px rgba(60,200,120,.85);
+}
