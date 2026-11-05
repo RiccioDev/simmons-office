@@ -226,12 +226,21 @@ wss.on('connection', (ws) => {
       case 'fecharMesa': {
         const d = desks.find(x => x.id === msg.deskId);
         if (!d) return;
-        // só o dono (ou quem a reclamar pela primeira vez) pode fechar/abrir
-        if (!d.owner) { d.owner = p.name; }
-        if (d.owner.toLowerCase() !== p.name.toLowerCase() && d.owner.toLowerCase() !== String(msg.nome || '').toLowerCase()) {
+
+        // Fechar/abrir NUNCA dá a mesa a ninguém.
+        // Só o dono mexe no cadeado. Mesa sem dono nao pode ser trancada.
+        if (!d.owner) {
+          enviar(ws, { t: 'aviso', texto: 'A ' + d.label + ' ainda não é de ninguém. Usa R para ficares com ela.' });
+          return;
+        }
+
+        const nome = String(msg.nome || p.name).toLowerCase();
+        const souDono = d.owner.toLowerCase() === nome || d.owner.toLowerCase() === p.name.toLowerCase();
+        if (!souDono) {
           enviar(ws, { t: 'aviso', texto: 'A ' + d.label + ' é de ' + d.owner + '.' });
           return;
         }
+
         d.locked = !d.locked;
         guardarMesas();
         broadcast({ t: 'mesa', desk: { ...d } });
@@ -243,6 +252,19 @@ wss.on('connection', (ws) => {
         // o nome da mesa é o que a pessoa escrever no claim (nao o nome do login)
         const nome = String(msg.nome || p.name).slice(0, 28).trim() || p.name;
         const meuDono = d.owner && (d.owner.toLowerCase() === p.name.toLowerCase() || d.owner.toLowerCase() === nome.toLowerCase());
+
+        // ninguem fica dono de duas mesas
+        if (!meuDono) {
+          const outra = desks.find(x =>
+            x.id !== d.id &&
+            x.owner &&
+            (x.owner.toLowerCase() === p.name.toLowerCase() || x.owner.toLowerCase() === nome.toLowerCase()));
+          if (outra) {
+            enviar(ws, { t: 'aviso', texto: 'Já tens a ' + outra.label + '. Liberta-a antes de ficares com outra.' });
+            return;
+          }
+        }
+
         if (d.owner && !meuDono) {
           enviar(ws, { t: 'aviso', texto: 'A ' + d.label + ' já é de ' + d.owner + '.' });
           return;
