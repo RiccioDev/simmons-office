@@ -297,10 +297,22 @@ function ligar(nome) {
   };
 }
 
+let avisouMesas = false;
+
 function aplicarEstado(m) {
   const antes = new Set(players.keys());
-  players = new Map(m.players.map(p => [p.id, p]));
-  desks = m.desks;
+
+  if (Array.isArray(m.players)) {
+    players = new Map(m.players.map(p => [p.id, p]));
+  }
+  if (Array.isArray(m.desks) && m.desks.length) {
+    desks = m.desks;
+    avisouMesas = false;
+  } else if (!desks.length && !avisouMesas) {
+    avisouMesas = true;
+    sistema('O servidor não enviou as mesas. Recarrega com F5.');
+  }
+
   for (const id of antes) if (!players.has(id)) fecharPar(id);
   document.getElementById('contagem').textContent = players.size + ' online';
 }
@@ -643,11 +655,15 @@ document.getElementById('btnCriarConta').onclick = async () => {
   await carregarContas();
 };
 
+window.addEventListener('error', (e) => {
+  try { sistema('Erro: ' + e.message); } catch (_) {}
+});
+
 requestAnimationFrame(loop);
 }
 
 function resolverColisao(p) {
-  for (const d of desks) {
+  for (const d of (Array.isArray(desks) ? desks : [])) {
     const pertoX = Math.max(d.x, Math.min(p.x, d.x + d.w));
     const pertoY = Math.max(d.y, Math.min(p.y, d.y + d.h));
     const dx = p.x - pertoX, dy = p.y - pertoY;
@@ -684,7 +700,7 @@ function desenhar() {
   ctx.fill();
 
   // mesas
-  for (const d of desks) {
+  for (const d of (Array.isArray(desks) ? desks : [])) {
     const minha = eu && d.owner && d.owner.toLowerCase() === eu.name.toLowerCase();
     const ocupada = !!d.occupied;
 
