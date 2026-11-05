@@ -13,7 +13,16 @@
   <div class="cartao">
     <div class="marca">SIMMONS<span>DELLION</span></div>
     <h1>Escritório virtual</h1>
-    <p class="sub">Entra com a conta que a administração te deu.</p>
+    <p class="sub" id="subPadrao">Entra com a conta que tens da equipa.</p>
+    <div id="blocoConvite" class="oculto">
+      <p class="sub" style="margin:0 0 14px">Foste convidado. Cria a tua conta para entrar.</p>
+      <input id="convNome" type="text" maxlength="40" placeholder="O teu nome (aparece na mesa)">
+      <input id="convUsuario" type="text" maxlength="24" placeholder="Utilizador" autocapitalize="none" style="margin-top:10px">
+      <input id="convSenha" type="password" maxlength="72" placeholder="Palavra-passe (6+ caracteres)" style="margin-top:10px">
+      <button id="btnCriarConvite">Criar a minha conta</button>
+      <p id="erroConvite" class="erroLogin"></p>
+    </div>
+
     <div id="blocoSetup" class="oculto">
       <p class="sub" style="margin:0 0 14px">Primeira vez: cria a conta de administrador.</p>
       <input id="setupNome" type="text" maxlength="40" placeholder="O teu nome (aparece na mesa)">
@@ -80,6 +89,16 @@
         <input id="novoNome" type="text" placeholder="nome na mesa (ex.: Maria Silva)">
         <button id="btnCriarConta">Criar</button>
       </div>
+      <div class="separador"></div>
+      <h4 class="tituloSecao">Convites</h4>
+      <div class="linhaNova">
+        <button id="btnGerarConvite">Gerar link de convite</button>
+        <span class="dicaConvite">válido 7 dias · uso único</span>
+      </div>
+      <div id="linkConvite" class="linkConvite oculto"></div>
+      <div id="listaConvites" class="listaContas"></div>
+      <div class="separador"></div>
+      <h4 class="tituloSecao">Quem já tem conta</h4>
       <div id="listaContas" class="listaContas"></div>
       <p id="resultadoConta" class="resultadoConta"></p>
       <div class="modalBotoes">

@@ -30,9 +30,62 @@ let euAdmin = false;
 
 usuarioInput.value = localStorage.getItem('simmons_usuario') || '';
 
+// link de convite: quem chega por aqui cria a própria conta
+const codigoConvite = new URLSearchParams(location.search).get('convite');
+if (codigoConvite) {
+  fetch('/api/convite?codigo=' + encodeURIComponent(codigoConvite))
+    .then(r => r.json())
+    .then(d => {
+      if (!d.valido) {
+        document.getElementById('subPadrao').classList.add('oculto');
+        document.getElementById('blocoLogin').classList.add('oculto');
+        document.getElementById('blocoSetup').classList.add('oculto');
+        document.getElementById('blocoConvite').classList.remove('oculto');
+        document.getElementById('btnCriarConvite').disabled = true;
+        document.getElementById('erroConvite').textContent = d.erro || 'Convite inválido.';
+        return;
+      }
+      document.getElementById('subPadrao').classList.add('oculto');
+      document.getElementById('blocoLogin').classList.add('oculto');
+      document.getElementById('blocoSetup').classList.add('oculto');
+      document.getElementById('blocoConvite').classList.remove('oculto');
+      document.getElementById('convNome').focus();
+    })
+    .catch(() => {});
+
+  document.getElementById('btnCriarConvite').onclick = async () => {
+    const erro = document.getElementById('erroConvite');
+    erro.textContent = '';
+    const nome = document.getElementById('convNome').value.trim();
+    const usuario = document.getElementById('convUsuario').value.trim();
+    const senha = document.getElementById('convSenha').value;
+
+    if (!nome || usuario.length < 3 || senha.length < 6) {
+      erro.textContent = 'Preenche o nome, um utilizador com 3+ letras e uma senha com 6+.';
+      return;
+    }
+
+    const r = await fetch('/api/convite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ codigo: codigoConvite, usuario, senha, nome }),
+    });
+    const d = await r.json();
+    if (!r.ok) { erro.textContent = d.erro || 'Não foi possível criar a conta.'; return; }
+
+    token = d.token;
+    euAdmin = false;
+    localStorage.setItem('simmons_token', token);
+    localStorage.setItem('simmons_usuario', usuario);
+    history.replaceState({}, '', '/');
+    await entrarComSessao();
+  };
+}
+
 // primeira vez: criar a conta de administrador
 fetch('/api/setup').then(r => r.json()).then(d => {
-  if (!d.precisa) return;
+  if (!d.precisa || codigoConvite) return;
+  document.getElementById('subPadrao').classList.add('oculto');
   document.getElementById('blocoLogin').classList.add('oculto');
   document.getElementById('blocoSetup').classList.remove('oculto');
   document.getElementById('setupNome').focus();
@@ -472,12 +525,72 @@ const modalContas = document.getElementById('modalContas');
 document.getElementById('btnAdmin').onclick = async () => {
   modalContas.classList.remove('oculto');
   await carregarContas();
+  await carregarConvites();
 };
 
 document.getElementById('btnFecharContas').onclick = () => {
   modalContas.classList.add('oculto');
   document.getElementById('resultadoConta').textContent = '';
 };
+
+document.getElementById('btnGerarConvite').onclick = async () => {
+  const caixa = document.getElementById('linkConvite');
+  const r = await fetch('/api/convites', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+    body: JSON.stringify({ dias: 7 }),
+  });
+  const d = await r.json();
+  if (!r.ok) { caixa.textContent = d.erro || 'erro ao gerar'; caixa.classList.remove('oculto'); return; }
+
+  const link = location.origin + '/?convite=' + d.codigo;
+  caixa.innerHTML = '<div class="linkTexto">' + escapar(link) + '</div>' +
+    '<button id="btnCopiarLink">Copiar link</button>' +
+    '<small>Válido até ' + new Date(d.expira).toLocaleDateString('pt-PT') + '</small>';
+  caixa.classList.remove('oculto');
+
+  document.getElementById('btnCopiarLink').onclick = () => {
+    navigator.clipboard.writeText(link).then(() => {
+      document.getElementById('btnCopiarLink').textContent = 'Copiado!';
+      setTimeout(() => { const b = document.getElementById('btnCopiarLink'); if (b) b.textContent = 'Copiar link'; }, 1600);
+    }).catch(() => {});
+  };
+
+  await carregarConvites();
+};
+
+async function carregarConvites() {
+  const lista = document.getElementById('listaConvites');
+  try {
+    const r = await fetch('/api/convites', { headers: { Authorization: 'Bearer ' + token } });
+    const d = await r.json();
+    if (!r.ok) { lista.innerHTML = ''; return; }
+    if (!d.convites.length) { lista.innerHTML = '<div class="contaVazia">Ainda não geraste convites.</div>'; return; }
+
+    lista.innerHTML = d.convites.map(c => {
+      const expirado = new Date(c.expira) < new Date();
+      const estado = c.usado ? ('usado por ' + escapar(c.usado_por || '?')) : (expirado ? 'expirado' : 'por usar');
+      const cor = c.usado ? '#5f6875' : (expirado ? '#c98a7a' : '#8fe3d6');
+      return '<div class="contaLinha">' +
+        '<span class="contaNome">' + escapar(c.codigo.slice(0, 10)) + '…' +
+        '<small>' + new Date(c.criado).toLocaleDateString('pt-PT') + ' · <b style="color:' + cor + '">' + estado + '</b></small></span>' +
+        '<button class="contaRemover" data-c="' + escapar(c.codigo) + '">apagar</button></div>';
+    }).join('');
+
+    lista.querySelectorAll('.contaRemover').forEach(b => {
+      b.onclick = async () => {
+        await fetch('/api/convites/remover', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+          body: JSON.stringify({ codigo: b.dataset.c }),
+        });
+        await carregarConvites();
+      };
+    });
+  } catch (e) {
+    lista.innerHTML = '';
+  }
+}
 
 async function carregarContas() {
   const lista = document.getElementById('listaContas');

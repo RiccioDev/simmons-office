@@ -52,6 +52,17 @@ async function iniciar() {
     )
   `);
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS convites (
+      codigo     TEXT PRIMARY KEY,
+      criado     TIMESTAMPTZ NOT NULL DEFAULT now(),
+      expira     TIMESTAMPTZ NOT NULL,
+      usado      TIMESTAMPTZ,
+      usado_por  TEXT,
+      criado_por TEXT
+    )
+  `);
+
   console.log('Postgres ligado - mesas e contas permanentes.');
   return true;
 }
@@ -250,6 +261,95 @@ async function marcarVisto(username) {
   } catch (e) { }
 }
 
+// ------------------------------------------------------------------ convites
+
+const FICHEIRO_CONVITES = path.join(__dirname, 'convites.json');
+
+function lerConvitesFicheiro() {
+  try {
+    if (fs.existsSync(FICHEIRO_CONVITES)) {
+      const l = JSON.parse(fs.readFileSync(FICHEIRO_CONVITES, 'utf8'));
+      return Array.isArray(l) ? l : [];
+    }
+  } catch (e) { }
+  return [];
+}
+
+async function criarConvite(codigo, dias, criadoPor) {
+  await pronto;
+  const expira = new Date(Date.now() + dias * 24 * 3600 * 1000);
+
+  if (pool) {
+    try {
+      await pool.query(
+        'INSERT INTO convites (codigo, expira, criado_por) VALUES ($1, $2, $3)',
+        [codigo, expira.toISOString(), criadoPor || '']
+      );
+      return { codigo, expira };
+    } catch (e) { }
+  }
+
+  const lista = lerConvitesFicheiro();
+  lista.push({ codigo, expira: expira.toISOString(), usado: null, usado_por: null, criado_por: criadoPor || '' });
+  fs.writeFileSync(FICHEIRO_CONVITES, JSON.stringify(lista, null, 2), 'utf8');
+  return { codigo, expira };
+}
+
+async function buscarConvite(codigo) {
+  await pronto;
+  if (!codigo) return null;
+
+  if (pool) {
+    try {
+      const r = await pool.query('SELECT * FROM convites WHERE codigo = $1', [String(codigo)]);
+      return r.rows[0] || null;
+    } catch (e) { }
+  }
+  return lerConvitesFicheiro().find(x => x.codigo === codigo) || null;
+}
+
+async function usarConvite(codigo, username) {
+  await pronto;
+  if (pool) {
+    try {
+      await pool.query('UPDATE convites SET usado = now(), usado_por = $2 WHERE codigo = $1', [codigo, username]);
+      return true;
+    } catch (e) { }
+  }
+  const lista = lerConvitesFicheiro();
+  const c = lista.find(x => x.codigo === codigo);
+  if (c) {
+    c.usado = new Date().toISOString();
+    c.usado_por = username;
+    fs.writeFileSync(FICHEIRO_CONVITES, JSON.stringify(lista, null, 2), 'utf8');
+  }
+  return true;
+}
+
+async function listarConvites() {
+  await pronto;
+  if (pool) {
+    try {
+      const r = await pool.query('SELECT codigo, criado, expira, usado, usado_por FROM convites ORDER BY criado DESC LIMIT 30');
+      return r.rows;
+    } catch (e) { }
+  }
+  return lerConvitesFicheiro().slice(-30).reverse();
+}
+
+async function removerConvite(codigo) {
+  await pronto;
+  if (pool) {
+    try {
+      await pool.query('DELETE FROM convites WHERE codigo = $1', [codigo]);
+      return true;
+    } catch (e) { }
+  }
+  fs.writeFileSync(FICHEIRO_CONVITES,
+    JSON.stringify(lerConvitesFicheiro().filter(x => x.codigo !== codigo), null, 2), 'utf8');
+  return true;
+}
+
 // ------------------------------------------------------------------ varios
 
 function modoArmazenamento() {
@@ -270,5 +370,6 @@ module.exports = {
   carregar, gravar,
   contarUtilizadores, criarUtilizador, buscarUtilizador, listarUtilizadores,
   removerUtilizador, mudarSenha, marcarVisto,
+  criarConvite, buscarConvite, usarConvite, listarConvites, removerConvite,
   modoArmazenamento, diagnostico, pronto,
 };

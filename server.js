@@ -38,6 +38,7 @@ let desks = mesasIniciais();
 
 const armazem = require('./armazenamento');
 const auth = require('./auth');
+const crypto = require('crypto');
 
 // aplicar o que estiver guardado (Postgres ou ficheiro)
 armazem.carregar().then((guardado) => {
@@ -112,6 +113,8 @@ const server = http.createServer((req, res) => {
     req.on('end', () => { try { ok(JSON.parse(d || '{}')); } catch (e) { ok({}); } });
   });
 
+  const codigoOu = (x) => String(x || '');
+
   const utilizadorDoPedido = () => {
     const cab = req.headers.authorization || '';
     const token = cab.startsWith('Bearer ') ? cab.slice(7) : (req.headers['x-token'] || '');
@@ -160,6 +163,74 @@ const server = http.createServer((req, res) => {
     const dados = utilizadorDoPedido();
     if (!dados) return json(401, { erro: 'sem sessao' });
     return json(200, { usuario: dados.u, nome: dados.n, admin: !!dados.a });
+  }
+
+  // ---------------------------------------------------------- convites
+  if (caminho === '/api/convites') {
+    const dados = utilizadorDoPedido();
+    if (!dados || !dados.a) return json(403, { erro: 'so o administrador' });
+
+    if (req.method === 'GET') {
+      return armazem.listarConvites().then(l => json(200, { convites: l }));
+    }
+
+    if (req.method === 'POST') {
+      return lerCorpo().then(async (corpo) => {
+        const dias = Math.min(Math.max(Number(corpo.dias) || 7, 1), 30);
+        const codigo = crypto.randomBytes(9).toString('base64')
+          .replace(/\+/g, 'a').replace(/\//g, 'b').replace(/=+$/, '');
+        const c = await armazem.criarConvite(codigo, dias, dados.u);
+        return json(200, { ok: true, codigo: c.codigo, expira: c.expira, dias });
+      });
+    }
+  }
+
+  if (caminho === '/api/convites/remover' && req.method === 'POST') {
+    const dados = utilizadorDoPedido();
+    if (!dados || !dados.a) return json(403, { erro: 'so o administrador' });
+    return lerCorpo().then(async (corpo) => {
+      await armazem.removerConvite(corpo.codigo);
+      return json(200, { ok: true });
+    });
+  }
+
+  // quem recebe o link cria a propria conta
+  if (caminho === '/api/convite') {
+    if (req.method === 'GET') {
+      return armazem.buscarConvite(req.headers['x-convite'] || new URL(req.url, 'http://x').searchParams.get('codigo'))
+        .then(c => {
+          if (!c) return json(404, { valido: false, erro: 'Convite invalido.' });
+          if (c.usado) return json(410, { valido: false, erro: 'Este convite ja foi usado.' });
+          if (new Date(c.expira) < new Date()) return json(410, { valido: false, erro: 'Este convite expirou.' });
+          return json(200, { valido: true });
+        });
+    }
+
+    if (req.method === 'POST') {
+      return lerCorpo().then(async (corpo) => {
+        const c = await armazem.buscarConvite(corpo.codigo);
+        if (!c) return json(404, { erro: 'Convite invalido.' });
+        if (c.usado) return json(410, { erro: 'Este convite ja foi usado.' });
+        if (new Date(c.expira) < new Date()) return json(410, { erro: 'Este convite expirou.' });
+        if (!corpo.usuario || String(corpo.usuario).length < 3) return json(400, { erro: 'Utilizador demasiado curto.' });
+        if (!corpo.senha || String(corpo.senha).length < 6) return json(400, { erro: 'A palavra-passe precisa de 6 caracteres.' });
+
+        try {
+          await armazem.criarUtilizador({
+            username: corpo.usuario,
+            displayName: corpo.nome || corpo.usuario,
+            senhaHash: await auth.hashSenha(corpo.senha),
+            isAdmin: false,
+          });
+        } catch (e) {
+          return json(400, { erro: e.message });
+        }
+
+        await armazem.usarConvite(codigoOu(corpo.codigo), String(corpo.usuario).toLowerCase().trim());
+        const u = await armazem.buscarUtilizador(corpo.usuario);
+        return json(200, { ok: true, token: auth.criarToken(u), nome: u.display_name });
+      });
+    }
   }
 
   // gestao de contas (so administrador)

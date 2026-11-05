@@ -193,3 +193,22 @@ body{
 .contaVazia{color:#5f6875;font-size:12.5px;padding:10px 2px}
 .resultadoConta{font-size:12.5px;color:#8fe3d6;margin:12px 0 0;line-height:1.6;min-height:18px}
 .resultadoConta small{color:#5f6875}
+
+
+/* ---------- convites ---------- */
+.separador{height:1px;background:var(--linha);margin:18px 0 14px}
+.tituloSecao{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#6b7480;margin:0 0 10px;font-weight:700}
+.dicaConvite{font-size:11.5px;color:#5f6875;align-self:center}
+.linkConvite{
+  background:#0f141a;border:1px solid var(--ouro);border-radius:10px;
+  padding:12px;margin-bottom:14px;display:flex;flex-direction:column;gap:9px;
+}
+.linkTexto{
+  font-family:Consolas,monospace;font-size:12px;color:var(--ouro);
+  word-break:break-all;line-height:1.5;
+}
+.linkConvite button{
+  align-self:flex-start;padding:8px 14px;border:0;border-radius:8px;
+  background:var(--ouro);color:#12151a;font-weight:700;font-size:12.5px;cursor:pointer;
+}
+.linkConvite small{color:#5f6875;font-size:11px}
