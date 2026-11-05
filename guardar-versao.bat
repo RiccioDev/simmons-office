@@ -9,9 +9,7 @@ echo.
 set PASTA=versoes
 if not exist "%PASTA%" mkdir "%PASTA%"
 
-for /f "tokens=1-4 delims=/ " %%a in ('date /t') do set DATA=%%c-%%b-%%a
-for /f "tokens=1-2 delims=:." %%a in ('echo %TIME%') do set HORA=%%a-%%b
-set CARIMBO=%DATA%_%HORA%
+for /f %%i in ('powershell -NoProfile -Command "Get-Date -Format yyyy-MM-dd_HH-mm"') do set CARIMBO=%%i
 
 set DESTINO=%PASTA%\simmons-office_%CARIMBO%
 

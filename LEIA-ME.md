@@ -28,6 +28,25 @@ monto.
 - M — ligar / desligar o meu microfone
 - C — ligar / desligar a minha câmara
 - Enter no chat — escrever para todos
+- 🎥 Tela cheia — aparece quando estás a falar com alguém (só nessa altura)
+
+## A tua câmara
+
+No canto inferior esquerdo aparece sempre a **tua própria imagem** (espelhada, como num
+espelho) enquanto a câmara estiver ligada. Serve para acertares o ângulo e veres se estás
+enquadrado. O som dessa janela está desligado — nunca faz eco.
+
+## Modo reunião (tela cheia)
+
+Quando chegas perto de alguém e a chamada liga, aparece o botão **🎥 Tela cheia** no fundo
+do mapa. Ao carregar:
+
+- o escritório sai da frente e os participantes aparecem em tiles grandes, como no Zoom
+- o teu tile está espelhado e diz "(tu)"; o do colega mostra o nome dele
+- com 2 pessoas ficam lado a lado; com 3 ou mais passa a grelha 2×2
+- **Esc** ou "Voltar ao escritório" fecha e volta ao mapa
+
+Se a pessoa se afastar, o tile desaparece sozinho; se não ficar ninguém, a sala fecha.
 
 ## Como funcionam as mesas
 
