@@ -80,6 +80,22 @@ const MIME = {
 const server = http.createServer((req, res) => {
   const caminho = req.url.split('?')[0];
 
+  // backup: devolve o estado das mesas para guardar em ficheiro
+  if (caminho === '/api/backup') {
+    const chave = process.env.BACKUP_KEY || '';
+    const enviada = req.headers['x-backup-key'] || '';
+    if (chave && enviada !== chave) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ erro: 'nao autorizado' }));
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    return res.end(JSON.stringify({
+      data: new Date().toISOString(),
+      armazenamento: armazem.modoArmazenamento(),
+      mesas: desks.map(d => ({ id: d.id, label: d.label, owner: d.owner, locked: d.locked })),
+    }, null, 1));
+  }
+
   // diagnostico: onde estao a ser guardadas as mesas
   if (caminho === '/api/estado') {
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
