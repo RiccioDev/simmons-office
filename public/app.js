@@ -232,6 +232,13 @@ function ligar(nome) {
           if (p) p.cor = m.players.find(x => x.id === m.id)?.cor || '#c9a227';
         }
         sistema('Estás no escritório. Anda com WASD e chega-te a alguém para falar.');
+        setTimeout(() => {
+          const cv = document.getElementById('mapa');
+          const r = cv.getBoundingClientRect();
+          sistema('depuração: ' + (Array.isArray(desks) ? desks.length : 'sem') + ' mesas · tela ' +
+                   Math.round(r.width) + 'x' + Math.round(r.height) + ' · canvas ' + cv.width + 'x' + cv.height +
+                   ' · jogadores ' + players.size);
+        }, 1200);
         break;
       case 'estado':
         aplicarEstado(m);
