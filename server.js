@@ -35,24 +35,27 @@ function mesasIniciais() {
 }
 
 let desks = mesasIniciais();
-try {
-  if (fs.existsSync(DESKS_FILE)) {
-    const guardado = JSON.parse(fs.readFileSync(DESKS_FILE, 'utf8'));
-    if (Array.isArray(guardado) && guardado.length === 10) {
-      desks = guardado.map((d, i) => ({ ...mesasIniciais()[i], ...d, occupied: '' }));
+
+const armazem = require('./armazenamento');
+
+// aplicar o que estiver guardado (Postgres ou ficheiro)
+armazem.carregar().then((guardado) => {
+  for (const d of desks) {
+    const g = guardado.get(d.id);
+    if (g) {
+      d.owner = g.owner;
+      d.locked = g.locked;
     }
   }
-} catch (e) {
-  console.log('mesas.json ilegivel, a usar o mapa por defeito');
-}
+  console.log('mesas carregadas de: ' + armazem.modoArmazenamento());
+  broadcastEstado();
+}).catch((e) => console.log('erro ao carregar mesas:', e.message));
 
 function guardarMesas() {
-  try {
-    // occupied não se guarda: é estado de sessão
-    const limpo = desks.map(({ occupied, ...resto }) => resto);
-    fs.writeFileSync(DESKS_FILE, JSON.stringify(limpo, null, 2), 'utf8');
-  } catch (e) {
-    console.log('erro ao gravar mesas:', e.message);
+  global.__mesasParaFicheiro = desks;
+  armazem.gravar({ id: 0 }); // garante a lista completa no fallback
+  for (const d of desks) {
+    armazem.gravar(d).catch((e) => console.log('erro ao gravar mesa', d.id, e.message));
   }
 }
 

@@ -59,6 +59,18 @@ monto.
 - cloudflared.exe — programa que cria o túnel
 - wstest.js / wstest_publico.js — testes de ligação local e pública
 
+
+## Base de dados (donos permanentes)
+
+Quando corre no Render, as mesas ficam numa base de dados Postgres gratuita — os donos
+**nunca se perdem**, nem com deploys nem com reinícios.
+
+Quando corre no teu PC (`Gather.bat`), usa o ficheiro local `mesas.json`. Funciona igual,
+só não é partilhado com a versão online.
+
+O código escolhe sozinho: se existir a variável `DATABASE_URL`, vai para Postgres; se não,
+usa o ficheiro. Se o Postgres falhar, cai no ficheiro e continua a funcionar.
+
 ## Se algo falhar
 
 - Não ouço ninguém -> vê o candeeiro do microfone no topo; confirma que estás a menos de
