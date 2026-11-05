@@ -347,6 +347,7 @@ function estadoPublico() {
     players: [...players.values()].map(p => ({
       id: p.id, name: p.name, x: p.x, y: p.y, cor: p.cor,
       sitting: p.sitting, deskId: p.deskId, muted: p.muted, camOn: p.camOn,
+      partilha: !!p.partilha,
     })),
     desks: desks.map(d => ({
       id: d.id, label: d.label, x: d.x, y: d.y, w: d.w, h: d.h,
@@ -560,6 +561,12 @@ wss.on('connection', (ws) => {
         if (outro) enviar(outro.ws, { t: 'porta', com: id, aberta: false });
         enviar(ws, { t: 'porta', com, aberta: false });
         enviar(ws, { t: 'aviso', texto: 'Porta fechada.' });
+        break;
+      }
+
+      case 'partilha': {
+        p.partilha = !!msg.ligada;
+        broadcast({ t: 'estado', ...estadoPublico() });
         break;
       }
 

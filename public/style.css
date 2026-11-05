@@ -306,3 +306,56 @@ body{
 
 /* sino do topo */
 #btnSino.desligado{opacity:.35;filter:grayscale(1)}
+
+
+/* ---------- partilha de ecrã ---------- */
+.barraTela{
+  position:absolute;top:14px;left:50%;transform:translateX(-50%);
+  display:flex;align-items:center;gap:10px;z-index:7;
+  background:rgba(20,14,14,.92);border:1px solid rgba(220,80,80,.5);
+  padding:8px 10px 8px 14px;border-radius:24px;
+  box-shadow:0 12px 30px rgba(0,0,0,.5);
+}
+.barraTela.oculto{display:none}
+.barraTela span{font-size:12.5px;color:#e8d5d5}
+.pontoVermelho{
+  width:9px;height:9px;border-radius:50%;background:#e04b4b;
+  animation:piscaVermelho 1.4s ease-in-out infinite;
+}
+@keyframes piscaVermelho{0%,100%{opacity:1}50%{opacity:.25}}
+.barraTela button{
+  background:#3a2224;border:1px solid rgba(220,80,80,.55);color:#f0d8d8;
+  padding:5px 14px;border-radius:16px;font-size:12px;cursor:pointer;
+}
+.barraTela button:hover{background:#4a2a2c}
+
+#btnTela.ativo{background:rgba(220,80,80,.25);border-color:#e04b4b}
+
+/* ecrã partilhado em grande */
+#ecraOverlay{
+  position:fixed;inset:0;z-index:95;background:#05070a;
+  display:flex;flex-direction:column;
+}
+#ecraOverlay.oculto{display:none}
+#ecraVideo{
+  flex:1;width:100%;min-height:0;object-fit:contain;background:#000;
+}
+.ecraBarra{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 18px;background:#0f131a;border-top:1px solid var(--linha);
+}
+.ecraBarra span{font-size:13px;color:#9aa4b2}
+.ecraBarra button{
+  background:#1d232c;border:1px solid var(--linha);color:var(--tinta);
+  padding:7px 15px;border-radius:9px;font-size:12.5px;cursor:pointer;
+}
+.ecraBarra button:hover{border-color:var(--ouro)}
+
+/* selo de quem está a partilhar (no mapa) */
+.seloTela{
+  position:absolute;left:6px;top:6px;background:rgba(220,80,80,.9);
+  color:#fff;font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:8px;
+}
+
+/* no modo reunião: o ecrã ocupa a linha de cima */
+.tile.telaGrelha{grid-column:1 / -1}

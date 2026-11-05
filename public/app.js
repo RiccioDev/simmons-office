@@ -96,7 +96,11 @@ let temVideo = false;
 let muted = false, camOn = true;
 
 const pares = new Map();  // id -> { pc, videoEl, cardEl }
-const portasAbertas = new Set();  // ids autorizados a falar comigo
+const portasAbertas = new Set();
+let streamEcra = null;        // o que EU estou a partilhar
+let ecraRemoto = null;        // { id, stream, nome } de quem estou a ver
+let ecraNaGrelha = false;     // a ver dentro do modo reuniao
+const midEcra = new Map();    // id do colega -> mid da faixa de ecra  // ids autorizados a falar comigo
 let batidaPendente = null;
 let ws = null;
 
@@ -398,7 +402,22 @@ function aplicarEstado(m) {
   const antes = new Set(players.keys());
 
   if (Array.isArray(m.players)) {
+    const antesPartilha = new Set([...players.values()].filter(p => p.partilha).map(p => p.id));
     players = new Map(m.players.map(p => [p.id, p]));
+
+    // se alguem comecou a partilhar agora, avisa
+    for (const p of players.values()) {
+      if (p.partilha && !antesPartilha.has(p.id) && p.id !== eu?.id) {
+        avisar(p.name + ' começou a partilhar o ecrã.');
+      }
+      if (!p.partilha && antesPartilha.has(p.id) && ecraRemoto && ecraRemoto.id === p.id) {
+        avisar('A partilha de ecrã terminou.');
+        document.getElementById('ecraOverlay').classList.add('oculto');
+        document.getElementById('ecraVideo').srcObject = null;
+        ecraRemoto = null;
+        if (salaAberta) atualizarSala();
+      }
+    }
   }
   if (Array.isArray(m.desks) && m.desks.length) {
     desks = m.desks;
@@ -462,6 +481,7 @@ window.addEventListener('keydown', (e) => {
   if (k === 'l') alternarFecho();
   if (k === 'r') reclamarMesa();
   if (k === 'k') bater();
+  if (k === 't' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); comecarPartilha(); }
   if (k === 'm') alternarMic();
   if (k === 'c') alternarCam();
 
@@ -657,7 +677,190 @@ function loop(t) {
   }
   requestAnimationFrame(loop);
 }
-  // ------------------------------------------------------------ sala (modo reuniao)
+  // ------------------------------------------------------------ partilha de ecra
+async function comecarPartilha() {
+  if (streamEcra) { pararPartilha(); return; }
+
+  let ecra;
+  try {
+    ecra = await navigator.mediaDevices.getDisplayMedia({
+      video: { frameRate: { ideal: 15, max: 30 } },
+      audio: true,   // o browser mostra a opcao de partilhar o som do sistema
+    });
+  } catch (e) {
+    if (e && e.name !== 'NotAllowedError') avisar('Não foi possível partilhar o ecrã.');
+    return;
+  }
+
+  streamEcra = ecra;
+
+  // se o audio do sistema nao veio (o browser nao ofereceu), partilha so a imagem
+  const temAudio = ecra.getAudioTracks().length > 0;
+
+  // avisar o servidor e juntar as faixas nas ligacoes que ja existem
+  for (const [id, par] of pares) ligarEcra(id, par.pc);
+
+  ws.send(JSON.stringify({ t: 'partilha', ligada: true }));
+
+  const barra = document.getElementById('barraTela');
+  document.getElementById('telaTexto').textContent =
+    temAudio ? 'A partilhar o teu ecrã (com som)' : 'A partilhar o teu ecrã';
+  barra.classList.remove('oculto');
+  document.getElementById('btnTela').classList.add('ativo');
+
+  // quando carregas em "parar partilha" no proprio Chrome
+  ecra.getVideoTracks()[0].onended = () => pararPartilha();
+
+  avisar('A partilhar o teu ecrã. Quem estiver ao teu lado vê.');
+}
+
+function ligarEcra(id, pc) {
+  if (!streamEcra || !pc) return;
+  for (const faixa of streamEcra.getTracks()) {
+    if (pc.getSenders().some(s => s.track === faixa)) continue;
+    const transmissor = pc.addTrack(faixa, streamEcra);
+    if (faixa.kind === 'video') {
+      const guardarMid = () => {
+        if (transmissor.mid == null) return;
+        midEcra.set(id, transmissor.mid);
+        try { ws.send(JSON.stringify({ t: 'sinal', para: id, dados: { tipo: 'midEcra', mid: transmissor.mid } })); } catch (e) {}
+      };
+      guardarMid(); setTimeout(guardarMid, 400); setTimeout(guardarMid, 1500);
+    }
+  }
+  // quem partilha e sempre quem manda a proposta
+  renegociar(id, pc);
+}
+
+function pararPartilha() {
+  if (!streamEcra) return;
+  const faixasAlvo = streamEcra.getTracks().slice();
+  faixasAlvo.forEach(t => t.stop());
+  streamEcra = null;
+
+  const faixasEcra = faixasAlvo;
+  for (const [id, par] of pares) {
+    // parar o transceiver inteiro, não só o sender (senão a faixa fica órfã e volta na oferta seguinte)
+    for (const t of par.pc.getTransceivers()) {
+      if (t.sender && t.sender.track && faixasEcra.includes(t.sender.track)) {
+        try { t.stop(); } catch (e) {}
+      }
+    }
+    renegociar(id, par.pc);
+  }
+
+  ws.send(JSON.stringify({ t: 'partilha', ligada: false }));
+  document.getElementById('barraTela').classList.add('oculto');
+  document.getElementById('btnTela').classList.remove('ativo');
+  fecharEcra();
+  avisar('Paraste de partilhar o ecrã.');
+}
+
+async function renegociar(id, pc) {
+  if (!pc) return;
+  if (pc.signalingState !== 'stable') {
+    // espera que estabilize (envio de ICE ou resposta a caminho) e tenta de novo
+    setTimeout(() => renegociar(id, pc), 700);
+    return;
+  }
+  try {
+    const oferta = await pc.createOffer();
+    await pc.setLocalDescription(oferta);
+    const dados = { tipo: 'offer', sdp: pc.localDescription };
+    ws.send(JSON.stringify({ t: 'sinal', para: id, dados }));
+
+    // depois de estabelecer, anuncia os mids das faixas de ecra
+    setTimeout(anunciarMidsEcra, 500);
+    setTimeout(anunciarMidsEcra, 2000);
+  } catch (e) {
+    setTimeout(() => renegociar(id, pc), 900);
+  }
+}
+
+function anunciarMidsEcra() {
+  if (!streamEcra) return;
+  for (const [id, par] of pares) {
+    for (const t of par.pc.getTransceivers()) {
+      if (!t.sender || !t.sender.track) continue;
+      if (!streamEcra.getTracks().includes(t.sender.track)) continue;
+      if (t.sender.track.kind !== 'video') continue;
+      if (t.mid == null) continue;
+      midEcra.set(id, t.mid);
+      ws.send(JSON.stringify({ t: 'sinal', para: id, dados: { tipo: 'midEcra', mid: t.mid } }));
+    }
+  }
+}
+
+function negociar(id, pc, transmissor) {
+  if (pc.signalingState !== 'stable') return;
+  renegociar(id, pc);
+}
+
+// ---------- do lado de quem VE ----------
+function receberEcra(id, stream) {
+  const nome = players.get(id)?.name || 'Um colega';
+  ecraRemoto = { id, stream, nome };
+
+  if (salaAberta) {
+    atualizarSala();
+  } else {
+    mostrarEcra();
+  }
+
+  avisar(nome + ' está a partilhar o ecrã. Carrega para ver em grande.');
+  tocarAvisoEcra();
+}
+
+function mostrarEcra() {
+  if (!ecraRemoto) return;
+  const ov = document.getElementById('ecraOverlay');
+  const v = document.getElementById('ecraVideo');
+  v.srcObject = ecraRemoto.stream;
+  v.muted = false;
+  v.play().catch(() => {});
+  document.getElementById('ecraNome').textContent = 'Ecrã de ' + ecraRemoto.nome;
+  ov.classList.remove('oculto');
+}
+
+function fecharEcra() {
+  if (ecraNaGrelha) { ecraNaGrelha = false; return; }
+  const ov = document.getElementById('ecraOverlay');
+  const v = document.getElementById('ecraVideo');
+  ov.classList.add('oculto');
+  v.srcObject = null;
+  ecraRemoto = null;
+}
+
+function tocarAvisoEcra() {
+  if (!somBatida) return;
+  const ctx = contextoAudio();
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const g = ctx.createGain();
+  osc.type = 'triangle';
+  osc.frequency.setValueAtTime(660, t);
+  osc.frequency.exponentialRampToValueAtTime(990, t + 0.12);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.2, t + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+  osc.connect(g).connect(ctx.destination);
+  osc.start(t); osc.stop(t + 0.24);
+}
+
+// ao receber uma ligacao nova, se estou a partilhar, levo o ecra comigo
+function partilhaParaPar(id, pc) {
+  if (!streamEcra) return;
+  for (const faixa of streamEcra.getTracks()) {
+    try { pc.addTrack(faixa, streamEcra); } catch (e) {}
+  }
+}
+
+ligarClique('btnTela', 'onclick', comecarPartilha);
+ligarClique('btnPararTela', 'onclick', pararPartilha);
+ligarClique('btnFecharEcra', 'onclick', fecharEcra);
+
+// ------------------------------------------------------------ sala (modo reuniao)
 let salaAberta = false;
 
 function participantes() {
@@ -686,6 +889,30 @@ function atualizarSala() {
 
   const grelha = document.getElementById('salaGrelha');
   const lista = participantes();
+
+  // o ecra de quem partilha ocupa a linha de cima
+  const ecra = ecraRemoto ? ecraRemoto : (streamEcra ? { id: 'eu', stream: streamEcra, nome: 'O teu ecrã (a partilhar)' } : null);
+  let tileEcra = grelha.querySelector('.tile.telaGrelha');
+  if (ecra) {
+    if (!tileEcra) {
+      tileEcra = document.createElement('div');
+      tileEcra.className = 'tile telaGrelha';
+      const v = document.createElement('video');
+      v.autoplay = true; v.playsInline = true; v.muted = true;
+      v.style.objectFit = 'contain';
+      const nome = document.createElement('div');
+      nome.className = 'nome';
+      tileEcra.append(v, nome);
+      grelha.prepend(tileEcra);
+    }
+    const v = tileEcra.querySelector('video');
+    if (v.srcObject !== ecra.stream) { v.srcObject = ecra.stream; v.play().catch(() => {}); }
+    tileEcra.querySelector('.nome').textContent = ecra.nome;
+    grelha.style.gridTemplateRows = 'minmax(240px,1.6fr) 1fr';
+  } else if (tileEcra) {
+    tileEcra.remove();
+    grelha.style.gridTemplateRows = '';
+  }
 
   // quantos para definir o tamanho das celulas
   grelha.style.gridTemplateColumns = lista.length <= 1 ? '1fr'
@@ -1040,6 +1267,21 @@ function desenhar() {
       ctx.font = '11px "Segoe UI Emoji",sans-serif';
       ctx.fillText('🔇', p.x + RAIO_AVATAR - 2, p.y - RAIO_AVATAR + 2);
     }
+
+    // quem esta a partilhar o ecra
+    if (p.partilha) {
+      ctx.textAlign = 'center';
+      ctx.font = '700 9.5px "Segoe UI",sans-serif';
+      const txt = 'A PARTILHAR';
+      const l = ctx.measureText(txt).width;
+      ctx.fillStyle = 'rgba(224,75,75,.95)';
+      ctx.beginPath();
+      ctx.roundRect(p.x - l / 2 - 8, p.y - RAIO_AVATAR - 24, l + 16, 17, 8);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.fillText(txt, p.x, p.y - RAIO_AVATAR - 11.5);
+      ctx.textAlign = 'left';
+    }
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
   }
@@ -1114,13 +1356,23 @@ function criarPar(id, iniciador) {
   document.getElementById('videoZone').appendChild(cardEl);
 
   if (meuStream) meuStream.getTracks().forEach(t => pc.addTrack(t, meuStream));
+  partilhaParaPar(id, pc);
 
   pc.onicecandidate = (e) => {
     if (e.candidate) ws.send(JSON.stringify({ t: 'sinal', para: id, dados: { tipo: 'ice', candidate: e.candidate } }));
   };
 
   pc.ontrack = (e) => {
-    videoEl.srcObject = e.streams[0];
+    const stream = e.streams[0];
+    // o mid diz de que transceiver veio; e o anunciado pelo outro lado diz se e o ecra
+    const meuMid = e.transceiver ? e.transceiver.mid : null;
+    const ehEcra = (midEcra.get(id) != null && String(midEcra.get(id)) === String(meuMid))
+      || /^screen[:\-]/i.test((e.track && e.track.label) || '');
+    if (ehEcra) {
+      receberEcra(id, stream);
+      return;
+    }
+    videoEl.srcObject = stream;
     cardEl.classList.remove('semcam');
     atualizarSala();
   };
@@ -1129,7 +1381,13 @@ function criarPar(id, iniciador) {
     if (['failed', 'closed', 'disconnected'].includes(pc.connectionState)) fecharPar(id);
   };
 
-  pares.set(id, { pc, videoEl, cardEl });
+  // sempre que entram/saem faixas, alguém tem de mandar a nova oferta
+  pc.onnegotiationneeded = async () => {
+    // nao faz nada: a renegociacao e pedida explicitamente ao abrir/fechar partilha
+    // (evita as duas pontas a criar ofertas ao mesmo tempo, o que troca os mids)
+  };
+
+  pares.set(id, { pc, videoEl, cardEl, iniciador });
   atualizarSala();
 
   // rede de segurança: se em 2 s continuar "new", oferece de qualquer forma
@@ -1154,6 +1412,25 @@ function ofertar(id, pc) {
 async function tratarSinal(de, dados) {
   let par = pares.get(de);
 
+  if (dados.midEcra != null) midEcra.set(de, dados.midEcra);
+  if (dados.tipo === 'midEcra' && dados.mid != null) {
+    midEcra.set(de, dados.mid);
+    // pode ja ter chegado antes do ontrack: reaproveitar a faixa
+    const par = pares.get(de);
+    if (par) {
+      const t = par.pc.getTransceivers().find(x => String(x.mid) === String(dados.mid));
+      if (t && t.receiver && t.receiver.track && t.receiver.track.readyState === 'live') {
+        const st = new MediaStream([t.receiver.track]);
+        const outroVideo = par.pc.getTransceivers().find(x => x !== t && x.receiver && x.receiver.track && x.receiver.track.kind === 'video');
+        if (outroVideo && outroVideo.receiver.track.readyState === 'live') st.addTrack(outroVideo.receiver.track);
+        const audio = par.pc.getTransceivers().find(x => x.receiver && x.receiver.track && x.receiver.track.kind === 'audio');
+        if (audio && audio.receiver.track.readyState === 'live') st.addTrack(audio.receiver.track);
+        receberEcra(de, st);
+      }
+    }
+    return;
+  }
+
   if (dados.tipo === 'offer') {
     if (!par) { criarPar(de, false); par = pares.get(de); }
     if (par.pc.signalingState !== 'stable') return;
@@ -1161,6 +1438,8 @@ async function tratarSinal(de, dados) {
     const resposta = await par.pc.createAnswer();
     await par.pc.setLocalDescription(resposta);
     ws.send(JSON.stringify({ t: 'sinal', para: de, dados: { tipo: 'answer', sdp: par.pc.localDescription } }));
+  } else if (dados.tipo === 'renegociar' && par) {
+    await renegociar(de, par.pc);
   } else if (dados.tipo === 'answer' && par) {
     if (par.pc.signalingState !== 'stable') {
       await par.pc.setRemoteDescription(new RTCSessionDescription(dados.sdp));
@@ -1176,6 +1455,11 @@ function fecharPar(id) {
   try { par.pc.close(); } catch (e) { }
   par.cardEl.remove();
   pares.delete(id);
+  if (ecraRemoto && ecraRemoto.id === id) {
+    document.getElementById('ecraOverlay').classList.add('oculto');
+    document.getElementById('ecraVideo').srcObject = null;
+    ecraRemoto = null;
+  }
   atualizarSala();
 }
 

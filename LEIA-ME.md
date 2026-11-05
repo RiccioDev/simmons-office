@@ -51,6 +51,23 @@ O sino **🔔** no topo liga e desliga o som das batidas. A escolha fica guardad
 
 Se quem bateu se afastar ou sair, o painel fecha sozinho.
 
+## Partilhar o ecrã
+
+Carrega em **🖥️** no topo (ou **Ctrl+T**). O Chrome pergunta o que queres partilhar — ecrã
+inteiro, janela ou separador — e, nas opções, podes **incluir o som do computador**.
+
+- Enquanto partilhas, aparece uma barra vermelha no topo e o teu avatar no mapa ganha o
+  selo **A PARTILHAR**
+- Quem estiver ao teu lado vê o ecrã em grande, com o som se o tiveres incluído, e pode
+  fechar com **Esc** para continuar a falar contigo e ver a tua câmara
+- No modo reunião (tela cheia), o ecrã partilhado ocupa a linha de cima e as câmaras ficam
+  por baixo
+- Para parar: **Parar** na barra vermelha, o mesmo botão 🖥️, ou o "Parar partilha" do
+  próprio Chrome (os três funcionam)
+
+O som do sistema é opcional: se o Chrome não oferecer, partilha só a imagem. A voz continua
+sempre a passar — a partilha sobrepõe-se, não substitui.
+
 ## Modo reunião (tela cheia)
 
 Quando chegas perto de alguém e a chamada liga, aparece o botão **🎥 Tela cheia** no fundo

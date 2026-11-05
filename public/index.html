@@ -62,6 +62,21 @@
     <div id="salaGrelha" class="salaGrelha"></div>
   </div>
 
+  <div id="barraTela" class="barraTela oculto">
+    <span class="pontoVermelho"></span>
+    <span id="telaTexto">A partilhar o teu ecrã</span>
+    <button id="btnPararTela">Parar</button>
+  </div>
+
+  <!-- ecrã de alguém, em grande -->
+  <div id="ecraOverlay" class="oculto">
+    <video id="ecraVideo" autoplay playsinline></video>
+    <div class="ecraBarra">
+      <span id="ecraNome">Ecrã</span>
+      <button id="btnFecharEcra">Fechar · Esc</button>
+    </div>
+  </div>
+
   <button id="btnSala" class="btnSala oculto">🎥 Tela cheia</button>
 
   <aside id="lateral">
@@ -70,6 +85,7 @@
       <span id="contagem">0 online</span>
       <button id="btnSom" title="Ligar/desligar a tua voz">🎤</button>
       <button id="btnCam" title="Ligar/desligar a tua câmara">📷</button>
+      <button id="btnTela" title="Partilhar o meu ecrã (Ctrl+Shift+T)">🖥️</button>
       <button id="btnSino" title="Som quando alguém bate à porta">🔔</button>
       <button id="btnAdmin" class="oculto" title="Contas e convites da equipa">👥</button>
     </div>
