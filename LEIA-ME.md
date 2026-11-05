@@ -53,6 +53,18 @@ fixa a mensagem: ela passa para a secção **FIXADAS**, no topo do chat, e **nun
 
 Os anexos ficam na base de dados, por isso as fotos também não se perdem num deploy.
 
+## Remover alguém da equipa
+
+Em **👥 → remover**, a conta desaparece e:
+
+- a **mesa fica livre na hora** (dono limpo, cadeado aberto)
+- se essa pessoa estiver dentro do escritório, é **tirada imediatamente** — recebe o aviso
+  "A tua conta foi removida" e volta ao ecrã de entrada
+
+Há ainda **Mesas ocupadas**, no mesmo painel: mostra quem tem cada mesa e um botão
+**libertar**, para o caso de uma mesa ter ficado presa (por exemplo, de alguém que já saiu
+do sistema antes desta regra existir).
+
 ## Controlos
 
 - WASD ou setas — andar

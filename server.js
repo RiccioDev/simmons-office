@@ -49,6 +49,7 @@ armazem.carregar().then((guardado) => {
     const g = guardado.get(d.id);
     if (g) {
       d.owner = g.owner;
+      d.ownerUser = g.ownerUser || '';
       d.locked = g.locked;
     }
   }
@@ -279,13 +280,46 @@ const server = http.createServer((req, res) => {
     }
   }
 
+  if (caminho === '/api/mesas/libertar' && req.method === 'POST') {
+    const dados = utilizadorDoPedido();
+    if (!dados || !dados.a) return json(403, { erro: 'so o administrador' });
+
+    return lerCorpo().then((corpo) => {
+      const d = desks.find(x => x.id === Number(corpo.deskId));
+      if (!d) return json(404, { erro: 'mesa nao encontrada' });
+
+      d.owner = '';
+      d.ownerUser = '';
+      d.locked = false;
+      d.occupied = null;
+      guardarMesas();
+      broadcast({ t: 'mesa', desk: { ...d } });
+      broadcastEstado();
+      return json(200, { ok: true, id: d.id });
+    });
+  }
+
   if (caminho === '/api/usuarios/remover' && req.method === 'POST') {
     const dados = utilizadorDoPedido();
     if (!dados || !dados.a) return json(403, { erro: 'so o administrador' });
     return lerCorpo().then(async (corpo) => {
-      if (String(corpo.usuario).toLowerCase() === dados.u) return json(400, { erro: 'Nao podes remover a tua conta.' });
-      await armazem.removerUtilizador(corpo.usuario);
-      return json(200, { ok: true });
+      const alvo = String(corpo.usuario || '').toLowerCase();
+      if (!alvo) return json(400, { erro: 'Falta o utilizador.' });
+      if (alvo === dados.u) return json(400, { erro: 'Nao podes remover a tua conta.' });
+
+      // nome de exibição, para casar com mesas antigas que só guardam o nome
+      let nomeExibicao = '';
+      try {
+        const u = await armazem.buscarUtilizador(alvo);
+        if (u) nomeExibicao = u.display_name || '';
+      } catch (e) {}
+
+      await armazem.removerUtilizador(alvo);
+
+      const libertadas = libertarMesasDe(alvo, nomeExibicao);
+      expulsarUtilizador(alvo);
+
+      return json(200, { ok: true, mesasLibertadas: libertadas });
     });
   }
 
@@ -380,7 +414,7 @@ const server = http.createServer((req, res) => {
       armazenamento: armazem.modoArmazenamento(),
       diagnostico: armazem.diagnostico(),
       online: players.size,
-      mesas: desks.map(d => ({ id: d.id, owner: d.owner, locked: d.locked })),
+      mesas: desks.map(d => ({ id: d.id, label: d.label, owner: d.owner, locked: d.locked })),
     }));
   }
 
@@ -433,6 +467,45 @@ function broadcast(obj, exceptId) {
   }
 }
 
+// liberta as mesas de quem deixou de existir (por username e, nas antigas, pelo nome)
+function libertarMesasDe(usuario, nomeExibicao) {
+  const alvoUser = String(usuario || '').toLowerCase();
+  const alvoNome = String(nomeExibicao || '').toLowerCase().trim();
+  let n = 0;
+
+  for (const d of desks) {
+    const donoUser = String(d.ownerUser || '').toLowerCase();
+    const donoNome = String(d.owner || '').toLowerCase().trim();
+    const eraDele = (alvoUser && donoUser === alvoUser) ||
+                    (alvoNome && donoNome === alvoNome) ||
+                    (!donoUser && alvoNome && donoNome === alvoNome);
+    if (!eraDele) continue;
+
+    d.owner = '';
+    d.ownerUser = '';
+    d.locked = false;
+    d.occupied = null;
+    n++;
+    guardarMesas();
+    broadcast({ t: 'mesa', desk: { ...d } });
+  }
+
+  if (n) broadcastEstado();
+  return n;
+}
+
+// tira do escritório quem foi removido (a sessão deixa de valer)
+function expulsarUtilizador(usuario) {
+  const alvo = String(usuario || '').toLowerCase();
+  for (const [id, p] of players) {
+    if (String(p.usuario || '').toLowerCase() !== alvo) continue;
+    try { enviar(p.ws, { t: 'expulso', texto: 'A tua conta foi removida.' }); } catch (e) {}
+    try { p.ws.close(); } catch (e) {}
+    players.delete(id);
+  }
+  broadcastEstado();
+}
+
 function estadoPublico() {
   return {
     players: [...players.values()].map(p => ({
@@ -442,7 +515,7 @@ function estadoPublico() {
     })),
     desks: desks.map(d => ({
       id: d.id, label: d.label, x: d.x, y: d.y, w: d.w, h: d.h,
-      owner: d.owner, locked: d.locked, occupied: d.occupied,
+      owner: d.owner, ownerUser: d.ownerUser || '', locked: d.locked, occupied: d.occupied,
     })),
   };
 }
@@ -482,6 +555,7 @@ wss.on('connection', (ws) => {
         deskId: null,
         muted: false,
         camOn: true,
+        usuario: String(ws.usuario.u || '').toLowerCase(),
       };
       players.set(id, jogador);
       enviar(ws, { t: 'bemvindo', id, ...estadoPublico() });
@@ -582,6 +656,7 @@ wss.on('connection', (ws) => {
           return;
         }
         d.owner = nome;
+        d.ownerUser = p.usuario || '';
         guardarMesas();
         broadcast({ t: 'mesa', desk: { ...d } });
         enviar(ws, { t: 'aviso', texto: 'A ' + d.label + ' agora é tua.' });
@@ -600,6 +675,7 @@ wss.on('connection', (ws) => {
           return;
         }
         d.owner = '';
+        d.ownerUser = '';
         d.locked = false;
         guardarMesas();
         broadcast({ t: 'mesa', desk: { ...d } });

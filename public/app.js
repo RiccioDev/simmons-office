@@ -426,6 +426,13 @@ function ligar(nome) {
         }
         break;
       }
+      case 'expulso':
+        sistema(m.texto || 'A tua conta foi removida.');
+        setTimeout(() => {
+          localStorage.removeItem('simmons_token');
+          location.reload();
+        }, 2500);
+        break;
       case 'auth_erro':
         localStorage.removeItem('simmons_token');
         location.reload();
@@ -1332,6 +1339,7 @@ ligarClique('btnAdmin', 'onclick', async () => {
   modalContas.classList.remove('oculto');
   await carregarContas();
   await carregarConvites();
+  await carregarMesasAdmin();
 });
 
 ligarClique('btnFecharContas', 'onclick', () => {
@@ -1374,13 +1382,21 @@ async function carregarConvites() {
     if (!r.ok) { lista.innerHTML = ''; return; }
     if (!d.convites.length) { lista.innerHTML = '<div class="contaVazia">Ainda não geraste convites.</div>'; return; }
 
+    const dataLegivel = (v) => {
+      if (!v) return '';
+      const d = new Date(v);
+      return isNaN(d.getTime()) ? '' : d.toLocaleDateString('pt-PT');
+    };
+
     lista.innerHTML = d.convites.map(c => {
-      const expirado = new Date(c.expira) < new Date();
+      const exp = c.expira ? new Date(c.expira) : null;
+      const expirado = exp ? exp < new Date() : false;
       const estado = c.usado ? ('usado por ' + escapar(c.usado_por || '?')) : (expirado ? 'expirado' : 'por usar');
       const cor = c.usado ? '#5f6875' : (expirado ? '#c98a7a' : '#8fe3d6');
+      const quando = dataLegivel(c.criado) || dataLegivel(c.expira);
       return '<div class="contaLinha">' +
-        '<span class="contaNome">' + escapar(c.codigo.slice(0, 10)) + '…' +
-        '<small>' + new Date(c.criado).toLocaleDateString('pt-PT') + ' · <b style="color:' + cor + '">' + estado + '</b></small></span>' +
+        '<span class="contaNome">' + escapar(String(c.codigo).slice(0, 10)) + '…' +
+        '<small>' + (quando ? quando + ' · ' : '') + '<b style="color:' + cor + '">' + estado + '</b></small></span>' +
         '<button class="contaRemover" data-c="' + escapar(c.codigo) + '">apagar</button></div>';
     }).join('');
 
@@ -1397,6 +1413,43 @@ async function carregarConvites() {
   } catch (e) {
     lista.innerHTML = '';
   }
+}
+
+async function carregarMesasAdmin() {
+  const lista = document.getElementById('listaMesas');
+  if (!lista) return;
+
+  try {
+    const r = await fetch('/api/estado', { headers: { Authorization: 'Bearer ' + token } });
+    if (!r.ok) { lista.innerHTML = ''; return; }
+    const d = await r.json();
+    const ocupadas = (d.mesas || []).filter(m => m.owner);
+
+    if (!ocupadas.length) {
+      lista.innerHTML = '<div class="contaVazia">Nenhuma mesa reclamada.</div>';
+      return;
+    }
+
+    lista.innerHTML = ocupadas.map(m => `
+      <div class="contaLinha">
+        <span class="contaNome">${escapar(m.label)}
+          <small>${escapar(m.owner)}${m.locked ? ' · trancada' : ''}</small>
+        </span>
+        <button class="contaRemover" data-mesa="${m.id}">libertar</button>
+      </div>`).join('');
+
+    lista.querySelectorAll('[data-mesa]').forEach(b => {
+      b.onclick = async () => {
+        if (!confirm('Libertar esta mesa? Fica livre para qualquer pessoa.')) return;
+        await fetch('/api/mesas/libertar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+          body: JSON.stringify({ deskId: Number(b.dataset.mesa) }),
+        });
+        await carregarMesasAdmin();
+      };
+    });
+  } catch (e) {}
 }
 
 async function carregarContas() {
@@ -1422,6 +1475,7 @@ async function carregarContas() {
           body: JSON.stringify({ usuario: b.dataset.u }),
         });
         await carregarContas();
+        await carregarMesasAdmin();
       };
     });
   } catch (e) {
