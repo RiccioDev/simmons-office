@@ -142,7 +142,11 @@ async function limparAntigas() {
   return apagadas;
 }
 
-module.exports = { iniciar, guardar, listar, fixar, limparAntigas, DIAS };
+function modo() {
+  return pool ? 'postgres' : 'ficheiro';
+}
+
+module.exports = { iniciar, guardar, listar, fixar, limparAntigas, DIAS, modo };
 
 
 // ---------------------------------------------------------------- anexos

@@ -134,6 +134,7 @@ const server = http.createServer((req, res) => {
       primeiraMesa: Array.isArray(desks) && desks[0] ? { id: desks[0].id, x: desks[0].x, y: desks[0].y, w: desks[0].w } : null,
       jogadores: players.size,
       armazenamento: armazem.modoArmazenamento(),
+      mensagens: chat.modo(),
     });
   }
 
