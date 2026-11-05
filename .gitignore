@@ -6,3 +6,5 @@ url_publica.txt
 mesas.json
 *.log
 backups/
+utilizadores.json
+segredo.txt

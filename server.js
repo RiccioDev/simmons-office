@@ -37,6 +37,7 @@ function mesasIniciais() {
 let desks = mesasIniciais();
 
 const armazem = require('./armazenamento');
+const auth = require('./auth');
 
 // aplicar o que estiver guardado (Postgres ou ficheiro)
 armazem.carregar().then((guardado) => {
@@ -61,6 +62,7 @@ function guardarMesas() {
 
 // ---------------------------------------------------------------- jogadores
 const players = new Map(); // id -> dados
+const portas = new Set();  // "donoId|visitanteId" — quem foi autorizado a entrar
 
 const CORES = [
   '#c9a227', '#4ea8de', '#e76f51', '#2a9d8f', '#9b5de5',
@@ -84,7 +86,9 @@ const server = http.createServer((req, res) => {
   if (caminho === '/api/backup') {
     const chave = process.env.BACKUP_KEY || '';
     const enviada = req.headers['x-backup-key'] || '';
-    if (chave && enviada !== chave) {
+    const sessao = utilizadorDoPedido();
+    const autorizado = (chave && enviada === chave) || (sessao && sessao.a);
+    if (!autorizado) {
       res.writeHead(401, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify({ erro: 'nao autorizado' }));
     }
@@ -96,8 +100,125 @@ const server = http.createServer((req, res) => {
     }, null, 1));
   }
 
+  // ---------------------------------------------------------- autenticacao
+  const json = (code, obj) => {
+    res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify(obj));
+  };
+
+  const lerCorpo = () => new Promise((ok) => {
+    let d = '';
+    req.on('data', c => { d += c; if (d.length > 10000) req.destroy(); });
+    req.on('end', () => { try { ok(JSON.parse(d || '{}')); } catch (e) { ok({}); } });
+  });
+
+  const utilizadorDoPedido = () => {
+    const cab = req.headers.authorization || '';
+    const token = cab.startsWith('Bearer ') ? cab.slice(7) : (req.headers['x-token'] || '');
+    return auth.verificar(token);
+  };
+
+  // primeiro arranque: diz se ainda nao existe nenhuma conta
+  if (caminho === '/api/setup') {
+    if (req.method === 'GET') {
+      return armazem.contarUtilizadores().then(n => json(200, { precisa: n === 0 }));
+    }
+  }
+
+  // primeiro arranque: cria o administrador (so funciona enquanto nao houver contas)
+  if (caminho === '/api/setup' && req.method === 'POST') {
+    return lerCorpo().then(async (corpo) => {
+      const n = await armazem.contarUtilizadores();
+      if (n > 0) return json(409, { erro: 'Ja existe uma conta. Usa o login.' });
+      if (!corpo.usuario || !corpo.senha || String(corpo.senha).length < 6) {
+        return json(400, { erro: 'Indica utilizador e uma senha com 6 ou mais caracteres.' });
+      }
+      const hash = await auth.hashSenha(corpo.senha);
+      await armazem.criarUtilizador({
+        username: corpo.usuario,
+        displayName: corpo.nome || corpo.usuario,
+        senhaHash: hash,
+        isAdmin: true,
+      });
+      const u = await armazem.buscarUtilizador(corpo.usuario);
+      return json(200, { ok: true, token: auth.criarToken(u) });
+    });
+  }
+
+  if (caminho === '/api/login' && req.method === 'POST') {
+    return lerCorpo().then(async (corpo) => {
+      const u = await armazem.buscarUtilizador(corpo.usuario);
+      if (!u) return json(401, { erro: 'Utilizador ou palavra-passe errados.' });
+      const certo = await auth.conferirSenha(String(corpo.senha || ''), u.senha_hash);
+      if (!certo) return json(401, { erro: 'Utilizador ou palavra-passe errados.' });
+      armazem.marcarVisto(u.username);
+      return json(200, { ok: true, token: auth.criarToken(u), nome: u.display_name, admin: !!u.is_admin });
+    });
+  }
+
+  if (caminho === '/api/eu') {
+    const dados = utilizadorDoPedido();
+    if (!dados) return json(401, { erro: 'sem sessao' });
+    return json(200, { usuario: dados.u, nome: dados.n, admin: !!dados.a });
+  }
+
+  // gestao de contas (so administrador)
+  if (caminho === '/api/usuarios') {
+    const dados = utilizadorDoPedido();
+    if (!dados || !dados.a) return json(403, { erro: 'so o administrador' });
+
+    if (req.method === 'GET') {
+      return armazem.listarUtilizadores().then(l => json(200, { usuarios: l }));
+    }
+
+    if (req.method === 'POST') {
+      return lerCorpo().then(async (corpo) => {
+        if (!corpo.usuario) return json(400, { erro: 'Falta o utilizador.' });
+        const senha = corpo.senha && String(corpo.senha).length >= 6 ? corpo.senha : auth.senhaTemporaria();
+        const hash = await auth.hashSenha(senha);
+        try {
+          await armazem.criarUtilizador({
+            username: corpo.usuario,
+            displayName: corpo.nome || corpo.usuario,
+            senhaHash: hash,
+            isAdmin: !!corpo.admin,
+          });
+          return json(200, { ok: true, usuario: corpo.usuario.toLowerCase().trim(), senha });
+        } catch (e) {
+          return json(400, { erro: e.message });
+        }
+      });
+    }
+  }
+
+  if (caminho === '/api/usuarios/remover' && req.method === 'POST') {
+    const dados = utilizadorDoPedido();
+    if (!dados || !dados.a) return json(403, { erro: 'so o administrador' });
+    return lerCorpo().then(async (corpo) => {
+      if (String(corpo.usuario).toLowerCase() === dados.u) return json(400, { erro: 'Nao podes remover a tua conta.' });
+      await armazem.removerUtilizador(corpo.usuario);
+      return json(200, { ok: true });
+    });
+  }
+
+  if (caminho === '/api/senha' && req.method === 'POST') {
+    const dados = utilizadorDoPedido();
+    if (!dados) return json(401, { erro: 'sem sessao' });
+    return lerCorpo().then(async (corpo) => {
+      const u = await armazem.buscarUtilizador(dados.u);
+      if (!u) return json(401, { erro: 'conta inexistente' });
+      const certo = await auth.conferirSenha(String(corpo.atual || ''), u.senha_hash);
+      if (!certo) return json(401, { erro: 'Palavra-passe atual errada.' });
+      if (!corpo.nova || String(corpo.nova).length < 6) return json(400, { erro: 'A nova senha precisa de 6 caracteres.' });
+      await armazem.mudarSenha(dados.u, await auth.hashSenha(corpo.nova));
+      return json(200, { ok: true });
+    });
+  }
+
   // diagnostico: onde estao a ser guardadas as mesas
   if (caminho === '/api/estado') {
+    const dados = utilizadorDoPedido();
+    if (!dados) return json(401, { erro: 'sem sessao' });
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     return res.end(JSON.stringify({
       ok: true,
@@ -163,12 +284,21 @@ wss.on('connection', (ws) => {
     try { msg = JSON.parse(raw); } catch { return; }
     const p = players.get(id);
 
+    if (msg.t === 'auth') {
+      const dados = auth.verificar(msg.token);
+      if (!dados) { enviar(ws, { t: 'auth_erro', texto: 'Sessao invalida. Entra outra vez.' }); return; }
+      ws.usuario = dados;
+      enviar(ws, { t: 'auth_ok', nome: dados.n });
+      return;
+    }
+
     if (msg.t === 'entrar') {
-      const mesa = desks.find(d => d.owner && d.owner.toLowerCase() === String(msg.name || '').toLowerCase().trim());
+      if (!ws.usuario) { enviar(ws, { t: 'auth_erro', texto: 'Precisas de entrar com a tua conta.' }); return; }
+      const mesa = desks.find(d => d.owner && d.owner.toLowerCase() === String(ws.usuario.n || '').toLowerCase().trim());
       const jogador = {
         id,
         ws,
-        name: String(msg.name || 'Convidado').slice(0, 24).trim() || 'Convidado',
+        name: String(ws.usuario.n || 'Convidado').slice(0, 24).trim() || 'Convidado',
         x: mesa ? mesa.x + mesa.w / 2 : 800,
         y: mesa ? mesa.y + mesa.h + 40 : 500,
         cor: CORES[players.size % CORES.length],
@@ -242,6 +372,12 @@ wss.on('connection', (ws) => {
         }
 
         d.locked = !d.locked;
+        if (!d.locked && d.occupied) {
+          // mesa aberta: as autorizacoes deixam de fazer sentido
+          for (const chave of [...portas]) {
+            if (chave.startsWith(d.occupied + '|') || chave.endsWith('|' + d.occupied)) portas.delete(chave);
+          }
+        }
         guardarMesas();
         broadcast({ t: 'mesa', desk: { ...d } });
         break;
@@ -294,6 +430,50 @@ wss.on('connection', (ws) => {
         enviar(ws, { t: 'aviso', texto: 'A ' + d.label + ' ficou livre.' });
         break;
       }
+      case 'bater': {
+        const d = desks.find(x => x.id === msg.deskId);
+        if (!d) return;
+        if (!d.locked) { enviar(ws, { t: 'aviso', texto: 'A ' + d.label + ' está aberta.' }); return; }
+        if (!d.occupied || d.occupied === id) { enviar(ws, { t: 'aviso', texto: 'Não há ninguém nessa mesa.' }); return; }
+
+        const dono = players.get(d.occupied);
+        if (!dono) return;
+
+        enviar(dono.ws, { t: 'batida', de: id, nome: p.name, mesa: d.label, deskId: d.id });
+        enviar(ws, { t: 'aviso', texto: 'Bateste à porta de ' + dono.name + '. À espera de resposta.' });
+        break;
+      }
+
+      case 'responderBatida': {
+        const dono = p;
+        const visitanteId = msg.para;
+        const visitante = players.get(visitanteId);
+        if (!visitante) { enviar(ws, { t: 'aviso', texto: 'Essa pessoa já saiu.' }); return; }
+
+        if (msg.aceitar) {
+          portas.add(id + '|' + visitanteId);
+          portas.add(visitanteId + '|' + id);
+          enviar(visitante.ws, { t: 'porta', com: id, aberta: true, nome: dono.name });
+          enviar(ws, { t: 'porta', com: visitanteId, aberta: true, nome: visitante.name });
+          enviar(ws, { t: 'aviso', texto: 'Abriste a porta a ' + visitante.name + '.' });
+        } else {
+          enviar(visitante.ws, { t: 'aviso', texto: dono.name + ' não abriu a porta agora.' });
+          enviar(ws, { t: 'aviso', texto: 'Recusaste a visita de ' + visitante.name + '.' });
+        }
+        break;
+      }
+
+      case 'fecharPorta': {
+        const com = String(msg.com || '');
+        portas.delete(id + '|' + com);
+        portas.delete(com + '|' + id);
+        const outro = players.get(com);
+        if (outro) enviar(outro.ws, { t: 'porta', com: id, aberta: false });
+        enviar(ws, { t: 'porta', com, aberta: false });
+        enviar(ws, { t: 'aviso', texto: 'Porta fechada.' });
+        break;
+      }
+
       case 'mic': {
         p.muted = !!msg.muted;
         broadcast({ t: 'player', id, muted: p.muted }, id);
@@ -326,6 +506,9 @@ wss.on('connection', (ws) => {
     if (p && p.deskId) {
       const d = desks.find(x => x.id === p.deskId);
       if (d && d.occupied === id) d.occupied = '';
+    }
+    for (const chave of [...portas]) {
+      if (chave.startsWith(id + '|') || chave.endsWith('|' + id)) portas.delete(chave);
     }
     players.delete(id);
     broadcast({ t: 'saiu', id });

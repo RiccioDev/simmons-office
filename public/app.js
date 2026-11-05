@@ -18,31 +18,111 @@ let temVideo = false;
 let muted = false, camOn = true;
 
 const pares = new Map();  // id -> { pc, videoEl, cardEl }
+const portasAbertas = new Set();  // ids autorizados a falar comigo
+let batidaPendente = null;
 let ws = null;
 
 // ------------------------------------------------------------ entrada
-const nomeInput = document.getElementById('nome');
-nomeInput.value = localStorage.getItem('simmons_nome') || '';
-nomeInput.focus();
+const usuarioInput = document.getElementById('usuario');
+const senhaInput = document.getElementById('senha');
+let token = localStorage.getItem('simmons_token') || null;
+let euAdmin = false;
 
-// ?nome=Joao entra direto (util para testar ou para abrir sempre com o mesmo nome)
-const paramNome = new URLSearchParams(location.search).get('nome');
-if (paramNome) {
-  nomeInput.value = paramNome;
-  setTimeout(entrar, 120);
+usuarioInput.value = localStorage.getItem('simmons_usuario') || '';
+
+// primeira vez: criar a conta de administrador
+fetch('/api/setup').then(r => r.json()).then(d => {
+  if (!d.precisa) return;
+  document.getElementById('blocoLogin').classList.add('oculto');
+  document.getElementById('blocoSetup').classList.remove('oculto');
+  document.getElementById('setupNome').focus();
+}).catch(() => {});
+
+document.getElementById('btnCriarAdmin').onclick = async () => {
+  const erro = document.getElementById('erroSetup');
+  erro.textContent = '';
+  const nome = document.getElementById('setupNome').value.trim();
+  const usuario = document.getElementById('setupUsuario').value.trim();
+  const senha = document.getElementById('setupSenha').value;
+
+  if (!nome || !usuario || senha.length < 6) {
+    erro.textContent = 'Preenche tudo e usa uma palavra-passe com 6 ou mais caracteres.';
+    return;
+  }
+
+  const r = await fetch('/api/setup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ usuario, senha, nome }),
+  });
+  const d = await r.json();
+
+  if (!r.ok) { erro.textContent = d.erro || 'Não foi possível criar.'; return; }
+
+  token = d.token;
+  euAdmin = true;
+  localStorage.setItem('simmons_token', token);
+  localStorage.setItem('simmons_usuario', usuario);
+  await entrarComSessao();
+};
+
+// sessao guardada: entra direto sem pedir senha outra vez
+if (token) {
+  fetch('/api/eu', { headers: { Authorization: 'Bearer ' + token } })
+    .then(r => r.ok ? r.json() : null)
+    .then(d => { if (d) { euAdmin = !!d.admin; entrarComSessao(); } else { token = null; localStorage.removeItem('simmons_token'); } })
+    .catch(() => {});
+} else {
+  usuarioInput.focus();
 }
 
 document.getElementById('btnEntrar').onclick = entrar;
-nomeInput.addEventListener('keydown', e => { if (e.key === 'Enter') entrar(); });
+senhaInput.addEventListener('keydown', e => { if (e.key === 'Enter') entrar(); });
+usuarioInput.addEventListener('keydown', e => { if (e.key === 'Enter') senhaInput.focus(); });
 
 async function entrar() {
-  const nome = nomeInput.value.trim();
-  if (!nome) { nomeInput.focus(); return; }
-  localStorage.setItem('simmons_nome', nome);
+  const erro = document.getElementById('erroLogin');
+  erro.textContent = '';
+  const usuario = usuarioInput.value.trim();
+  const senha = senhaInput.value;
 
+  if (!usuario || !senha) { erro.textContent = 'Escreve o utilizador e a palavra-passe.'; return; }
+
+  const btn = document.getElementById('btnEntrar');
+  btn.disabled = true;
+  btn.textContent = 'A entrar...';
+
+  try {
+    const r = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ usuario, senha }),
+    });
+    const d = await r.json();
+    if (!r.ok) {
+      erro.textContent = d.erro || 'Não foi possível entrar.';
+      btn.disabled = false; btn.textContent = 'Entrar no escritório';
+      return;
+    }
+    token = d.token;
+    euAdmin = !!d.admin;
+    localStorage.setItem('simmons_token', token);
+    localStorage.setItem('simmons_usuario', usuario);
+    btn.disabled = false; btn.textContent = 'Entrar no escritório';
+    await entrarComSessao();
+  } catch (e) {
+    erro.textContent = 'Sem ligação ao servidor.';
+    btn.disabled = false; btn.textContent = 'Entrar no escritório';
+  }
+}
+
+// chamado depois do login ou quando ja havia sessao guardada
+async function entrarComSessao() {
   const semMedia = new URLSearchParams(location.search).get('semmedia');
+  const dadosSessao = await fetch('/api/eu', { headers: { Authorization: 'Bearer ' + token } }).then(r => r.json()).catch(() => ({}));
+  const nome = dadosSessao.nome || usuarioInput.value.trim() || 'Convidado';
+
   if (semMedia) {
-    // entra só com texto (sem pedir microfone/câmara)
     document.getElementById('entrada').classList.add('oculto');
     document.getElementById('app').classList.remove('oculto');
     ligar(nome);
@@ -68,6 +148,8 @@ async function entrar() {
   document.getElementById('entrada').classList.add('oculto');
   document.getElementById('app').classList.remove('oculto');
   ligar(nome);
+
+  if (euAdmin) document.getElementById('btnAdmin').classList.remove('oculto');
 }
 
 // ------------------------------------------------------------ rede
@@ -76,6 +158,7 @@ function ligar(nome) {
   ws = new WebSocket(proto + '://' + location.host);
 
   ws.onopen = () => {
+    ws.send(JSON.stringify({ t: 'auth', token }));
     ws.send(JSON.stringify({ t: 'entrar', name: nome }));
     document.getElementById('estadoLigacao').classList.add('on');
   };
@@ -135,6 +218,27 @@ function ligar(nome) {
         break;
       case 'sinal':
         tratarSinal(m.de, m.dados);
+        break;
+      case 'batida': {
+        batidaPendente = m;
+        document.getElementById('batidaTexto').textContent =
+          m.nome + ' está à porta da ' + m.mesa + '. Queres abrir para falarem?';
+        document.getElementById('modalBatida').classList.remove('oculto');
+        break;
+      }
+      case 'porta': {
+        if (m.aberta) {
+          portasAbertas.add(m.com);
+          avisar('Porta aberta com ' + (m.nome || 'o colega') + '.');
+        } else {
+          portasAbertas.delete(m.com);
+          fecharPar(m.com);
+        }
+        break;
+      }
+      case 'auth_erro':
+        localStorage.removeItem('simmons_token');
+        location.reload();
         break;
     }
   };
@@ -197,6 +301,7 @@ window.addEventListener('keydown', (e) => {
   if (k === 'e') alternarSentar();
   if (k === 'l') alternarFecho();
   if (k === 'r') reclamarMesa();
+  if (k === 'k') bater();
   if (k === 'm') alternarMic();
   if (k === 'c') alternarCam();
 
@@ -279,6 +384,41 @@ document.getElementById('nomeMesa').addEventListener('keydown', (e) => {
   if (e.key === 'Escape') fecharModalMesa();
 });
 
+// quem esta perto e esta sentado numa mesa trancada
+function vizinhoFechado() {
+  const euJogador = players.get(eu?.id);
+  if (!euJogador) return null;
+  let melhor = null, dist = 1e9;
+  for (const o of players.values()) {
+    if (o.id === eu.id) continue;
+    if (!estaBloqueado(o)) continue;
+    const d2 = Math.hypot(o.x - euJogador.x, o.y - euJogador.y);
+    if (d2 < dist) { dist = d2; melhor = o; }
+  }
+  return dist < RAIO_CONECTA ? melhor : null;
+}
+
+function bater() {
+  const alvo = vizinhoFechado();
+  if (!alvo) { avisar('Não há ninguém de porta fechada aqui perto.'); return; }
+  ws.send(JSON.stringify({ t: 'bater', deskId: alvo.deskId }));
+}
+
+document.getElementById('btnAceitarBatida').onclick = () => {
+  if (!batidaPendente) return;
+  ws.send(JSON.stringify({ t: 'responderBatida', para: batidaPendente.de, aceitar: true }));
+  portasAbertas.add(batidaPendente.de);
+  document.getElementById('modalBatida').classList.add('oculto');
+  batidaPendente = null;
+};
+
+document.getElementById('btnRecusarBatida').onclick = () => {
+  if (!batidaPendente) return;
+  ws.send(JSON.stringify({ t: 'responderBatida', para: batidaPendente.de, aceitar: false }));
+  document.getElementById('modalBatida').classList.add('oculto');
+  batidaPendente = null;
+};
+
 function alternarMic() {
   if (!meuStream) return;
   muted = !muted;
@@ -326,7 +466,71 @@ function loop(t) {
   desenhar();
   gerirProximidade();
   posicionarVideos();
-  requestAnimationFrame(loop);
+  // ------------------------------------------------------------ contas (admin)
+const modalContas = document.getElementById('modalContas');
+
+document.getElementById('btnAdmin').onclick = async () => {
+  modalContas.classList.remove('oculto');
+  await carregarContas();
+};
+
+document.getElementById('btnFecharContas').onclick = () => {
+  modalContas.classList.add('oculto');
+  document.getElementById('resultadoConta').textContent = '';
+};
+
+async function carregarContas() {
+  const lista = document.getElementById('listaContas');
+  lista.innerHTML = '<div class="contaVazia">A carregar...</div>';
+  try {
+    const r = await fetch('/api/usuarios', { headers: { Authorization: 'Bearer ' + token } });
+    const d = await r.json();
+    if (!r.ok) { lista.innerHTML = '<div class="contaVazia">' + escapar(d.erro || 'erro') + '</div>'; return; }
+    if (!d.usuarios.length) { lista.innerHTML = '<div class="contaVazia">Ainda não há contas.</div>'; return; }
+    lista.innerHTML = d.usuarios.map(u => `
+      <div class="contaLinha">
+        <span class="contaNome">${escapar(u.display_name)}<small>${escapar(u.username)}${u.is_admin ? ' · admin' : ''}</small></span>
+        <button class="contaRemover" data-u="${escapar(u.username)}">remover</button>
+      </div>`).join('');
+
+    lista.querySelectorAll('.contaRemover').forEach(b => {
+      b.onclick = async () => {
+        if (!confirm('Remover a conta ' + b.dataset.u + '?')) return;
+        await fetch('/api/usuarios/remover', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+          body: JSON.stringify({ usuario: b.dataset.u }),
+        });
+        await carregarContas();
+      };
+    });
+  } catch (e) {
+    lista.innerHTML = '<div class="contaVazia">Sem ligação.</div>';
+  }
+}
+
+document.getElementById('btnCriarConta').onclick = async () => {
+  const usuario = document.getElementById('novoUsuario').value.trim();
+  const nome = document.getElementById('novoNome').value.trim();
+  const res = document.getElementById('resultadoConta');
+  if (!usuario || !nome) { res.textContent = 'Preenche o utilizador e o nome.'; return; }
+
+  const r = await fetch('/api/usuarios', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+    body: JSON.stringify({ usuario, nome }),
+  });
+  const d = await r.json();
+
+  if (!r.ok) { res.textContent = d.erro || 'Não foi possível criar.'; return; }
+
+  res.innerHTML = 'Conta criada: <b>' + escapar(d.usuario) + '</b> · palavra-passe: <b>' + escapar(d.senha) + '</b><br><small>Guarda e envia ao colega. Ele pode mudar depois.</small>';
+  document.getElementById('novoUsuario').value = '';
+  document.getElementById('novoNome').value = '';
+  await carregarContas();
+};
+
+requestAnimationFrame(loop);
 }
 
 function resolverColisao(p) {
@@ -410,6 +614,14 @@ function desenhar() {
     ctx.fillText(d.locked ? '🔒' : '🔓', d.x + d.w - 14, d.y + 34);
 
     if (d.locked && d.occupied) {
+      ctx.fillStyle = 'rgba(232,168,90,.9)';
+      ctx.font = '600 11px "Segoe UI",sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('porta fechada · K para bater', d.x + 12, d.y + d.h - 10);
+      ctx.textAlign = 'left';
+    }
+
+    if (d.locked && d.occupied) {
       ctx.fillStyle = 'rgba(194,106,58,.14)';
       ctx.beginPath();
       ctx.roundRect(d.x, d.y, d.w, d.h, 12);
@@ -469,15 +681,31 @@ function desenhar() {
 }
 
 // ------------------------------------------------------------ proximidade / WebRTC
+// alguem sentado numa mesa trancada esta "dentro da sala": so fala com quem abriu a porta
+function estaBloqueado(jogador) {
+  if (!jogador || !jogador.sitting || !jogador.deskId) return false;
+  const d = desks.find(x => x.id === jogador.deskId);
+  return !!(d && d.locked);
+}
+
 function gerirProximidade() {
   if (!eu || !meuStream) return;
   const p = players.get(eu.id);
   if (!p) return;
 
+  const euBloqueado = estaBloqueado(p);
+
   for (const outro of players.values()) {
     if (outro.id === eu.id) continue;
     const dist = Math.hypot(outro.x - p.x, outro.y - p.y);
     const par = pares.get(outro.id);
+
+    const bloqueado = (estaBloqueado(outro) || euBloqueado) && !portasAbertas.has(outro.id);
+
+    if (bloqueado) {
+      if (par) fecharPar(outro.id);
+      continue;
+    }
 
     if (dist < RAIO_CONECTA && !par) {
       // só o de id menor inicia, para não haver oferta dupla
