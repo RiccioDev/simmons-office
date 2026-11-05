@@ -78,7 +78,20 @@ const MIME = {
 };
 
 const server = http.createServer((req, res) => {
-  let file = req.url.split('?')[0];
+  const caminho = req.url.split('?')[0];
+
+  // diagnostico: onde estao a ser guardadas as mesas
+  if (caminho === '/api/estado') {
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    return res.end(JSON.stringify({
+      ok: true,
+      armazenamento: armazem.modoArmazenamento(),
+      online: players.size,
+      mesas: desks.map(d => ({ id: d.id, owner: d.owner, locked: d.locked })),
+    }));
+  }
+
+  let file = caminho;
   if (file === '/' || file === '') file = '/index.html';
   const full = path.join(PUBLIC, path.normalize(file).replace(/^(\.\.[/\\])+/, ''));
   if (!full.startsWith(PUBLIC)) { res.writeHead(403); return res.end('403'); }
