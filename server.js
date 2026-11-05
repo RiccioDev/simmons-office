@@ -8,6 +8,7 @@ const { WebSocketServer } = require('ws');
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC = path.join(__dirname, 'public');
+const FICHEIROS = path.join(__dirname, 'ficheiros');
 const DESKS_FILE = path.join(__dirname, 'mesas.json');
 
 // ---------------------------------------------------------------- mesas
@@ -38,6 +39,8 @@ let desks = mesasIniciais();
 
 const armazem = require('./armazenamento');
 const auth = require('./auth');
+const chat = require('./mensagens');
+const fsp = require('fs').promises;
 const crypto = require('crypto');
 
 // aplicar o que estiver guardado (Postgres ou ficheiro)
@@ -300,6 +303,73 @@ const server = http.createServer((req, res) => {
   }
 
   // diagnostico: onde estao a ser guardadas as mesas
+  // ---------------------------------------------------------- chat guardado
+  if (caminho === '/api/mensagens' && req.method === 'GET') {
+    const dados = utilizadorDoPedido();
+    if (!dados) return json(401, { erro: 'entra na tua conta' });
+    return chat.listar()
+      .then(lista => json(200, { mensagens: Array.isArray(lista) ? lista : [], dias: chat.DIAS }))
+      .catch((e) => { console.log('mensagens:', e.message); json(500, { erro: 'erro ao ler' }); });
+  }
+
+  if (caminho === '/api/mensagens/fixar' && req.method === 'POST') {
+    const dados = utilizadorDoPedido();
+    if (!dados) return json(401, { erro: 'entra na tua conta' });
+
+    return lerCorpo().then(async (corpo) => {
+      const r = await chat.fixar(String(corpo.id || ''), !!corpo.fixada);
+      if (!r) return json(404, { erro: 'mensagem nao encontrada' });
+      broadcast({ t: 'fixada', id: r.id, fixada: r.fixada });
+      return json(200, { ok: true, id: r.id, fixada: r.fixada });
+    });
+  }
+
+  if (caminho === '/api/upload' && req.method === 'POST') {
+    const dados = utilizadorDoPedido();
+    if (!dados) return json(401, { erro: 'entra na tua conta' });
+
+    return new Promise((ok) => {
+      let cru = '';
+      let passou = false;
+      req.on('data', (c) => {
+        cru += c;
+        if (cru.length > 14 * 1024 * 1024) { passou = true; req.destroy(); }
+      });
+      req.on('end', async () => {
+        if (passou) return ok(json(413, { erro: 'ficheiro demasiado grande (máx. 10 MB)' }));
+        let corpo;
+        try { corpo = JSON.parse(cru || '{}'); } catch (e) { return ok(json(400, { erro: 'pedido inválido' })); }
+
+        const mime = String(corpo.mime || 'application/octet-stream');
+        const base64 = String(corpo.dados || '').replace(/^data:[^;]+;base64,/, '');
+        if (!base64) return ok(json(400, { erro: 'sem ficheiro' }));
+
+        const bytes = Buffer.from(base64, 'base64');
+        if (!bytes.length) return ok(json(400, { erro: 'ficheiro vazio' }));
+        if (bytes.length > 10 * 1024 * 1024) return ok(json(413, { erro: 'máximo 10 MB' }));
+
+        let idFicheiro;
+        try {
+          idFicheiro = await chat.guardarFicheiro({
+            nome: String(corpo.nome || 'ficheiro').slice(0, 120),
+            mime,
+            bytes,
+          });
+        } catch (e) {
+          console.log('upload:', e.message);
+          return ok(json(500, { erro: 'nao consegui guardar' }));
+        }
+
+        return ok(json(200, {
+          url: '/ficheiros/' + idFicheiro,
+          nome: String(corpo.nome || 'ficheiro').slice(0, 120),
+          mime,
+          tamanho: bytes.length,
+        }));
+      });
+    });
+  }
+
   if (caminho === '/api/estado') {
     const dados = utilizadorDoPedido();
     if (!dados) return json(401, { erro: 'sem sessao' });
@@ -311,6 +381,26 @@ const server = http.createServer((req, res) => {
       online: players.size,
       mesas: desks.map(d => ({ id: d.id, owner: d.owner, locked: d.locked })),
     }));
+  }
+
+  // anexos do chat
+  if (caminho.startsWith('/ficheiros/')) {
+    const nome = path.basename(caminho);
+    const tipos = {
+      '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+      '.gif': 'image/gif', '.webp': 'image/webp', '.pdf': 'application/pdf',
+      '.txt': 'text/plain; charset=utf-8', '.csv': 'text/csv; charset=utf-8',
+      '.zip': 'application/zip', '.mp4': 'video/mp4', '.mp3': 'audio/mpeg',
+    };
+
+    return chat.lerFicheiro(nome).then((f) => {
+      if (!f) { res.writeHead(404); return res.end('nao encontrado'); }
+      res.writeHead(200, {
+        'Content-Type': tipos[path.extname(nome).toLowerCase()] || f.mime || 'application/octet-stream',
+        'Cache-Control': 'private, max-age=604800',
+      });
+      res.end(f.bytes);
+    }).catch(() => { res.writeHead(500); res.end('erro'); });
   }
 
   let file = caminho;
@@ -581,9 +671,30 @@ wss.on('connection', (ws) => {
         break;
       }
       case 'chat': {
-        const texto = String(msg.texto || '').slice(0, 500).trim();
-        if (!texto) return;
-        broadcast({ t: 'chat', de: p.name, cor: p.cor, texto, hora: Date.now() });
+        const texto = String(msg.texto || '').slice(0, 2000).trim();
+        const f = msg.ficheiro && msg.ficheiro.url ? {
+          url: String(msg.ficheiro.url).slice(0, 300),
+          nome: String(msg.ficheiro.nome || 'ficheiro').slice(0, 120),
+          mime: String(msg.ficheiro.mime || '').slice(0, 100),
+          tamanho: Number(msg.ficheiro.tamanho) || 0,
+        } : null;
+
+        if (!texto && !f) return;
+
+        const tipo = f ? (f.mime.startsWith('image/') ? 'imagem' : 'ficheiro') : 'texto';
+
+        chat.guardar({ autor: p.name, texto, tipo, ficheiro: f })
+          .then((m) => {
+            broadcast({
+              t: 'chat', id: m.id, de: m.autor, cor: p.cor,
+              texto: m.texto, ficheiro: m.ficheiro, tipo: m.tipo,
+              quando: m.quando, hora: Date.now(),
+            });
+          })
+          .catch((e) => {
+            console.log('erro ao guardar mensagem', e.message);
+            broadcast({ t: 'chat', de: p.name, cor: p.cor, texto, ficheiro: f, hora: Date.now() });
+          });
         break;
       }
       // ---- sinalização WebRTC (vai só para o destinatário)
@@ -611,6 +722,15 @@ wss.on('connection', (ws) => {
     broadcastEstado();
   });
 });
+
+// ---------------------------------------------------------------- chat guardado
+chat.iniciar()
+  .then((pg) => {
+    console.log('mensagens: ' + (pg ? 'Postgres' : 'ficheiro local') + ' (7 dias, fixadas para sempre)');
+    chat.limparAntigas().catch(() => {});
+    setInterval(() => chat.limparAntigas().catch(() => {}), 6 * 3600 * 1000);
+  })
+  .catch((e) => console.log('mensagens: erro ao iniciar', e.message));
 
 server.listen(PORT, () => {
   console.log('Simmons Office a correr em http://localhost:' + PORT);

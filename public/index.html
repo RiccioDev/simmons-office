@@ -120,8 +120,10 @@
     </div>
     <div id="chat"></div>
     <form id="formChat" autocomplete="off">
-      <input id="msg" type="text" maxlength="500" placeholder="Escrever para todos…">
+      <button type="button" id="btnAnexo" title="Enviar foto ou ficheiro">📎</button>
+      <input id="msg" type="text" maxlength="2000" placeholder="Escrever para todos…">
       <button type="submit">➤</button>
+      <input id="ficheiro" type="file" class="oculto" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip,.mp4,.mp3">
     </form>
   </aside>
 

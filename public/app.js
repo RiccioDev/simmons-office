@@ -318,6 +318,7 @@ async function entrarComSessao() {
 
   if (euAdmin) document.getElementById('btnAdmin').classList.remove('oculto');
   montarAutoVista();
+  carregarHistorico();
 }
 
 // ------------------------------------------------------------ a minha camara
@@ -381,7 +382,12 @@ function ligar(nome) {
         break;
       }
       case 'chat':
-        bolha(m.de, m.cor, m.texto, m.hora);
+        bolha(m.de, m.cor, m.texto, m.hora, {
+          id: m.id, ficheiro: m.ficheiro, fixada: false, quando: m.quando,
+        });
+        break;
+      case 'fixada':
+        aplicarFixada(m.id, m.fixada);
         break;
       case 'sistema':
         sistema(m.texto);
@@ -474,15 +480,138 @@ function aplicarEstado(m) {
 }
 
 // ------------------------------------------------------------ mensagens
-function bolha(de, cor, texto, hora) {
+function tamanhoLegivel(bytes) {
+  const b = Number(bytes) || 0;
+  if (b < 1024) return b + ' B';
+  if (b < 1024 * 1024) return (b / 1024).toFixed(0) + ' KB';
+  return (b / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function bolha(de, cor, texto, hora, extra = {}) {
   const chat = document.getElementById('chat');
-  const d = new Date(hora || Date.now());
+  const d = new Date(extra.quando || hora || Date.now());
   const hh = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+
   const el = document.createElement('div');
-  el.className = 'msg';
-  el.innerHTML = `<b style="color:${cor}">${escapar(de)}</b><span class="hora">${hh}</span><br>${escapar(texto)}`;
+  el.className = 'msg' + (extra.fixada ? ' fixada' : '');
+  if (extra.id) el.dataset.id = extra.id;
+
+  const topo = document.createElement('div');
+  topo.className = 'linhaTopo';
+  topo.innerHTML = `<span><b style="color:${cor}">${escapar(de)}</b><span class="hora">${hh}</span></span>`;
+
+  if (extra.id) {
+    const pino = document.createElement('button');
+    pino.className = 'fixar';
+    pino.type = 'button';
+    pino.textContent = extra.fixada ? '📌' : '📌';
+    pino.title = extra.fixada ? 'Deixar de fixar' : 'Guardar para sempre (fixar)';
+    pino.onclick = () => alternarFixada(extra.id, !extra.fixada);
+    topo.appendChild(pino);
+  }
+  el.appendChild(topo);
+
+  if (texto) {
+    const t = document.createElement('div');
+    t.className = 'textoMsg';
+    t.textContent = texto;
+    el.appendChild(t);
+  }
+
+  const f = extra.ficheiro;
+  if (f && f.url) {
+    const ehImagem = (f.mime || '').startsWith('image/') ||
+      /\.(png|jpe?g|gif|webp)$/i.test(f.nome || '');
+
+    if (ehImagem) {
+      const img = document.createElement('img');
+      img.className = 'anexo';
+      img.src = f.url;
+      img.alt = f.nome || 'imagem';
+      img.loading = 'lazy';
+      img.onclick = () => window.open(f.url, '_blank');
+      el.appendChild(img);
+    } else {
+      const a = document.createElement('a');
+      a.className = 'anexoFicheiro';
+      a.href = f.url;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.innerHTML = '📄 ' + escapar(f.nome || 'ficheiro') +
+        ' <span class="tamanho">' + tamanhoLegivel(f.tamanho) + '</span>';
+      el.appendChild(a);
+    }
+  }
+
   chat.appendChild(el);
   chat.scrollTop = chat.scrollHeight;
+  return el;
+}
+
+async function alternarFixada(id, fixada) {
+  try {
+    const r = await fetch('/api/mensagens/fixar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ id, fixada }),
+    });
+    if (!r.ok) return avisar('Não consegui fixar essa mensagem.');
+  } catch (e) {
+    avisar('Sem ligação para fixar.');
+  }
+}
+
+// marca/desmarca visualmente (vem do servidor, para todos ficarem iguais)
+function aplicarFixada(id, fixada) {
+  const el = document.querySelector('.msg[data-id="' + id + '"]');
+  if (!el) return;
+  el.classList.toggle('fixada', fixada);
+  const pino = el.querySelector('.fixar');
+  if (pino) pino.title = fixada ? 'Deixar de fixar' : 'Guardar para sempre (fixar)';
+}
+
+// ---------- histórico (últimos 7 dias + fixadas) ----------
+async function carregarHistorico() {
+  try {
+    const r = await fetch('/api/mensagens', { headers: { Authorization: 'Bearer ' + token } });
+    if (!r.ok) return;
+    const d = await r.json();
+    const chat = document.getElementById('chat');
+    const lista = d.mensagens || [];
+    if (!lista.length) return;
+
+    chat.innerHTML = '';
+
+    const fixadas = lista.filter(m => m.fixada);
+    const resto = lista.filter(m => !m.fixada);
+
+    const desenhar = (m) => bolha(m.autor, '#9aa4b2', m.texto, null, {
+      id: m.id, ficheiro: m.ficheiro, fixada: m.fixada, quando: m.quando,
+    });
+
+    if (fixadas.length) {
+      const div = document.createElement('div');
+      div.className = 'divisorChat';
+      div.textContent = 'fixadas';
+      chat.appendChild(div);
+      fixadas.forEach(desenhar);
+    }
+
+    if (resto.length) {
+      const div = document.createElement('div');
+      div.className = 'divisorChat';
+      div.textContent = 'últimos ' + (d.dias || 7) + ' dias';
+      chat.appendChild(div);
+      resto.forEach(desenhar);
+    }
+
+    const fim = document.createElement('div');
+    fim.className = 'divisorChat';
+    fim.textContent = 'agora';
+    chat.appendChild(fim);
+
+    chat.scrollTop = chat.scrollHeight;
+  } catch (e) {}
 }
 function sistema(texto) {
   const chat = document.getElementById('chat');
@@ -510,6 +639,50 @@ document.getElementById('formChat').addEventListener('submit', e => {
   if (!t || !ws) return;
   ws.send(JSON.stringify({ t: 'chat', texto: t }));
   inp.value = '';
+});
+
+// ------------------------------------------------------------ anexos
+const MAX_ANEXO = 10 * 1024 * 1024;
+
+ligarClique('btnAnexo', 'onclick', () => document.getElementById('ficheiro').click());
+
+document.getElementById('ficheiro').addEventListener('change', async (e) => {
+  const f = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!f) return;
+
+  if (f.size > MAX_ANEXO) return avisar('Ficheiro grande demais (máximo 10 MB).');
+
+  avisar('A enviar ' + f.name + '…');
+
+  try {
+    const base64 = await new Promise((ok, falha) => {
+      const fr = new FileReader();
+      fr.onload = () => ok(String(fr.result).split(',')[1] || '');
+      fr.onerror = falha;
+      fr.readAsDataURL(f);
+    });
+
+    const r = await fetch('/api/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ nome: f.name, mime: f.type, dados: base64 }),
+    });
+
+    if (!r.ok) {
+      const erro = await r.json().catch(() => ({}));
+      return avisar(erro.erro || 'Não consegui enviar o ficheiro.');
+    }
+
+    const info = await r.json();
+    const legenda = document.getElementById('msg').value.trim();
+    document.getElementById('msg').value = '';
+
+    ws.send(JSON.stringify({ t: 'chat', texto: legenda, ficheiro: info }));
+    avisar('');
+  } catch (err) {
+    avisar('Falhou o envio do ficheiro.');
+  }
 });
 
 // ------------------------------------------------------------ teclado

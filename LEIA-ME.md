@@ -35,6 +35,24 @@ Abre o mesmo link — o site adapta-se sozinho. Não há app para instalar.
 
 A gaveta do chat arrasta para cima (tocar na barra) e para baixo (arrastar o dedo).
 
+## Chat: histórico, ficheiros e mensagens fixadas
+
+**Histórico de 7 dias.** As mensagens ficam guardadas no servidor e voltam a aparecer quando
+entras — mesmo que feches o browser, mudes de aparelho, ou o servidor reinicie. Passados
+7 dias são apagadas automaticamente.
+
+**Ficheiros e fotos.** Botão **📎** ao lado da caixa de texto: escolhes a foto ou o ficheiro
+(PDF, Word, Excel, zip, vídeo) e ele é enviado. Fotos aparecem como miniatura — carregar
+abre em grande; o resto aparece como cartão com o nome e o tamanho. Limite de **10 MB**.
+
+Podes escrever uma legenda antes de escolher o ficheiro e ela vai junto.
+
+**Fixar para sempre.** Ao passar o rato numa mensagem aparece um **📌** à direita. Carregar
+fixa a mensagem: ela passa para a secção **FIXADAS**, no topo do chat, e **nunca é apagada**
+— nem aos 7 dias, nem num ano. Carregar outra vez no 📌 desafixa.
+
+Os anexos ficam na base de dados, por isso as fotos também não se perdem num deploy.
+
 ## Controlos
 
 - WASD ou setas — andar
