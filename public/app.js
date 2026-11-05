@@ -248,6 +248,8 @@ function reclamarMesa() {
   mesaEmClaim = d;
   const inp = document.getElementById('nomeMesa');
   inp.value = d.owner || eu?.name || '';
+  const btnLibertar = document.getElementById('btnLibertar');
+  btnLibertar.classList.toggle('oculto', !d.owner);
   document.getElementById('modalMesa').classList.remove('oculto');
   setTimeout(() => { inp.focus(); inp.select(); }, 60);
 }
@@ -258,6 +260,12 @@ function fecharModalMesa() {
 }
 
 document.getElementById('btnCancelarMesa').onclick = fecharModalMesa;
+
+document.getElementById('btnLibertar').onclick = () => {
+  if (!mesaEmClaim) { fecharModalMesa(); return; }
+  ws.send(JSON.stringify({ t: 'libertarMesa', deskId: mesaEmClaim.id, nome: eu.name }));
+  fecharModalMesa();
+};
 
 document.getElementById('btnConfirmarMesa').onclick = () => {
   const nome = document.getElementById('nomeMesa').value.trim();

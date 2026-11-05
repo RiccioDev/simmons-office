@@ -237,6 +237,25 @@ wss.on('connection', (ws) => {
         enviar(ws, { t: 'aviso', texto: 'A ' + d.label + ' agora é tua.' });
         break;
       }
+      case 'libertarMesa': {
+        const d = desks.find(x => x.id === msg.deskId);
+        if (!d) return;
+        const nome = String(msg.nome || p.name).toLowerCase();
+        if (d.owner && d.owner.toLowerCase() !== nome) {
+          enviar(ws, { t: 'aviso', texto: 'A ' + d.label + ' é de ' + d.owner + '.' });
+          return;
+        }
+        if (d.occupied && d.occupied !== id) {
+          enviar(ws, { t: 'aviso', texto: 'Alguém está sentado nessa mesa.' });
+          return;
+        }
+        d.owner = '';
+        d.locked = false;
+        guardarMesas();
+        broadcast({ t: 'mesa', desk: { ...d } });
+        enviar(ws, { t: 'aviso', texto: 'A ' + d.label + ' ficou livre.' });
+        break;
+      }
       case 'mic': {
         p.muted = !!msg.muted;
         broadcast({ t: 'player', id, muted: p.muted }, id);
