@@ -42,7 +42,7 @@ Com a tua mesa fechada, ninguém fala contigo sem autorização — nem chegar p
 
 1. A pessoa aproxima-se e carrega em **K** (aparece "porta fechada · K para bater" na mesa)
 2. A ti aparece um painel com as **iniciais** dela, o nome e o nome da tua mesa
-3. Toca um **som de batida** (dois toques secos) e o **título do separador pisca** —
+3. Toca uma **campainha em ciclo** (5 s a tocar, 20 s de silêncio, repete). Só para quando abrires, recusares ou a pessoa desistir. Começa por: Toca um **som de batida** (dois toques secos) e o **título do separador pisca** —
    por isso ouves e vês mesmo estando noutra aba
 4. **Abrir a porta** → só essa pessoa passa a falar contigo; **Não abrir** → ela é avisada
 5. A porta aberta mantém-se só enquanto essa pessoa estiver por perto

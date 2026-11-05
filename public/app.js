@@ -25,51 +25,83 @@ function contextoAudio() {
 document.addEventListener('pointerdown', () => contextoAudio(), { once: true });
 document.addEventListener('keydown', () => contextoAudio(), { once: true });
 
-function tocarBatida() {
-  if (!somBatida) return;
-  const ctx = contextoAudio();
-  if (!ctx) return;
+// uma campainha: dois toques curtos, tipo campainha de porta
+function tocarToque(ctx, quando, volume) {
+  const notas = [[880, 0], [660, 0.20]];
+  for (const [freq, atraso] of notas) {
+    const t = quando + atraso;
 
-  const agora = ctx.currentTime;
-  for (const atraso of [0, 0.30]) {
-    const t = agora + atraso;
-
-    // corpo grave: "toc"
     const osc = ctx.createOscillator();
     const g = ctx.createGain();
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(200, t);
-    osc.frequency.exponentialRampToValueAtTime(78, t + 0.13);
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(0.45, t + 0.008);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.15);
-    osc.connect(g).connect(ctx.destination);
-    osc.start(t); osc.stop(t + 0.18);
+    osc.frequency.setValueAtTime(freq, t);
 
-    // estalo da madeira
-    const amostras = Math.floor(ctx.sampleRate * 0.07);
-    const buffer = ctx.createBuffer(1, amostras, ctx.sampleRate);
-    const dados = buffer.getChannelData(0);
-    for (let i = 0; i < amostras; i++) {
-      dados[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / amostras, 7);
-    }
-    const ruido = ctx.createBufferSource();
-    ruido.buffer = buffer;
-    const filtro = ctx.createBiquadFilter();
-    filtro.type = 'lowpass';
-    filtro.frequency.value = 1600;
-    const g2 = ctx.createGain();
-    g2.gain.value = 0.22;
-    ruido.connect(filtro).connect(g2).connect(ctx.destination);
-    ruido.start(t);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(volume, t + 0.015);
+    g.gain.exponentialRampToValueAtTime(volume * 0.55, t + 0.09);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.24);
+
+    osc.connect(g).connect(ctx.destination);
+    osc.start(t); osc.stop(t + 0.26);
+
+    // harmonico fraco: dá corpo de campainha em vez de apito de microondas
+    const h = ctx.createOscillator();
+    const gh = ctx.createGain();
+    h.type = 'sine';
+    h.frequency.setValueAtTime(freq * 2, t);
+    gh.gain.setValueAtTime(0.0001, t);
+    gh.gain.exponentialRampToValueAtTime(volume * 0.28, t + 0.015);
+    gh.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
+    h.connect(gh).connect(ctx.destination);
+    h.start(t); h.stop(t + 0.18);
   }
+}
+
+// ciclo da campainha: toca ~5 s, cala 20 s, repete, ate ser atendida/recusada
+const CAMPainha_TOQUE = 1300;   // ms entre toques dentro de uma rajada
+const CAMPainha_DURACAO = 5000; // ms que a rajada dura
+const CAMPainha_PAUSA = 20000;  // ms de silencio entre rajadas
+
+let cicloCampainha = null;
+let rajadaCampainha = null;
+
+function comecarCampainha(nome) {
+  pararCampainha();
+  if (!somBatida) return;
+
+  const tocarRajada = () => {
+    const ctx = contextoAudio();
+    if (!ctx) return;
+    const inicio = ctx.currentTime + 0.03;
+    let i = 0;
+    const quantos = Math.floor(CAMPainha_DURACAO / CAMPainha_TOQUE);
+
+    rajadaCampainha = setInterval(() => {
+      if (i >= quantos) { clearInterval(rajadaCampainha); rajadaCampainha = null; return; }
+      tocarToque(ctx, Math.max(ctx.currentTime, inicio) + 0.02, 0.32);
+      marcarTitulo(nome);
+      i++;
+    }, CAMPainha_TOQUE);
+  };
+
+  tocarRajada();
+  cicloCampainha = setInterval(tocarRajada, CAMPainha_DURACAO + CAMPainha_PAUSA);
+}
+
+function pararCampainha() {
+  if (cicloCampainha) { clearInterval(cicloCampainha); cicloCampainha = null; }
+  if (rajadaCampainha) { clearInterval(rajadaCampainha); rajadaCampainha = null; }
 }
 
 function alternarSino() {
   somBatida = !somBatida;
+  if (!somBatida) pararCampainha();
   localStorage.setItem('som_batida', somBatida ? '1' : '0');
   $('btnSino').classList.toggle('desligado', !somBatida);
-  if (somBatida) tocarBatida();
+  if (somBatida) {
+    const ctx = contextoAudio();
+    if (ctx) tocarToque(ctx, ctx.currentTime + 0.02, 0.25);
+  }
 }
 
 let erroMostrado = false;
@@ -374,8 +406,8 @@ function ligar(nome) {
           '<b>' + escapar(m.nome) + '</b> está à porta da <b>' + escapar(m.mesa) + '</b>.';
         document.getElementById('modalBatida').classList.remove('oculto');
 
-        tocarBatida();
         marcarTitulo(m.nome);
+        comecarCampainha(m.nome);
         break;
       }
       case 'porta': {
@@ -594,6 +626,7 @@ function marcarTitulo(nome) {
 function limparTitulo() {
   if (piscaTitulo) { clearInterval(piscaTitulo); piscaTitulo = null; }
   document.title = tituloOriginal;
+  pararCampainha();
 }
 
 function bater() {
