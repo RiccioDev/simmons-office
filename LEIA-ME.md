@@ -19,6 +19,22 @@ O link público muda cada vez que abres o expor.bat. Para um link fixo é precis
 domínio próprio e uma conta Cloudflare (grátis) com um túnel com nome — pede-me que eu
 monto.
 
+## No telemóvel e no tablet
+
+Abre o mesmo link — o site adapta-se sozinho. Não há app para instalar.
+
+- **Mapa**: preenche o ecrã e **segue o teu avatar** (no computador continua a ver-se a sala
+  toda; no telemóvel a câmara acompanha-te, com mesa legível)
+- **Andar**: joystick em baixo à esquerda, ou **toca num ponto do mapa** e ele vai até lá
+- **Sentar/levantar**: botão **E** no meio do joystick
+- **Chat**: botão 💬 redondo em baixo à direita; o painel sobe como uma gaveta (arrasta para
+  baixo para fechar)
+- **Micro, câmara, ecrã, batidas e contas**: os mesmos botões, na barra da gaveta
+- **Deitado**: o painel vira uma gaveta fina à direita, o mapa fica com o resto
+- A tua câmara encolhe e não tapa os controlos
+
+A gaveta do chat arrasta para cima (tocar na barra) e para baixo (arrastar o dedo).
+
 ## Controlos
 
 - WASD ou setas — andar

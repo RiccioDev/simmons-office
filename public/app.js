@@ -676,6 +676,34 @@ document.getElementById('btnCam').onclick = alternarCam;
 // ------------------------------------------------------------ loop
 let ultimoEnvio = 0;
 
+// ----- direcao vinda do toque (joystick, arrastar no mapa ou tocar num ponto)
+const toqueDir = { x: 0, y: 0 };
+let alvoToque = null;      // {x,y} no espaco do mapa, para "tocar para ir"
+let arrastar = null;       // dedo a arrastar no mapa
+
+function direcaoDeToque() {
+  let dx = toqueDir.x, dy = toqueDir.y;
+
+  if (!dx && !dy && alvoToque) {
+    const p = players.get(eu?.id);
+    if (p) {
+      const ddx = alvoToque.x - p.x, ddy = alvoToque.y - p.y;
+      if (Math.hypot(ddx, ddy) > 12) { dx = ddx; dy = ddy; }
+      else alvoToque = null;   // chegou
+    }
+  }
+  return [dx, dy];
+}
+
+function pontoNoMapa(clientX, clientY) {
+  const r = canvas.getBoundingClientRect();
+  const cx = caixaDoMapa();
+  return {
+    x: (clientX - r.left - cx.offX) / cx.escala,
+    y: (clientY - r.top - cx.offY) / cx.escala,
+  };
+}
+
 function loop(t) {
   const p = players.get(eu?.id);
 
@@ -685,6 +713,13 @@ function loop(t) {
     if (teclas.has('s') || teclas.has('arrowdown')) dy += 1;
     if (teclas.has('a') || teclas.has('arrowleft')) dx -= 1;
     if (teclas.has('d') || teclas.has('arrowright')) dx += 1;
+
+    if (!dx && !dy) {
+      const [tx, ty] = direcaoDeToque();
+      dx = tx; dy = ty;
+    } else {
+      alvoToque = null;
+    }
     if (dx || dy) {
       const n = Math.hypot(dx, dy);
       const nx = p.x + (dx / n) * VEL;
@@ -708,7 +743,8 @@ function loop(t) {
     if (md) md.classList.add('oculto');
     limparTitulo();
   }
-  requestAnimationFrame(loop);
+  montarToque();
+requestAnimationFrame(loop);
 }
   // ------------------------------------------------------------ partilha de ecra
 async function comecarPartilha() {
@@ -1172,8 +1208,25 @@ function resolverColisao(p) {
 }
 
 // ------------------------------------------------------------ desenho
+function seguirAvatar() {
+  const euJogador = players.get(eu?.id);
+  if (!euJogador) return;
+  camera.x += (euJogador.x - camera.x) * 0.12;
+  camera.y += (euJogador.y - camera.y) * 0.12;
+}
+
 function desenhar() {
-  ctx.clearRect(0, 0, LARG, ALT);
+  if (modoCamera()) seguirAvatar();
+  const dpr = Math.min(window.devicePixelRatio || 2, 2);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, canvasCss.w, canvasCss.h);
+
+  // fundo fora do mapa (barras)
+  ctx.fillStyle = '#0a0d12';
+  ctx.fillRect(0, 0, canvasCss.w, canvasCss.h);
+
+  const cx = caixaDoMapa();
+  ctx.setTransform(dpr * cx.escala, 0, 0, dpr * cx.escala, dpr * cx.offX, dpr * cx.offY);
 
   // chão
   ctx.fillStyle = '#11161d';
@@ -1496,20 +1549,182 @@ function fecharPar(id) {
   atualizarSala();
 }
 
+// ------------------------------------------------------------ controlos de toque
+function ehEcraPequeno() {
+  return window.matchMedia('(max-width:820px)').matches ||
+         window.matchMedia('(max-height:480px) and (orientation:landscape)').matches;
+}
+
+function montarToque() {
+  const joystick = document.getElementById('joystick');
+  const lateral = document.getElementById('lateral');
+  const btnChat = document.getElementById('btnChat');
+
+  const aplicarModo = () => {
+    const pequeno = ehEcraPequeno();
+    if (joystick) joystick.classList.toggle('oculto', !pequeno);
+    if (btnChat) btnChat.classList.toggle('oculto', !pequeno);
+    if (!pequeno) lateral.classList.remove('aberta');
+    // o canvas acompanha o espaco disponivel
+    ajustarCanvas();
+  };
+
+  // ---- joystick (segurar para andar)
+  const soltar = () => { toqueDir.x = 0; toqueDir.y = 0; };
+  joystick.querySelectorAll('[data-dir]').forEach(btn => {
+    const dir = btn.dataset.dir;
+    const definir = (e) => {
+      e.preventDefault();
+      alvoToque = null;
+      if (dir === 'up') { toqueDir.x = 0; toqueDir.y = -1; }
+      if (dir === 'down') { toqueDir.x = 0; toqueDir.y = 1; }
+      if (dir === 'left') { toqueDir.x = -1; toqueDir.y = 0; }
+      if (dir === 'right') { toqueDir.x = 1; toqueDir.y = 0; }
+    };
+    btn.addEventListener('pointerdown', definir);
+    btn.addEventListener('pointerup', soltar);
+    btn.addEventListener('pointercancel', soltar);
+    btn.addEventListener('pointerleave', soltar);
+  });
+
+  joystick.querySelectorAll('[data-acao]').forEach(btn => {
+    btn.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      const acao = btn.dataset.acao;
+      if (acao === 'sentar') alternarSentar();
+    });
+  });
+
+  // ---- gaveta do chat
+  const abrirGaveta = () => lateral.classList.toggle('aberta');
+  document.querySelector('#lateral .topo').addEventListener('click', (e) => {
+    if (!ehEcraPequeno()) return;
+    if (e.target.closest('button')) return;   // os botoes fazem o que têm de fazer
+    abrirGaveta();
+  });
+  if (btnChat) btnChat.addEventListener('click', () => {
+    lateral.classList.add('aberta');
+    setTimeout(() => document.getElementById('msg').focus(), 250);
+  });
+
+  // arrastar a gaveta para baixo fecha
+  let toqueInicial = null;
+  lateral.addEventListener('touchstart', (e) => {
+    if (!ehEcraPequeno() || !lateral.classList.contains('aberta')) return;
+    toqueInicial = { y: e.touches[0].clientY, t: Date.now() };
+  }, { passive: true });
+  lateral.addEventListener('touchend', (e) => {
+    if (!toqueInicial) return;
+    const dy = e.changedTouches[0].clientY - toqueInicial.y;
+    if (dy > 90 && Date.now() - toqueInicial.t < 700) lateral.classList.remove('aberta');
+    toqueInicial = null;
+  }, { passive: true });
+
+  // ---- tocar no mapa anda ate la; arrastar tambem
+  canvas.addEventListener('pointerdown', (e) => {
+    if (!ehEcraPequeno()) return;
+    arrastar = { x: e.clientX, y: e.clientY };
+    alvoToque = pontoNoMapa(e.clientX, e.clientY);
+    canvas.style.cursor = 'grabbing';
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    if (!arrastar) return;
+    alvoToque = pontoNoMapa(e.clientX, e.clientY);
+  });
+  const fimArrasto = () => { arrastar = null; canvas.style.cursor = 'grab'; };
+  canvas.addEventListener('pointerup', fimArrasto);
+  canvas.addEventListener('pointercancel', fimArrasto);
+
+  // ---- teclado virtual: ao escrever, a gaveta sobe e o mapa nao foge
+  document.getElementById('msg').addEventListener('focus', () => {
+    if (!ehEcraPequeno()) return;
+    lateral.classList.add('aberta');
+    setTimeout(() => document.getElementById('chat').scrollTop = 1e9, 300);
+  });
+
+  // ---- ecra mudou de tamanho ou de orientacao
+  window.addEventListener('resize', aplicarModo);
+  window.addEventListener('orientationchange', () => setTimeout(aplicarModo, 220));
+  window.matchMedia('(max-width:820px)').addEventListener?.('change', aplicarModo);
+
+  aplicarModo();
+}
+
+// o canvas acompanha o espaço disponível (sem redimensionar a cada frame!)
+function ajustarCanvas() {
+  const area = canvas.parentElement.getBoundingClientRect();
+  const dpr = Math.min(window.devicePixelRatio || 2, 2);
+  const larguraCss = Math.max(280, Math.round(area.width));
+  const alturaCss = Math.max(200, Math.round(area.height));
+
+  // redimensionar o canvas apaga-o: só quando o tamanho mudou mesmo
+  if (larguraCss === canvasCss.w && alturaCss === canvasCss.h) return;
+
+  canvasCss = { w: larguraCss, h: alturaCss };
+  canvas.width = Math.round(larguraCss * dpr);
+  canvas.height = Math.round(alturaCss * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);   // 1 unidade = 1 pixel CSS
+}
+
+let canvasCss = { w: 800, h: 600 };
+
+// No telemovel o mapa nao cabe inteiro: enche a largura e segue o avatar (camera).
+// No computador continua a caber tudo, como sempre.
+let camera = { x: LARG / 2, y: ALT / 2 };
+
+function modoCamera() {
+  return ehEcraPequeno();
+}
+
+function caixaDoMapa() {
+  if (!modoCamera()) {
+    const e = Math.min(canvasCss.w / LARG, canvasCss.h / ALT);
+    return {
+      escala: e,
+      largura: LARG * e,
+      altura: ALT * e,
+      offX: (canvasCss.w - LARG * e) / 2,
+      offY: (canvasCss.h - ALT * e) / 2,
+    };
+  }
+
+  // telemovel/tablet: escolhe quanto do mapa se ve, conforme o ecra
+  const larguraTela = canvasCss.w;
+  const vistaLargura = Math.min(LARG, larguraTela < 520 ? 900 : (larguraTela < 900 ? 1150 : 1400));
+  const eLargura = canvasCss.w / vistaLargura;
+  const eAltura = canvasCss.h / ALT;
+  const e = Math.max(eLargura, eAltura);
+
+  const larguraVisivel = canvasCss.w / e;
+  const alturaVisivel = canvasCss.h / e;
+
+  camera.x = Math.max(larguraVisivel / 2, Math.min(LARG - larguraVisivel / 2, camera.x));
+  camera.y = Math.max(alturaVisivel / 2, Math.min(ALT - alturaVisivel / 2, camera.y));
+
+  return {
+    escala: e,
+    largura: LARG * e,
+    altura: ALT * e,
+    offX: canvasCss.w / 2 - camera.x * e,
+    offY: canvasCss.h / 2 - camera.y * e,
+  };
+}
+
 // ------------------------------------------------------------ vídeos no ecrã
 function posicionarVideos() {
   const rect = canvas.getBoundingClientRect();
-  const eX = rect.width / LARG;
-  const eY = rect.height / ALT;
+
+  const cx = caixaDoMapa();
 
   for (const [id, par] of pares) {
     const p = players.get(id);
     if (!p) { par.cardEl.style.opacity = '0'; continue; }
     par.cardEl.style.opacity = '1';
-    par.cardEl.style.left = (rect.left + p.x * eX) + 'px';
-    par.cardEl.style.top = (rect.top + (p.y - RAIO_AVATAR - 26) * eY) + 'px';
+    par.cardEl.style.left = (rect.left + cx.offX + p.x * cx.escala) + 'px';
+    par.cardEl.style.top = (rect.top + cx.offY + (p.y - RAIO_AVATAR - 26) * cx.escala) + 'px';
     par.cardEl.classList.toggle('semcam', !p.camOn);
   }
 }
 
+montarToque();
 requestAnimationFrame(loop);

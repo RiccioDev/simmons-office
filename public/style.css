@@ -6,13 +6,20 @@
   --ouro:#c9a227;
   --verde:#2a9d8f;
 }
-*{box-sizing:border-box}
-html,body{height:100%;margin:0}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{
+  height:100%;margin:0;
+  height:100dvh;              /* altura real, sem a barra do browser */
+  overscroll-behavior:none;   /* sem "puxar" a pagina no telemovel */
+}
+input,button,textarea{font-family:inherit}
 body{
   background:var(--fundo);
   color:var(--tinta);
   font-family:"Segoe UI",Inter,system-ui,sans-serif;
   overflow:hidden;
+  -webkit-text-size-adjust:100%;
+  touch-action:manipulation;
 }
 .oculto{display:none !important}
 
@@ -26,6 +33,8 @@ body{
 }
 .cartao{
   width:min(440px,92vw);
+  max-height:calc(100dvh - 40px);
+  overflow-y:auto;
   background:var(--painel);
   border:1px solid var(--linha);
   border-radius:18px;
@@ -60,6 +69,8 @@ body{
   background:#0b0e13;
   height:100%;
   display:block;
+  touch-action:none;   /* o mapa nao faz scroll nem zoom da pagina */
+  cursor:grab;
 }
 #videoZone{position:absolute;inset:0;pointer-events:none;overflow:hidden}
 .videoCard{
@@ -396,4 +407,228 @@ body{
   content:'';position:absolute;left:3px;right:3px;bottom:2px;height:2.5px;
   background:#3cc878;border-radius:3px;
   box-shadow:0 0 8px 1px rgba(60,200,120,.85);
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   RESPONSIVO — tablet e telemóvel
+   ══════════════════════════════════════════════════════════════ */
+
+/* controlos de toque: escondidos por omissão, aparecem só em ecras de toque */
+#joystick{display:none}
+#btnChat{display:none}
+
+/* joystick (base — usado em qualquer tamanho de ecrã) */
+#joystick{
+  display:none;flex-direction:column;align-items:center;gap:6px;
+  position:absolute;left:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:20;
+}
+#joystick:not(.oculto){display:flex}
+.jsMeio{display:flex;align-items:center;gap:6px}
+.jsBtn{
+  width:52px;height:52px;border-radius:14px;
+  background:rgba(28,34,43,.86);border:1px solid #303845;
+  color:#cfd6df;font-size:17px;font-weight:700;
+  display:grid;place-items:center;appearance:none;
+  backdrop-filter:blur(6px);cursor:pointer;
+  user-select:none;-webkit-user-select:none;touch-action:none;
+}
+.jsBtn:active{background:rgba(201,162,39,.28);border-color:var(--ouro);color:#fff}
+.jsAcao{background:rgba(201,162,39,.16);border-color:rgba(201,162,39,.5);color:var(--ouro);font-size:14px}
+
+#btnChat{
+  place-items:center;
+  position:absolute;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));
+  width:56px;height:56px;border-radius:50%;
+  background:var(--ouro);border:0;color:#12151a;font-size:22px;
+  box-shadow:0 10px 26px rgba(0,0,0,.55);z-index:20;cursor:pointer;
+  appearance:none;line-height:1;
+}
+#btnChat:not(.oculto){display:grid}
+
+/* ---------- tablet (até 1024px) ---------- */
+@media (max-width:1024px){
+  #lateral{width:290px;flex:0 0 290px}
+  #mapa{max-width:calc(100% - 290px)}
+  #ajuda{font-size:11px;padding:7px 10px}
+  #autoVista{width:150px}
+  #autoVista video{height:94px}
+}
+
+/* ---------- tablet em pé e telemovel grande (até 820px) ---------- */
+@media (max-width:820px){
+  #app{flex-direction:column-reverse}
+
+  /* o mapa ocupa tudo; o painel vira gaveta */
+  #mapa{
+    max-width:100%;width:100%;
+    flex:1 1 auto !important;
+    height:auto !important;
+    min-height:0;
+    align-self:stretch;
+    object-fit:fill;
+  }
+
+  #lateral{
+    position:fixed;left:0;right:0;bottom:0;top:auto;
+    width:100%;flex:none;
+    height:58dvh;max-height:58dvh;
+    border-left:0;border-top:1px solid var(--linha);
+    border-radius:18px 18px 0 0;
+    transform:translateY(calc(100% - 56px));
+    transition:transform .22s ease-out;
+    z-index:40;
+    box-shadow:0 -14px 40px rgba(0,0,0,.55);
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  #lateral.aberta{transform:translateY(0)}
+
+  /* a barra do topo funciona como "puxador" da gaveta */
+  .topo{
+    padding:10px 12px;
+    justify-content:space-between;
+    gap:6px;
+    cursor:pointer;
+    min-height:56px;
+  }
+  .topo::before{
+    content:'';
+    position:absolute;top:6px;left:50%;transform:translateX(-50%);
+    width:44px;height:4px;border-radius:3px;background:#39424e;
+  }
+  .topo{position:relative;padding-top:14px}
+  #contagem{font-size:12px}
+  .topo button{width:38px;height:34px;font-size:16px;border-radius:9px}
+
+  #chat{font-size:14.5px;padding:12px 14px}
+  #formChat{padding:8px 10px 10px;gap:6px}
+  #formChat input{padding:13px;font-size:16px}   /* 16px evita o zoom automatico do iOS */
+  #formChat button{width:52px;height:46px;font-size:18px}
+
+  /* ajuda some: no telemovel nao ha teclas */
+  #ajuda{display:none}
+
+  /* joystick */
+  #joystick{
+    display:flex;flex-direction:column;align-items:center;gap:6px;
+    position:absolute;left:16px;bottom:calc(74px + env(safe-area-inset-bottom));
+    z-index:20;opacity:.92;
+  }
+  #joystick.oculto{display:none}
+  .jsMeio{display:flex;align-items:center;gap:6px}
+  .jsBtn{
+    width:52px;height:52px;border-radius:14px;
+    background:rgba(28,34,43,.86);border:1px solid #303845;
+    color:#cfd6df;font-size:17px;font-weight:700;
+    display:grid;place-items:center;
+    backdrop-filter:blur(6px);cursor:pointer;
+    user-select:none;-webkit-user-select:none;
+  }
+  .jsBtn:active{background:rgba(201,162,39,.28);border-color:var(--ouro);color:#fff}
+  .jsAcao{background:rgba(201,162,39,.16);border-color:rgba(201,162,39,.5);color:var(--ouro);font-size:14px}
+
+  /* botao do chat flutuante */
+  #btnChat{
+    display:grid;place-items:center;
+    position:absolute;right:14px;bottom:calc(72px + env(safe-area-inset-bottom));
+    width:52px;height:52px;border-radius:50%;
+    background:var(--ouro);border:0;color:#12151a;font-size:22px;
+    box-shadow:0 10px 26px rgba(0,0,0,.55);z-index:20;cursor:pointer;
+  }
+  #btnChat.pulso{animation:pulsaChat .9s ease-out 2}
+  @keyframes pulsaChat{
+    0%{box-shadow:0 0 0 0 rgba(201,162,39,.65),0 10px 26px rgba(0,0,0,.55)}
+    100%{box-shadow:0 0 0 18px rgba(201,162,39,0),0 10px 26px rgba(0,0,0,.55)}
+  }
+
+  /* a minha camara encolhe e sobe, para nao tapar o joystick */
+  #autoVista{
+    width:96px;left:auto;right:12px;bottom:calc(140px + env(safe-area-inset-bottom));
+  }
+  #autoVista video{height:62px}
+
+  .btnSala{bottom:calc(84px + env(safe-area-inset-bottom));font-size:13px;padding:11px 20px}
+
+  /* cartao de video das outras pessoas */
+  .videoCard{width:118px}
+  .videoCard video{height:74px}
+
+  /* modais a ocupar a largura toda */
+  .modalCaixa{width:calc(100% - 28px);max-width:420px;padding:26px 22px}
+
+  /* sala em grelha vertical */
+  .salaGrelha{
+    grid-template-columns:1fr !important;
+    grid-auto-rows:1fr;
+    padding:10px;gap:10px;
+  }
+  .salaTopo{padding:12px 14px}
+  .salaTopo span{font-size:12px}
+  .salaTopo button{font-size:12px;padding:8px 12px}
+
+  /* partilha de ecra */
+  #ecraBarra, .ecraBarra{padding:8px 12px}
+  .ecraBarra span{font-size:12px}
+  .barraTela{top:10px;font-size:11.5px;padding:6px 8px 6px 12px}
+
+  /* entrada */
+  .ecra{padding:14px}
+  .cartao{padding:28px 22px 24px;border-radius:16px}
+  .cartao h1{font-size:22px}
+  .cartao input{padding:14px;font-size:16px}
+  .cartao button{padding:14px;font-size:15.5px}
+}
+
+/* ---------- telemovel (até 480px) ---------- */
+@media (max-width:480px){
+  .topo{gap:4px;padding:12px 8px 8px}
+  .topo button{width:34px;height:32px;font-size:15px}
+  #contagem{font-size:11px}
+  #lateral{height:60dvh;max-height:60dvh}
+  .marca{font-size:12px;letter-spacing:.28em}
+}
+
+/* ---------- ecras baixos na horizontal (telemovel deitado) ---------- */
+@media (max-height:480px) and (orientation:landscape){
+  /* com pouca altura, o painel é uma gaveta fina à direita */
+  #lateral{
+    position:fixed;right:0;top:0;bottom:0;left:auto;
+    width:300px;height:100dvh;max-height:100dvh;
+    transform:translateX(calc(100% - 56px));
+    border-radius:16px 0 0 16px;
+    border-top:0;border-left:1px solid var(--linha);
+    transition:transform .22s ease-out;
+  }
+  #lateral.aberta{transform:translateX(0)}
+  /* a "puxadeira" passa a ser um botão pequeno no topo da gaveta */
+  .topo{flex-wrap:wrap;justify-content:center;gap:5px;padding:8px 6px;min-height:auto}
+  .topo::before{display:none}
+  .topo #contagem{font-size:10px;width:100%;text-align:center}
+  .topo button{width:32px;height:32px;font-size:14px;margin:0 !important}
+
+  #chat{font-size:13px;padding:8px 10px}
+  #formChat{padding:6px;gap:5px}
+  #formChat input{padding:9px;font-size:14px}
+  #formChat button{width:44px;height:40px}
+
+  #joystick{
+    display:flex;flex-direction:column;align-items:center;gap:4px;
+    position:absolute;left:10px;bottom:14px;
+    transform:scale(.8);transform-origin:bottom left;z-index:20;
+  }
+  #joystick.oculto{display:none}
+  #btnChat{display:grid;place-items:center}
+  .jsBtn{width:46px;height:46px}
+  #btnChat{width:46px;height:46px;right:10px;bottom:10px;font-size:19px}
+  #autoVista{width:84px;bottom:auto;top:12px;right:12px;left:auto}
+  #autoVista video{height:54px}
+  .btnSala{bottom:66px;padding:8px 16px;font-size:12px}
+  #ajuda{display:none}
+  .modalCaixa{padding:20px 18px}
+}
+
+/* ---------- ecras muito largos: nao deixa o mapa esticar demais ---------- */
+@media (min-width:1800px){
+  #lateral{width:380px;flex:0 0 380px}
+  #mapa{max-width:calc(100% - 380px)}
 }

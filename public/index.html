@@ -2,7 +2,12 @@
 <html lang="pt-PT">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0e1116">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏢</text></svg>">
 <title>Simmons Office</title>
 <link rel="stylesheet" href="style.css">
 </head>
@@ -78,6 +83,19 @@
   </div>
 
   <button id="btnSala" class="btnSala oculto">🎥 Tela cheia</button>
+
+  <!-- controlos de toque (so aparecem em ecras pequenos) -->
+  <div id="joystick" class="oculto">
+    <button class="jsBtn" data-dir="up">▲</button>
+    <div class="jsMeio">
+      <button class="jsBtn" data-dir="left">◀</button>
+      <button class="jsBtn jsAcao" data-acao="sentar">E</button>
+      <button class="jsBtn" data-dir="right">▶</button>
+    </div>
+    <button class="jsBtn" data-dir="down">▼</button>
+  </div>
+
+  <button id="btnChat" class="oculto" title="Abrir o chat">💬</button>
 
   <aside id="lateral">
     <div class="topo">
