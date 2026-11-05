@@ -6,6 +6,18 @@ const RAIO_CORTA   = 320;   // a partir daqui desliga (histerese)
 const VEL = 4.2;
 const RAIO_AVATAR = 16;
 
+let erroMostrado = false;
+function relatarErro(origem, e) {
+  if (erroMostrado) return;
+  erroMostrado = true;
+  try {
+    sistema('ERRO em ' + origem + ': ' + (e && (e.message || e)) + (e && e.stack ? ' | ' + String(e.stack).split('\n')[1] : ''));
+  } catch (_) {
+    console.error(origem, e);
+  }
+}
+window.addEventListener('error', (ev) => relatarErro('janela', ev.error || ev.message));
+
 const canvas = document.getElementById('mapa');
 const ctx = canvas.getContext('2d');
 const LARG = 1600, ALT = 1000;
@@ -661,10 +673,6 @@ document.getElementById('btnCriarConta').onclick = async () => {
   document.getElementById('novoNome').value = '';
   await carregarContas();
 };
-
-window.addEventListener('error', (e) => {
-  try { sistema('Erro: ' + e.message); } catch (_) {}
-});
 
 requestAnimationFrame(loop);
 }
