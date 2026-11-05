@@ -1,6 +1,6 @@
 # Simmons Office
 
-Escritório virtual 2D para a equipa Simmons Dellion. Corre no teu PC e fica acessível
+Escritório virtual 2D para a equipe Simmons Dellion. Corre no teu PC e fica acessível
 de qualquer lugar através de um link HTTPS.
 
 Cada pessoa tem a sua mesa, com cadeado. Voz e vídeo ligam só quando dois avatares estão
@@ -10,42 +10,42 @@ perto, para ninguém ter de ouvir o escritório inteiro.
 
 1. Duplo clique em Gather.bat -> abre em http://localhost:3000
 2. Duplo clique em expor.bat -> em segundos aparece o link público
-   (ex.: https://office-xxxx-yyyy.trycloudflare.com), que também fica guardado em
+   (ex.: https://office-xxxx-yyyy.trycloudflare.com), que também fica salvo em
    url_publica.txt
-3. Manda esse link à equipa. Cada um abre no browser, escreve o nome, aceita o microfone
-   e a câmara. Está dentro.
+3. Manda esse link à equipe. Cada um abre no browser, escreve o nome, aceita o microfone
+   e a câmera. Está dentro.
 
 O link público muda cada vez que abres o expor.bat. Para um link fixo é preciso um
 domínio próprio e uma conta Cloudflare (grátis) com um túnel com nome — pede-me que eu
 monto.
 
-## No telemóvel e no tablet
+## No celular e no tablet
 
 Abre o mesmo link — o site adapta-se sozinho. Não há app para instalar.
 
-- **Mapa**: preenche o ecrã e **segue o teu avatar** (no computador continua a ver-se a sala
-  toda; no telemóvel a câmara acompanha-te, com mesa legível)
+- **Mapa**: preenche o tela e **segue o teu avatar** (no computador continua a ver-se a sala
+  toda; no celular a câmera acompanha-te, com mesa legível)
 - **Andar**: joystick em baixo à esquerda, ou **toca num ponto do mapa** e ele vai até lá
 - **Sentar/levantar**: botão **E** no meio do joystick
 - **Chat**: botão 💬 redondo em baixo à direita; o painel sobe como uma gaveta (arrasta para
   baixo para fechar)
-- **Micro, câmara, ecrã, batidas e contas**: os mesmos botões, na barra da gaveta
+- **Micro, câmera, tela, batidas e contas**: os mesmos botões, na barra da gaveta
 - **Deitado**: o painel vira uma gaveta fina à direita, o mapa fica com o resto
-- A tua câmara encolhe e não tapa os controlos
+- A tua câmera encolhe e não tapa os controlos
 
 A gaveta do chat arrasta para cima (tocar na barra) e para baixo (arrastar o dedo).
 
-## Chat: histórico, ficheiros e mensagens fixadas
+## Chat: histórico, arquivos e mensagens fixadas
 
 **Histórico de 7 dias.** As mensagens ficam guardadas no servidor e voltam a aparecer quando
 entras — mesmo que feches o browser, mudes de aparelho, ou o servidor reinicie. Passados
 7 dias são apagadas automaticamente.
 
-**Ficheiros e fotos.** Botão **📎** ao lado da caixa de texto: escolhes a foto ou o ficheiro
+**Ficheiros e fotos.** Botão **📎** ao lado da caixa de texto: escolhes a foto ou o arquivo
 (PDF, Word, Excel, zip, vídeo) e ele é enviado. Fotos aparecem como miniatura — carregar
 abre em grande; o resto aparece como cartão com o nome e o tamanho. Limite de **10 MB**.
 
-Podes escrever uma legenda antes de escolher o ficheiro e ela vai junto.
+Podes escrever uma legenda antes de escolher o arquivo e ela vai junto.
 
 **Fixar para sempre.** Ao passar o rato numa mensagem aparece um **📌** à direita. Carregar
 fixa a mensagem: ela passa para a secção **FIXADAS**, no topo do chat, e **nunca é apagada**
@@ -53,13 +53,13 @@ fixa a mensagem: ela passa para a secção **FIXADAS**, no topo do chat, e **nun
 
 Os anexos ficam na base de dados, por isso as fotos também não se perdem num deploy.
 
-## Remover alguém da equipa
+## Remover alguém da equipe
 
 Em **👥 → remover**, a conta desaparece e:
 
 - a **mesa fica livre na hora** (dono limpo, cadeado aberto)
 - se essa pessoa estiver dentro do escritório, é **tirada imediatamente** — recebe o aviso
-  "A tua conta foi removida" e volta ao ecrã de entrada
+  "A tua conta foi removida" e volta ao tela de entrada
 
 Há ainda **Mesas ocupadas**, no mesmo painel: mostra quem tem cada mesa e um botão
 **libertar**, para o caso de uma mesa ter ficado presa (por exemplo, de alguém que já saiu
@@ -72,14 +72,14 @@ do sistema antes desta regra existir).
 - R — ficar com a mesa mais próxima (e dar-lhe nome)
 - L — fechar / abrir a minha mesa (cadeado)
 - M — ligar / desligar o meu microfone
-- C — ligar / desligar a minha câmara
+- C — ligar / desligar a minha câmera
 - Enter no chat — escrever para todos
 - 🎥 Tela cheia — aparece quando estás a falar com alguém (só nessa altura)
 
-## A tua câmara
+## A tua câmera
 
 No canto inferior esquerdo aparece sempre a **tua própria imagem** (espelhada, como num
-espelho) enquanto a câmara estiver ligada. Serve para acertares o ângulo e veres se estás
+espelho) enquanto a câmera estiver ligada. Serve para acertares o ângulo e veres se estás
 enquadrado. O som dessa janela está desligado — nunca faz eco.
 
 ## Bater à porta
@@ -99,26 +99,26 @@ Se quem bateu se afastar ou sair, o painel fecha sozinho.
 
 ## Os botões dizem o estado de um relance
 
-- **Microfone** e **câmara** desligados: o botão ganha uma **linha vermelha** por cima —
+- **Microfone** e **câmera** desligados: o botão ganha uma **linha vermelha** por cima —
   vê-se logo que estás cortado, mesmo de longe
-- **Partilha de ecrã** ligada: o botão do computador fica com **brilho verde** e uma barra
+- **Partilha de tela** ligada: o botão do computador fica com **brilho verde** e uma barra
   verde em baixo; ao parar, volta ao normal
 
-## Partilhar o ecrã
+## Partilhar o tela
 
-Carrega em **🖥️** no topo (ou **Ctrl+T**). O Chrome pergunta o que queres partilhar — ecrã
+Carrega em **🖥️** no topo (ou **Ctrl+T**). O Chrome pergunta o que queres partilhar — tela
 inteiro, janela ou separador — e, nas opções, podes **incluir o som do computador**.
 
 **Quem recebe decide se quer ver.** Aparece um aviso no topo — *"Maria está a partilhar o
-ecrã"* — com o botão **Ver ecrã**. Nada abre sozinho. Se não quiseres, carrega no ✕ e o
+tela"* — com o botão **Ver tela**. Nada abre sozinho. Se não quiseres, carrega no ✕ e o
 aviso não volta até essa partilha acabar.
 
-Ao abrir, o ecrã aparece numa **janela flutuante**, ao lado do chat:
+Ao abrir, o tela aparece numa **janela flutuante**, ao lado do chat:
 
 - **continuas a ver e a andar no mapa** com a janela aberta (WASD continua a funcionar)
-- **⤢** põe em ecrã inteiro / volta a flutuante
+- **⤢** põe em tela inteiro / volta a flutuante
 - **Esc** fecha só a janela (as teclas não param de funcionar)
-- no modo reunião o ecrã entra na grelha, sem interromper nada
+- no modo reunião o tela entra na grelha, sem interromper nada
 
 Há **som quando alguém começa** (dois tons a subir) e **quando termina** (dois tons a
 descer) — para não passares a partilha sem dar conta.
@@ -151,7 +151,7 @@ Se a pessoa se afastar, o tile desaparece sozinho; se não ficar ninguém, a sal
 - A menos de 250 px de alguém -> áudio e vídeo ligam-se sozinhos.
 - Acima de 320 px -> desligam.
 - O vídeo aparece num cartão por cima do avatar da pessoa.
-- A ligação é directa entre os computadores (WebRTC). O servidor só apresenta as pessoas
+- A conexão é directa entre os computadores (WebRTC). O servidor só apresenta as pessoas
   umas às outras — a voz e a imagem não passam por ele.
 - Há servidores STUN e TURN públicos configurados, para funcionar mesmo com os colegas em
   redes diferentes (outra operadora, 4G, etc.).
@@ -166,7 +166,7 @@ Se a pessoa se afastar, o tile desaparece sozinho; se não ficar ninguém, a sal
 - mesas.json — donos e cadeados (criado automaticamente)
 - url_publica.txt — último link público gerado
 - cloudflared.exe — programa que cria o túnel
-- wstest.js / wstest_publico.js — testes de ligação local e pública
+- wstest.js / wstest_publico.js — testes de conexão local e pública
 
 
 ## Base de dados (donos permanentes)
@@ -174,11 +174,11 @@ Se a pessoa se afastar, o tile desaparece sozinho; se não ficar ninguém, a sal
 Quando corre no Render, as mesas ficam numa base de dados Postgres gratuita — os donos
 **nunca se perdem**, nem com deploys nem com reinícios.
 
-Quando corre no teu PC (`Gather.bat`), usa o ficheiro local `mesas.json`. Funciona igual,
+Quando corre no teu PC (`Gather.bat`), usa o arquivo local `mesas.json`. Funciona igual,
 só não é partilhado com a versão online.
 
 O código escolhe sozinho: se existir a variável `DATABASE_URL`, vai para Postgres; se não,
-usa o ficheiro. Se o Postgres falhar, cai no ficheiro e continua a funcionar.
+usa o arquivo. Se o Postgres falhar, cai no arquivo e continua a funcionar.
 
 ## Se algo falhar
 

@@ -18,7 +18,7 @@ if (usaPostgres) {
   try {
     ({ Pool } = require('pg'));
   } catch (e) {
-    console.log('aviso: modulo pg nao instalado, a usar ficheiro local');
+    console.log('aviso: modulo pg nao instalado, a usar arquivo local');
   }
 }
 
@@ -72,7 +72,7 @@ async function iniciar() {
 
 pronto = iniciar().catch((e) => {
   ultimoErro = e.message;
-  console.log('Postgres indisponivel (' + e.message + '), a usar ficheiro local');
+  console.log('Postgres indisponivel (' + e.message + '), a usar arquivo local');
   pool = null;
   return false;
 });
@@ -364,7 +364,7 @@ async function removerConvite(codigo) {
 // ------------------------------------------------------------------ varios
 
 function modoArmazenamento() {
-  return pool ? 'postgres' : 'ficheiro local';
+  return pool ? 'postgres' : 'arquivo local';
 }
 
 function diagnostico() {

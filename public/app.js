@@ -175,7 +175,7 @@ if (codigoConvite) {
     const senha = document.getElementById('convSenha').value;
 
     if (!nome || usuario.length < 3 || senha.length < 6) {
-      erro.textContent = 'Preenche o nome, um utilizador com 3+ letras e uma senha com 6+.';
+      erro.textContent = 'Preencha o nome, um usuário com 3+ letras e uma senha com 6+.';
       return;
     }
 
@@ -213,7 +213,7 @@ document.getElementById('btnCriarAdmin').onclick = async () => {
   const senha = document.getElementById('setupSenha').value;
 
   if (!nome || !usuario || senha.length < 6) {
-    erro.textContent = 'Preenche tudo e usa uma palavra-passe com 6 ou mais caracteres.';
+    erro.textContent = 'Preenche tudo e usa uma senha com 6 ou mais caracteres.';
     return;
   }
 
@@ -253,7 +253,7 @@ async function entrar() {
   const usuario = usuarioInput.value.trim();
   const senha = senhaInput.value;
 
-  if (!usuario || !senha) { erro.textContent = 'Escreve o utilizador e a palavra-passe.'; return; }
+  if (!usuario || !senha) { erro.textContent = 'Escreva o usuário e a senha.'; return; }
 
   const btn = document.getElementById('btnEntrar');
   btn.disabled = true;
@@ -278,7 +278,7 @@ async function entrar() {
     btn.disabled = false; btn.textContent = 'Entrar no escritório';
     await entrarComSessao();
   } catch (e) {
-    erro.textContent = 'Sem ligação ao servidor.';
+    erro.textContent = 'Sem conexão ao servidor.';
     btn.disabled = false; btn.textContent = 'Entrar no escritório';
   }
 }
@@ -308,7 +308,7 @@ async function entrarComSessao() {
       temVideo = false;
     } catch (e2) {
       meuStream = null;
-      alert('Sem acesso ao microfone. Podes entrar, mas só vais poder escrever.');
+      alert('Sem acesso ao microfone. Você pode entrar, mas só vai poder escrever.');
     }
   }
 
@@ -345,7 +345,7 @@ function ligar(nome) {
 
   ws.onclose = () => {
     document.getElementById('estadoLigacao').classList.remove('on');
-    sistema('Ligação perdida. Recarrega a página.');
+    sistema('Conexão perdida. Reclique a página.');
   };
 
   ws.onmessage = (ev) => {
@@ -358,7 +358,7 @@ function ligar(nome) {
           const p = players.get(m.id);
           if (p) p.cor = m.players.find(x => x.id === m.id)?.cor || '#c9a227';
         }
-        sistema('Estás no escritório. Anda com WASD e chega-te a alguém para falar.');
+        sistema('Você está no escritório. Ande com WASD e chegue perto de alguém para falar.');
         break;
       case 'estado':
         aplicarEstado(m);
@@ -427,7 +427,7 @@ function ligar(nome) {
         break;
       }
       case 'expulso':
-        sistema(m.texto || 'A tua conta foi removida.');
+        sistema(m.texto || 'Sua conta foi removida.');
         setTimeout(() => {
           localStorage.removeItem('simmons_token');
           location.reload();
@@ -458,14 +458,14 @@ function aplicarEstado(m) {
       const acabou = !p.partilha && antesPartilha.has(p.id);
 
       if (comecou) {
-        avisar(p.name + ' está a partilhar o ecrã.');
+        avisar(p.name + ' está compartilhando a tela.');
         tocarAvisoEcra('inicio');
         if (!salaAberta) mostrarAvisoEcra(p.name, p.id);
       }
 
       if (acabou) {
         avisoIgnorado.delete(p.id);
-        avisar(p.name + ' parou de partilhar o ecrã.');
+        avisar(p.name + ' parou de compartilhar a tela.');
         tocarAvisoEcra('fim');
         if (ecraRemoto && ecraRemoto.id === p.id) {
           fecharEcra();
@@ -479,7 +479,7 @@ function aplicarEstado(m) {
     avisouMesas = false;
   } else if (!desks.length && !avisouMesas) {
     avisouMesas = true;
-    sistema('O servidor não enviou as mesas. Recarrega com F5.');
+    sistema('O servidor não enviou as mesas. Reclique com F5.');
   }
 
   for (const id of antes) if (!players.has(id)) fecharPar(id);
@@ -544,7 +544,7 @@ function bolha(de, cor, texto, hora, extra = {}) {
       a.href = f.url;
       a.target = '_blank';
       a.rel = 'noopener';
-      a.innerHTML = '📄 ' + escapar(f.nome || 'ficheiro') +
+      a.innerHTML = '📄 ' + escapar(f.nome || 'arquivo') +
         ' <span class="tamanho">' + tamanhoLegivel(f.tamanho) + '</span>';
       el.appendChild(a);
     }
@@ -564,7 +564,7 @@ async function alternarFixada(id, fixada) {
     });
     if (!r.ok) return avisar('Não consegui fixar essa mensagem.');
   } catch (e) {
-    avisar('Sem ligação para fixar.');
+    avisar('Sem conexão para fixar.');
   }
 }
 
@@ -658,7 +658,7 @@ document.getElementById('ficheiro').addEventListener('change', async (e) => {
   e.target.value = '';
   if (!f) return;
 
-  if (f.size > MAX_ANEXO) return avisar('Ficheiro grande demais (máximo 10 MB).');
+  if (f.size > MAX_ANEXO) return avisar('Arquivo muito grande (máximo 10 MB).');
 
   avisar('A enviar ' + f.name + '…');
 
@@ -678,7 +678,7 @@ document.getElementById('ficheiro').addEventListener('change', async (e) => {
 
     if (!r.ok) {
       const erro = await r.json().catch(() => ({}));
-      return avisar(erro.erro || 'Não consegui enviar o ficheiro.');
+      return avisar(erro.erro || 'Não consegui enviar o arquivo.');
     }
 
     const info = await r.json();
@@ -688,7 +688,7 @@ document.getElementById('ficheiro').addEventListener('change', async (e) => {
     ws.send(JSON.stringify({ t: 'chat', texto: legenda, ficheiro: info }));
     avisar('');
   } catch (err) {
-    avisar('Falhou o envio do ficheiro.');
+    avisar('Falhou o envio do arquivo.');
   }
 });
 
@@ -729,13 +729,13 @@ function alternarSentar() {
   if (!p) return;
   if (p.sitting) { ws.send(JSON.stringify({ t: 'levantar' })); return; }
   const d = minhaMesaMaisProxima();
-  if (!d) { avisar('Chega-te a uma mesa para te sentares.'); return; }
+  if (!d) { avisar('Chegue perto de uma mesa para se sentar.'); return; }
   ws.send(JSON.stringify({ t: 'sentar', deskId: d.id, nome: eu.name }));
 }
 
 function alternarFecho() {
   const d = minhaMesaMaisProxima();
-  if (!d) { avisar('Chega-te a uma mesa.'); return; }
+  if (!d) { avisar('Chegue perto de uma mesa.'); return; }
   if (d.owner && d.owner.toLowerCase() !== eu.name.toLowerCase()) {
     avisar('Esta mesa é de ' + d.owner + '.');
     return;
@@ -747,7 +747,7 @@ let mesaEmClaim = null;
 
 function reclamarMesa() {
   const d = minhaMesaMaisProxima();
-  if (!d) { avisar('Chega-te a uma mesa.'); return; }
+  if (!d) { avisar('Chegue perto de uma mesa.'); return; }
   if (d.owner && d.owner.toLowerCase() !== (eu?.name || '').toLowerCase()) {
     avisar('A ' + d.label + ' já é de ' + d.owner + '.');
     return;
@@ -866,10 +866,10 @@ document.getElementById('btnCam').onclick = alternarCam;
 // ------------------------------------------------------------ loop
 let ultimoEnvio = 0;
 
-// ----- direcao vinda do toque (joystick, arrastar no mapa ou tocar num ponto)
+// ----- direcao vinda do toque (joystick, arraster no mapa ou tocar num ponto)
 const toqueDir = { x: 0, y: 0 };
 let alvoToque = null;      // {x,y} no espaco do mapa, para "tocar para ir"
-let arrastar = null;       // dedo a arrastar no mapa
+let arraster = null;       // dedo a arraster no mapa
 
 function direcaoDeToque() {
   let dx = toqueDir.x, dy = toqueDir.y;
@@ -947,7 +947,7 @@ async function comecarPartilha() {
       audio: true,   // o browser mostra a opcao de partilhar o som do sistema
     });
   } catch (e) {
-    if (e && e.name !== 'NotAllowedError') avisar('Não foi possível partilhar o ecrã.');
+    if (e && e.name !== 'NotAllowedError') avisar('Não foi possível compartilhar a tela.');
     return;
   }
 
@@ -963,14 +963,14 @@ async function comecarPartilha() {
 
   const barra = document.getElementById('barraTela');
   document.getElementById('telaTexto').textContent =
-    temAudio ? 'A partilhar o teu ecrã (com som)' : 'A partilhar o teu ecrã';
+    temAudio ? 'Compartilhando sua tela (com som)' : 'Compartilhando sua tela';
   barra.classList.remove('oculto');
   document.getElementById('btnTela').classList.add('ativo');
 
-  // quando carregas em "parar partilha" no proprio Chrome
+  // quando clique em "parar partilha" no proprio Chrome
   ecra.getVideoTracks()[0].onended = () => pararPartilha();
 
-  avisar('A partilhar o teu ecrã. Quem estiver ao teu lado vê.');
+  avisar('Compartilhando sua tela. Quem estiver perto de você vê.');
 }
 
 function ligarEcra(id, pc) {
@@ -991,7 +991,7 @@ function ligarEcra(id, pc) {
   renegociar(id, pc);
 }
 
-// se estou a partilhar e esta ligação ainda não leva o ecrã, acrescenta e renegocia
+// se estou a partilhar e esta conexão ainda não leva o tela, acrescenta e renegocia
 function garantirPartilhaNoPar(id, pc) {
   if (!streamEcra || !pc || pc.connectionState !== 'connected') return;
 
@@ -1034,7 +1034,7 @@ function pararPartilha() {
   document.getElementById('barraTela').classList.add('oculto');
   document.getElementById('btnTela').classList.remove('ativo');
   fecharEcra();
-  avisar('Paraste de partilhar o ecrã.');
+  avisar('Você parou de compartilhar a tela.');
 }
 
 async function renegociar(id, pc) {
@@ -1048,7 +1048,7 @@ async function renegociar(id, pc) {
     const oferta = await pc.createOffer();
     await pc.setLocalDescription(oferta);
 
-    // depois do setLocalDescription os mids já existem: dizemos qual é o do ecrã
+    // depois do setLocalDescription os mids já existem: dizemos qual é o do tela
     const dados = { tipo: 'offer', sdp: pc.localDescription, partilha: !!streamEcra };
     if (streamEcra) {
       for (const t of pc.getTransceivers()) {
@@ -1097,9 +1097,9 @@ function receberEcra(id, stream) {
   ecraRemoto = { id, stream, nome };
 
   if (salaAberta) {
-    // no modo reunião o ecrã entra na grelha, sem interromper nada
+    // no modo reunião o tela entra na grelha, sem interromper nada
     atualizarSala();
-    avisar(nome + ' está a partilhar o ecrã.');
+    avisar(nome + ' está compartilhando a tela.');
     return;
   }
 
@@ -1117,7 +1117,7 @@ function mostrarAvisoEcra(nome, id) {
   if (id && avisoIgnorado.has(id)) return;
   const b = document.getElementById('bannerEcra');
   if (!b) return;
-  document.getElementById('bannerTexto').textContent = nome + ' está a partilhar o ecrã';
+  document.getElementById('bannerTexto').textContent = nome + ' está compartilhando a tela';
   b.classList.remove('oculto');
 }
 
@@ -1133,7 +1133,7 @@ function mostrarEcra() {
   v.srcObject = ecraRemoto.stream;
   v.muted = false;
   v.play().catch(() => {});
-  document.getElementById('ecraNome').textContent = 'Ecrã de ' + ecraRemoto.nome;
+  document.getElementById('ecraNome').textContent = 'Tela de ' + ecraRemoto.nome;
   ov.classList.remove('oculto');
 }
 
@@ -1223,7 +1223,7 @@ function atualizarSala() {
   const lista = participantes();
 
   // o ecra de quem partilha ocupa a linha de cima
-  const ecra = ecraRemoto ? ecraRemoto : (streamEcra ? { id: 'eu', stream: streamEcra, nome: 'O teu ecrã (a partilhar)' } : null);
+  const ecra = ecraRemoto ? ecraRemoto : (streamEcra ? { id: 'eu', stream: streamEcra, nome: 'Sua tela (compartilhando)' } : null);
   let tileEcra = grelha.querySelector('.tile.telaGrelha');
   if (ecra) {
     if (!tileEcra) {
@@ -1294,7 +1294,7 @@ function atualizarSala() {
   }
 
   document.getElementById('salaTitulo').textContent =
-    lista.length <= 1 ? 'A tua câmara' : 'Reunião · ' + lista.length + ' pessoas';
+    lista.length <= 1 ? 'Sua câmera' : 'Reunião · ' + lista.length + ' pessoas';
 }
 
 function abrirSala() {
@@ -1380,7 +1380,7 @@ async function carregarConvites() {
     const r = await fetch('/api/convites', { headers: { Authorization: 'Bearer ' + token } });
     const d = await r.json();
     if (!r.ok) { lista.innerHTML = ''; return; }
-    if (!d.convites.length) { lista.innerHTML = '<div class="contaVazia">Ainda não geraste convites.</div>'; return; }
+    if (!d.convites.length) { lista.innerHTML = '<div class="contaVazia">Você ainda não gerou convites.</div>'; return; }
 
     const dataLegivel = (v) => {
       if (!v) return '';
@@ -1454,7 +1454,7 @@ async function carregarMesasAdmin() {
 
 async function carregarContas() {
   const lista = document.getElementById('listaContas');
-  lista.innerHTML = '<div class="contaVazia">A carregar...</div>';
+  lista.innerHTML = '<div class="contaVazia">Carregando...</div>';
   try {
     const r = await fetch('/api/usuarios', { headers: { Authorization: 'Bearer ' + token } });
     const d = await r.json();
@@ -1479,7 +1479,7 @@ async function carregarContas() {
       };
     });
   } catch (e) {
-    lista.innerHTML = '<div class="contaVazia">Sem ligação.</div>';
+    lista.innerHTML = '<div class="contaVazia">Sem conexão.</div>';
   }
 }
 
@@ -1487,7 +1487,7 @@ ligarClique('btnCriarConta', 'onclick', async () => {
   const usuario = document.getElementById('novoUsuario').value.trim();
   const nome = document.getElementById('novoNome').value.trim();
   const res = document.getElementById('resultadoConta');
-  if (!usuario || !nome) { res.textContent = 'Preenche o utilizador e o nome.'; return; }
+  if (!usuario || !nome) { res.textContent = 'Preencha o usuário e o nome.'; return; }
 
   const r = await fetch('/api/usuarios', {
     method: 'POST',
@@ -1498,7 +1498,7 @@ ligarClique('btnCriarConta', 'onclick', async () => {
 
   if (!r.ok) { res.textContent = d.erro || 'Não foi possível criar.'; return; }
 
-  res.innerHTML = 'Conta criada: <b>' + escapar(d.usuario) + '</b> · palavra-passe: <b>' + escapar(d.senha) + '</b><br><small>Guarda e envia ao colega. Ele pode mudar depois.</small>';
+  res.innerHTML = 'Conta criada: <b>' + escapar(d.usuario) + '</b> · senha: <b>' + escapar(d.senha) + '</b><br><small>Salve e envie ao colega. Ele pode mudar depois.</small>';
   const nu = $('novoUsuario'); if (nu) nu.value = '';
   const nn = $('novoNome'); if (nn) nn.value = '';
   await carregarContas();
@@ -1540,7 +1540,7 @@ function desenhar() {
 
   const cx = caixaDoMapa();
 
-  // grade em todo o ecrã, alinhada com o mapa (sem emendas nem barras)
+  // grade em todo o tela, alinhada com o mapa (sem emendas nem barras)
   const passo = 50 * cx.sx;
   if (passo > 6) {
     ctx.strokeStyle = 'rgba(255,255,255,.022)';
@@ -1671,7 +1671,7 @@ function desenhar() {
     if (p.partilha) {
       ctx.textAlign = 'center';
       ctx.font = '700 9.5px "Segoe UI",sans-serif';
-      const txt = 'A PARTILHAR';
+      const txt = 'COMPARTILHANDO';
       const l = ctx.measureText(txt).width;
       ctx.fillStyle = 'rgba(224,75,75,.95)';
       ctx.beginPath();
@@ -1772,7 +1772,7 @@ function criarPar(id, iniciador) {
           par.streamEcra && par.streamEcra.getVideoTracks().length > 0);
 
     if (ehEcra) {
-      // as faixas do ecrã vão para um stream só delas — nunca mexem no da câmara
+      // as faixas do tela vão para um stream só delas — nunca mexem no da câmera
       if (!par.streamEcra) par.streamEcra = new MediaStream();
       if (!par.streamEcra.getTracks().some(t => t.id === e.track.id)) {
         par.streamEcra.addTrack(e.track);
@@ -1781,7 +1781,7 @@ function criarPar(id, iniciador) {
       return;
     }
 
-    // câmara/voz: um único stream por pessoa, que só cresce (nunca é substituído)
+    // câmera/voz: um único stream por pessoa, que só cresce (nunca é substituído)
     if (!par.streamRemoto) {
       par.streamRemoto = new MediaStream();
       videoEl.srcObject = par.streamRemoto;
@@ -1797,7 +1797,7 @@ function criarPar(id, iniciador) {
   pc.onconnectionstatechange = () => {
     if (['failed', 'closed', 'disconnected'].includes(pc.connectionState)) fecharPar(id);
     if (pc.connectionState === 'connected') {
-      // já ligado: garantir que, se estou a partilhar, o ecrã também foi
+      // já ligado: garantir que, se estou a partilhar, o tela também foi
       setTimeout(() => garantirPartilhaNoPar(id, pc), 600);
     }
   };
@@ -1952,7 +1952,7 @@ function montarToque() {
     setTimeout(() => document.getElementById('msg').focus(), 250);
   });
 
-  // arrastar a gaveta para baixo fecha
+  // arraster a gaveta para baixo fecha
   let toqueInicial = null;
   lateral.addEventListener('touchstart', (e) => {
     if (!ehEcraPequeno() || !lateral.classList.contains('aberta')) return;
@@ -1965,20 +1965,20 @@ function montarToque() {
     toqueInicial = null;
   }, { passive: true });
 
-  // ---- tocar no mapa anda ate la; arrastar tambem
+  // ---- tocar no mapa anda ate la; arraster tambem
   canvas.style.cursor = ehEcraPequeno() ? 'grab' : 'default';
 
   canvas.addEventListener('pointerdown', (e) => {
     if (!ehEcraPequeno()) return;
-    arrastar = { x: e.clientX, y: e.clientY };
+    arraster = { x: e.clientX, y: e.clientY };
     alvoToque = pontoNoMapa(e.clientX, e.clientY);
     canvas.style.cursor = 'grabbing';
   });
   canvas.addEventListener('pointermove', (e) => {
-    if (!arrastar) return;
+    if (!arraster) return;
     alvoToque = pontoNoMapa(e.clientX, e.clientY);
   });
-  const fimArrasto = () => { arrastar = null; canvas.style.cursor = ehEcraPequeno() ? 'grab' : 'default'; };
+  const fimArrasto = () => { arraster = null; canvas.style.cursor = ehEcraPequeno() ? 'grab' : 'default'; };
   canvas.addEventListener('pointerup', fimArrasto);
   canvas.addEventListener('pointercancel', fimArrasto);
 
@@ -2022,7 +2022,7 @@ let canvasCss = { w: 800, h: 600 };
 let camera = { x: LARG / 2, y: ALT / 2 };
 
 function modoCamera() {
-  // só em ecrãs verticais (telemóvel/tablet em pé).
+  // só em telas verticais (celular/tablet em pé).
   // deitado ou no computador mostra-se o mapa inteiro.
   return ehEcraPequeno() && window.innerHeight > 480;
 }
@@ -2040,7 +2040,7 @@ function caixaDoMapa() {
   }
 
   // Telemóvel/tablet: mostra ~780 unidades de largura e segue o avatar.
-  // Só segue nos eixos em que o mapa é maior que o ecrã (senão ficaria deslocado).
+  // Só segue nos eixos em que o mapa é maior que o tela (senão ficaria deslocado).
   const vista = canvasCss.w < 520 ? 780 : 1000;
   const e = canvasCss.w / vista;
 
@@ -2066,7 +2066,7 @@ function caixaDoMapa() {
   return { sx: e, sy: e, offX, offY };
 }
 
-// ------------------------------------------------------------ vídeos no ecrã
+// ------------------------------------------------------------ vídeos no tela
 function posicionarVideos() {
   const rect = canvas.getBoundingClientRect();
 

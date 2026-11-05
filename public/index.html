@@ -13,36 +13,67 @@
 </head>
 <body>
 
-<!-- ecrã de entrada -->
+<!-- tela de entrada -->
 <div id="entrada" class="ecra">
   <div class="cartao">
     <div class="marca">SIMMONS<span>DELLION</span></div>
     <h1>Escritório virtual</h1>
-    <p class="sub" id="subPadrao">Entra com a conta que tens da equipa.</p>
+
     <div id="blocoConvite" class="oculto">
-      <p class="sub" style="margin:0 0 14px">Foste convidado. Cria a tua conta para entrar.</p>
-      <input id="convNome" type="text" maxlength="40" placeholder="O teu nome (aparece na mesa)">
-      <input id="convUsuario" type="text" maxlength="24" placeholder="Utilizador" autocapitalize="none" style="margin-top:10px">
-      <input id="convSenha" type="password" maxlength="72" placeholder="Palavra-passe (6+ caracteres)" style="margin-top:10px">
-      <button id="btnCriarConvite">Criar a minha conta</button>
+      <p class="sub" style="margin:0 0 18px">Você foi convidado. Crie sua conta para entrar.</p>
+      <div class="campo">
+        <label for="convNome">Nome de usuário</label>
+        <input id="convNome" type="text" maxlength="40" placeholder="Ex.: Alex Francis">
+        <span class="dicaCampo">É o nome que aparece dentro do escritório, na sua mesa.</span>
+      </div>
+      <div class="campo">
+        <label for="convUsuario">Usuário</label>
+        <input id="convUsuario" type="text" maxlength="24" placeholder="ex.: alex" autocapitalize="none">
+        <span class="dicaCampo">É o nome que você usa para entrar (login).</span>
+      </div>
+      <div class="campo">
+        <label for="convSenha">Senha</label>
+        <input id="convSenha" type="password" maxlength="72" placeholder="mínimo 6 caracteres">
+      </div>
+      <button id="btnCriarConvite">Criar minha conta</button>
       <p id="erroConvite" class="erroLogin"></p>
     </div>
 
     <div id="blocoSetup" class="oculto">
-      <p class="sub" style="margin:0 0 14px">Primeira vez: cria a conta de administrador.</p>
-      <input id="setupNome" type="text" maxlength="40" placeholder="O teu nome (aparece na mesa)">
-      <input id="setupUsuario" type="text" maxlength="24" placeholder="Utilizador" autocapitalize="none" style="margin-top:10px">
-      <input id="setupSenha" type="password" maxlength="72" placeholder="Palavra-passe (6+ caracteres)" style="margin-top:10px">
+      <p class="sub" style="margin:0 0 18px">Primeira vez: crie a conta de administrador.</p>
+      <div class="campo">
+        <label for="setupNome">Nome de usuário</label>
+        <input id="setupNome" type="text" maxlength="40" placeholder="Ex.: João Riccio">
+        <span class="dicaCampo">É o nome que aparece dentro do escritório, na sua mesa.</span>
+      </div>
+      <div class="campo">
+        <label for="setupUsuario">Usuário</label>
+        <input id="setupUsuario" type="text" maxlength="24" placeholder="ex.: joao" autocapitalize="none">
+        <span class="dicaCampo">É o nome que você usa para entrar (login).</span>
+      </div>
+      <div class="campo">
+        <label for="setupSenha">Senha</label>
+        <input id="setupSenha" type="password" maxlength="72" placeholder="mínimo 6 caracteres">
+      </div>
       <button id="btnCriarAdmin">Criar administrador</button>
       <p id="erroSetup" class="erroLogin"></p>
     </div>
+
     <div id="blocoLogin">
-    <input id="usuario" type="text" maxlength="24" placeholder="Utilizador" autocomplete="username" autocapitalize="none">
-    <input id="senha" type="password" maxlength="72" placeholder="Palavra-passe" autocomplete="current-password" style="margin-top:10px">
-    <button id="btnEntrar">Entrar no escritório</button>
-    <p id="erroLogin" class="erroLogin"></p>
+      <p class="sub" id="subPadrao">Entre com a conta que você tem da equipe.</p>
+      <div class="campo">
+        <label for="usuario">Usuário</label>
+        <input id="usuario" type="text" maxlength="24" placeholder="o seu usuário" autocomplete="username" autocapitalize="none">
+      </div>
+      <div class="campo">
+        <label for="senha">Senha</label>
+        <input id="senha" type="password" maxlength="72" placeholder="a sua senha" autocomplete="current-password">
+      </div>
+      <button id="btnEntrar">Entrar no escritório</button>
+      <p id="erroLogin" class="erroLogin"></p>
     </div>
-    <p class="dica">Precisas de microfone e câmara para falar com quem está perto.</p>
+
+    <p class="dica">Você precisa de microfone e câmera para falar com quem está perto.</p>
   </div>
 </div>
 
@@ -52,7 +83,7 @@
 
   <div id="videoZone"></div>
 
-  <!-- a minha própria câmara -->
+  <!-- a minha própria câmera -->
   <div id="autoVista" class="oculto">
     <video id="autoVideo" autoplay playsinline muted></video>
     <span class="autoEtiqueta">tu</span>
@@ -69,23 +100,23 @@
 
   <div id="barraTela" class="barraTela oculto">
     <span class="pontoVermelho"></span>
-    <span id="telaTexto">A partilhar o teu ecrã</span>
+    <span id="telaTexto">Compartilhando sua tela</span>
     <button id="btnPararTela">Parar</button>
   </div>
 
   <!-- aviso de partilha (não abre nada sozinho) -->
   <div id="bannerEcra" class="bannerEcra oculto">
     <span class="pontoVermelho"></span>
-    <span id="bannerTexto">Alguém está a partilhar o ecrã</span>
-    <button id="btnVerEcra">Ver ecrã</button>
+    <span id="bannerTexto">Alguém está compartilhando a tela</span>
+    <button id="btnVerEcra">Ver tela</button>
     <button id="btnIgnorarEcra" title="Fechar aviso">✕</button>
   </div>
 
-  <!-- ecrã de alguém, em grande -->
+  <!-- tela de alguém, em grande -->
   <div id="ecraOverlay" class="oculto">
     <video id="ecraVideo" autoplay playsinline></video>
     <div class="ecraBarra">
-      <span id="ecraNome">Ecrã</span>
+      <span id="ecraNome">Tela</span>
       <div class="ecraBotoes">
         <button id="btnTamanhoEcra" title="Alternar tamanho">⤢</button>
         <button id="btnFecharEcra">Fechar · Esc</button>
@@ -112,16 +143,16 @@
     <div class="topo">
       <span class="ponto" id="estadoLigacao"></span>
       <span id="contagem">0 online</span>
-      <button id="btnSom" title="Ligar/desligar a tua voz">🎤</button>
-      <button id="btnCam" title="Ligar/desligar a tua câmara">📷</button>
-      <button id="btnTela" title="Partilhar o meu ecrã (Ctrl+Shift+T)">🖥️</button>
+      <button id="btnSom" title="Ligar/desligar seu microfone">🎤</button>
+      <button id="btnCam" title="Ligar/desligar sua câmera">📷</button>
+      <button id="btnTela" title="Compartilhar minha tela (Ctrl+Shift+T)">🖥️</button>
       <button id="btnSino" title="Som quando alguém bate à porta">🔔</button>
-      <button id="btnAdmin" class="oculto" title="Contas e convites da equipa">👥</button>
+      <button id="btnAdmin" class="oculto" title="Contas e convites da equipe">👥</button>
     </div>
     <div id="chat"></div>
     <form id="formChat" autocomplete="off">
-      <button type="button" id="btnAnexo" title="Enviar foto ou ficheiro">📎</button>
-      <input id="msg" type="text" maxlength="2000" placeholder="Escrever para todos…">
+      <button type="button" id="btnAnexo" title="Enviar foto ou arquivo">📎</button>
+      <input id="msg" type="text" maxlength="2000" placeholder="Escrevar para todos…">
       <button type="submit">➤</button>
       <input id="ficheiro" type="file" class="oculto" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip,.mp4,.mp3">
     </form>
@@ -129,7 +160,7 @@
 
   <div id="ajuda">
     <b>WASD</b> mover · <b>E</b> sentar/levantar · <b>L</b> fechar/abrir a minha mesa ·
-    <b>R</b> reclamar mesa · <b>K</b> bater à porta · <b>M</b> micro · <b>C</b> câmara
+    <b>R</b> reclamar mesa · <b>K</b> bater à porta · <b>M</b> micro · <b>C</b> câmera
   </div>
   <div id="aviso"></div>
 
@@ -150,13 +181,14 @@
   <!-- modal de contas (administracao) -->
   <div id="modalContas" class="modal oculto">
     <div class="modalCaixa larga">
-      <h3>Contas da equipa</h3>
+      <h3>Contas da equipe</h3>
       <p>Só quem tiver conta entra no escritório.</p>
       <div class="linhaNova">
-        <input id="novoUsuario" type="text" placeholder="utilizador (ex.: maria)" autocapitalize="none">
-        <input id="novoNome" type="text" placeholder="nome na mesa (ex.: Maria Silva)">
+        <input id="novoUsuario" type="text" placeholder="usuário (login) — ex.: maria" autocapitalize="none">
+        <input id="novoNome" type="text" placeholder="nome na mesa — ex.: Maria Silva">
         <button id="btnCriarConta">Criar</button>
       </div>
+      <span class="dicaCampo">Usuário = para entrar. Nome na mesa = como a pessoa aparece no escritório.</span>
       <div class="separador"></div>
       <h4 class="tituloSecao">Convites</h4>
       <div class="linhaNova">
@@ -182,7 +214,7 @@
   <div id="modalMesa" class="modal oculto">
     <div class="modalCaixa">
       <h3>Esta mesa é tua</h3>
-      <p>Como queres que apareça o nome na mesa?</p>
+      <p>Como você quer que apareça o nome na mesa?</p>
       <input id="nomeMesa" type="text" maxlength="28" placeholder="Ex.: Joao Riccio">
       <div class="modalBotoes">
         <button id="btnLibertar" class="secundario oculto">Libertar mesa</button>

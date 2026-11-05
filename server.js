@@ -61,7 +61,7 @@ function guardarMesas() {
   global.__mesasParaFicheiro = desks;
   armazem.gravar({ id: 0 }); // garante a lista completa no fallback
   for (const d of desks) {
-    armazem.gravar(d).catch((e) => console.log('erro ao gravar mesa', d.id, e.message));
+    armazem.gravar(d).catch((e) => console.log('erro ao salvar mesa', d.id, e.message));
   }
 }
 
@@ -96,7 +96,7 @@ const server = http.createServer((req, res) => {
     const autorizado = (chave && enviada === chave) || (sessao && sessao.a);
     if (!autorizado) {
       res.writeHead(401, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify({ erro: 'nao autorizado' }));
+      return res.end(JSON.stringify({ erro: 'não autorizado' }));
     }
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     return res.end(JSON.stringify({
@@ -150,9 +150,9 @@ const server = http.createServer((req, res) => {
   if (caminho === '/api/setup' && req.method === 'POST') {
     return lerCorpo().then(async (corpo) => {
       const n = await armazem.contarUtilizadores();
-      if (n > 0) return json(409, { erro: 'Ja existe uma conta. Usa o login.' });
+      if (n > 0) return json(409, { erro: 'Já existe uma conta. Use o login.' });
       if (!corpo.usuario || !corpo.senha || String(corpo.senha).length < 6) {
-        return json(400, { erro: 'Indica utilizador e uma senha com 6 ou mais caracteres.' });
+        return json(400, { erro: 'Informe o usuário e uma senha com 6 ou mais caracteres.' });
       }
       const hash = await auth.hashSenha(corpo.senha);
       await armazem.criarUtilizador({
@@ -169,9 +169,9 @@ const server = http.createServer((req, res) => {
   if (caminho === '/api/login' && req.method === 'POST') {
     return lerCorpo().then(async (corpo) => {
       const u = await armazem.buscarUtilizador(corpo.usuario);
-      if (!u) return json(401, { erro: 'Utilizador ou palavra-passe errados.' });
+      if (!u) return json(401, { erro: 'Usuário ou senha incorretos.' });
       const certo = await auth.conferirSenha(String(corpo.senha || ''), u.senha_hash);
-      if (!certo) return json(401, { erro: 'Utilizador ou palavra-passe errados.' });
+      if (!certo) return json(401, { erro: 'Usuário ou senha incorretos.' });
       armazem.marcarVisto(u.username);
       return json(200, { ok: true, token: auth.criarToken(u), nome: u.display_name, admin: !!u.is_admin });
     });
@@ -186,7 +186,7 @@ const server = http.createServer((req, res) => {
   // ---------------------------------------------------------- convites
   if (caminho === '/api/convites') {
     const dados = utilizadorDoPedido();
-    if (!dados || !dados.a) return json(403, { erro: 'so o administrador' });
+    if (!dados || !dados.a) return json(403, { erro: 'só o administrador' });
 
     if (req.method === 'GET') {
       return armazem.listarConvites().then(l => json(200, { convites: l }));
@@ -205,7 +205,7 @@ const server = http.createServer((req, res) => {
 
   if (caminho === '/api/convites/remover' && req.method === 'POST') {
     const dados = utilizadorDoPedido();
-    if (!dados || !dados.a) return json(403, { erro: 'so o administrador' });
+    if (!dados || !dados.a) return json(403, { erro: 'só o administrador' });
     return lerCorpo().then(async (corpo) => {
       await armazem.removerConvite(corpo.codigo);
       return json(200, { ok: true });
@@ -217,8 +217,8 @@ const server = http.createServer((req, res) => {
     if (req.method === 'GET') {
       return armazem.buscarConvite(req.headers['x-convite'] || new URL(req.url, 'http://x').searchParams.get('codigo'))
         .then(c => {
-          if (!c) return json(404, { valido: false, erro: 'Convite invalido.' });
-          if (c.usado) return json(410, { valido: false, erro: 'Este convite ja foi usado.' });
+          if (!c) return json(404, { valido: false, erro: 'Convite inválido.' });
+          if (c.usado) return json(410, { valido: false, erro: 'Este convite já foi usado.' });
           if (new Date(c.expira) < new Date()) return json(410, { valido: false, erro: 'Este convite expirou.' });
           return json(200, { valido: true });
         });
@@ -227,11 +227,11 @@ const server = http.createServer((req, res) => {
     if (req.method === 'POST') {
       return lerCorpo().then(async (corpo) => {
         const c = await armazem.buscarConvite(corpo.codigo);
-        if (!c) return json(404, { erro: 'Convite invalido.' });
-        if (c.usado) return json(410, { erro: 'Este convite ja foi usado.' });
+        if (!c) return json(404, { erro: 'Convite inválido.' });
+        if (c.usado) return json(410, { erro: 'Este convite já foi usado.' });
         if (new Date(c.expira) < new Date()) return json(410, { erro: 'Este convite expirou.' });
-        if (!corpo.usuario || String(corpo.usuario).length < 3) return json(400, { erro: 'Utilizador demasiado curto.' });
-        if (!corpo.senha || String(corpo.senha).length < 6) return json(400, { erro: 'A palavra-passe precisa de 6 caracteres.' });
+        if (!corpo.usuario || String(corpo.usuario).length < 3) return json(400, { erro: 'Usuário muito curto.' });
+        if (!corpo.senha || String(corpo.senha).length < 6) return json(400, { erro: 'A senha precisa de 6 caracteres.' });
 
         try {
           await armazem.criarUtilizador({
@@ -254,7 +254,7 @@ const server = http.createServer((req, res) => {
   // gestao de contas (so administrador)
   if (caminho === '/api/usuarios') {
     const dados = utilizadorDoPedido();
-    if (!dados || !dados.a) return json(403, { erro: 'so o administrador' });
+    if (!dados || !dados.a) return json(403, { erro: 'só o administrador' });
 
     if (req.method === 'GET') {
       return armazem.listarUtilizadores().then(l => json(200, { usuarios: l }));
@@ -262,7 +262,7 @@ const server = http.createServer((req, res) => {
 
     if (req.method === 'POST') {
       return lerCorpo().then(async (corpo) => {
-        if (!corpo.usuario) return json(400, { erro: 'Falta o utilizador.' });
+        if (!corpo.usuario) return json(400, { erro: 'Falta o usuário.' });
         const senha = corpo.senha && String(corpo.senha).length >= 6 ? corpo.senha : auth.senhaTemporaria();
         const hash = await auth.hashSenha(senha);
         try {
@@ -282,11 +282,11 @@ const server = http.createServer((req, res) => {
 
   if (caminho === '/api/mesas/libertar' && req.method === 'POST') {
     const dados = utilizadorDoPedido();
-    if (!dados || !dados.a) return json(403, { erro: 'so o administrador' });
+    if (!dados || !dados.a) return json(403, { erro: 'só o administrador' });
 
     return lerCorpo().then((corpo) => {
       const d = desks.find(x => x.id === Number(corpo.deskId));
-      if (!d) return json(404, { erro: 'mesa nao encontrada' });
+      if (!d) return json(404, { erro: 'mesa não encontrada' });
 
       d.owner = '';
       d.ownerUser = '';
@@ -301,11 +301,11 @@ const server = http.createServer((req, res) => {
 
   if (caminho === '/api/usuarios/remover' && req.method === 'POST') {
     const dados = utilizadorDoPedido();
-    if (!dados || !dados.a) return json(403, { erro: 'so o administrador' });
+    if (!dados || !dados.a) return json(403, { erro: 'só o administrador' });
     return lerCorpo().then(async (corpo) => {
       const alvo = String(corpo.usuario || '').toLowerCase();
-      if (!alvo) return json(400, { erro: 'Falta o utilizador.' });
-      if (alvo === dados.u) return json(400, { erro: 'Nao podes remover a tua conta.' });
+      if (!alvo) return json(400, { erro: 'Falta o usuário.' });
+      if (alvo === dados.u) return json(400, { erro: 'Você não pode remover a própria conta.' });
 
       // nome de exibição, para casar com mesas antigas que só guardam o nome
       let nomeExibicao = '';
@@ -330,7 +330,7 @@ const server = http.createServer((req, res) => {
       const u = await armazem.buscarUtilizador(dados.u);
       if (!u) return json(401, { erro: 'conta inexistente' });
       const certo = await auth.conferirSenha(String(corpo.atual || ''), u.senha_hash);
-      if (!certo) return json(401, { erro: 'Palavra-passe atual errada.' });
+      if (!certo) return json(401, { erro: 'Senha atual errada.' });
       if (!corpo.nova || String(corpo.nova).length < 6) return json(400, { erro: 'A nova senha precisa de 6 caracteres.' });
       await armazem.mudarSenha(dados.u, await auth.hashSenha(corpo.nova));
       return json(200, { ok: true });
@@ -341,7 +341,7 @@ const server = http.createServer((req, res) => {
   // ---------------------------------------------------------- chat guardado
   if (caminho === '/api/mensagens' && req.method === 'GET') {
     const dados = utilizadorDoPedido();
-    if (!dados) return json(401, { erro: 'entra na tua conta' });
+    if (!dados) return json(401, { erro: 'entre na sua conta' });
     return chat.listar()
       .then(lista => json(200, { mensagens: Array.isArray(lista) ? lista : [], dias: chat.DIAS }))
       .catch((e) => { console.log('mensagens:', e.message); json(500, { erro: 'erro ao ler' }); });
@@ -349,11 +349,11 @@ const server = http.createServer((req, res) => {
 
   if (caminho === '/api/mensagens/fixar' && req.method === 'POST') {
     const dados = utilizadorDoPedido();
-    if (!dados) return json(401, { erro: 'entra na tua conta' });
+    if (!dados) return json(401, { erro: 'entre na sua conta' });
 
     return lerCorpo().then(async (corpo) => {
       const r = await chat.fixar(String(corpo.id || ''), !!corpo.fixada);
-      if (!r) return json(404, { erro: 'mensagem nao encontrada' });
+      if (!r) return json(404, { erro: 'mensagem não encontrada' });
       broadcast({ t: 'fixada', id: r.id, fixada: r.fixada });
       return json(200, { ok: true, id: r.id, fixada: r.fixada });
     });
@@ -361,7 +361,7 @@ const server = http.createServer((req, res) => {
 
   if (caminho === '/api/upload' && req.method === 'POST') {
     const dados = utilizadorDoPedido();
-    if (!dados) return json(401, { erro: 'entra na tua conta' });
+    if (!dados) return json(401, { erro: 'entre na sua conta' });
 
     return new Promise((ok) => {
       let cru = '';
@@ -371,33 +371,33 @@ const server = http.createServer((req, res) => {
         if (cru.length > 14 * 1024 * 1024) { passou = true; req.destroy(); }
       });
       req.on('end', async () => {
-        if (passou) return ok(json(413, { erro: 'ficheiro demasiado grande (máx. 10 MB)' }));
+        if (passou) return ok(json(413, { erro: 'arquivo muito grande (máx. 10 MB)' }));
         let corpo;
         try { corpo = JSON.parse(cru || '{}'); } catch (e) { return ok(json(400, { erro: 'pedido inválido' })); }
 
         const mime = String(corpo.mime || 'application/octet-stream');
         const base64 = String(corpo.dados || '').replace(/^data:[^;]+;base64,/, '');
-        if (!base64) return ok(json(400, { erro: 'sem ficheiro' }));
+        if (!base64) return ok(json(400, { erro: 'sem arquivo' }));
 
         const bytes = Buffer.from(base64, 'base64');
-        if (!bytes.length) return ok(json(400, { erro: 'ficheiro vazio' }));
+        if (!bytes.length) return ok(json(400, { erro: 'arquivo vazio' }));
         if (bytes.length > 10 * 1024 * 1024) return ok(json(413, { erro: 'máximo 10 MB' }));
 
         let idFicheiro;
         try {
           idFicheiro = await chat.guardarFicheiro({
-            nome: String(corpo.nome || 'ficheiro').slice(0, 120),
+            nome: String(corpo.nome || 'arquivo').slice(0, 120),
             mime,
             bytes,
           });
         } catch (e) {
           console.log('upload:', e.message);
-          return ok(json(500, { erro: 'nao consegui guardar' }));
+          return ok(json(500, { erro: 'não consegui salvar' }));
         }
 
         return ok(json(200, {
           url: '/ficheiros/' + idFicheiro,
-          nome: String(corpo.nome || 'ficheiro').slice(0, 120),
+          nome: String(corpo.nome || 'arquivo').slice(0, 120),
           mime,
           tamanho: bytes.length,
         }));
@@ -429,7 +429,7 @@ const server = http.createServer((req, res) => {
     };
 
     return chat.lerFicheiro(nome).then((f) => {
-      if (!f) { res.writeHead(404); return res.end('nao encontrado'); }
+      if (!f) { res.writeHead(404); return res.end('não encontrado'); }
       res.writeHead(200, {
         'Content-Type': tipos[path.extname(nome).toLowerCase()] || f.mime || 'application/octet-stream',
         'Cache-Control': 'private, max-age=604800',
@@ -443,7 +443,7 @@ const server = http.createServer((req, res) => {
   const full = path.join(PUBLIC, path.normalize(file).replace(/^(\.\.[/\\])+/, ''));
   if (!full.startsWith(PUBLIC)) { res.writeHead(403); return res.end('403'); }
   fs.readFile(full, (err, data) => {
-    if (err) { res.writeHead(404); return res.end('nao encontrado'); }
+    if (err) { res.writeHead(404); return res.end('não encontrado'); }
     res.writeHead(200, {
       'Content-Type': MIME[path.extname(full)] || 'application/octet-stream',
       'Cache-Control': 'no-store',
@@ -499,7 +499,7 @@ function expulsarUtilizador(usuario) {
   const alvo = String(usuario || '').toLowerCase();
   for (const [id, p] of players) {
     if (String(p.usuario || '').toLowerCase() !== alvo) continue;
-    try { enviar(p.ws, { t: 'expulso', texto: 'A tua conta foi removida.' }); } catch (e) {}
+    try { enviar(p.ws, { t: 'expulso', texto: 'Sua conta foi removida.' }); } catch (e) {}
     try { p.ws.close(); } catch (e) {}
     players.delete(id);
   }
@@ -535,14 +535,14 @@ wss.on('connection', (ws) => {
 
     if (msg.t === 'auth') {
       const dados = auth.verificar(msg.token);
-      if (!dados) { enviar(ws, { t: 'auth_erro', texto: 'Sessao invalida. Entra outra vez.' }); return; }
+      if (!dados) { enviar(ws, { t: 'auth_erro', texto: 'Sessão inválida. Entre novamente.' }); return; }
       ws.usuario = dados;
       enviar(ws, { t: 'auth_ok', nome: dados.n });
       return;
     }
 
     if (msg.t === 'entrar') {
-      if (!ws.usuario) { enviar(ws, { t: 'auth_erro', texto: 'Precisas de entrar com a tua conta.' }); return; }
+      if (!ws.usuario) { enviar(ws, { t: 'auth_erro', texto: 'Você precisa entrar com a sua conta.' }); return; }
       const mesa = desks.find(d => d.owner && d.owner.toLowerCase() === String(ws.usuario.n || '').toLowerCase().trim());
       const jogador = {
         id,
@@ -646,7 +646,7 @@ wss.on('connection', (ws) => {
             x.owner &&
             (x.owner.toLowerCase() === p.name.toLowerCase() || x.owner.toLowerCase() === nome.toLowerCase()));
           if (outra) {
-            enviar(ws, { t: 'aviso', texto: 'Já tens a ' + outra.label + '. Liberta-a antes de ficares com outra.' });
+            enviar(ws, { t: 'aviso', texto: 'Você já tem a ' + outra.label + '. Libere-a antes de ficar com outra.' });
             return;
           }
         }
@@ -697,7 +697,7 @@ wss.on('connection', (ws) => {
         ultimaBatida.set(id + '|' + alvoId, agora);
 
         enviar(alvo.ws, { t: 'batida', de: id, nome: p.name, mesa: mesa.label, deskId: mesa.id });
-        enviar(ws, { t: 'aviso', texto: 'Bateste à porta de ' + alvo.name + '. À espera de resposta.' });
+        enviar(ws, { t: 'aviso', texto: 'Você bateu à porta de ' + alvo.name + '. À espera de resposta.' });
         break;
       }
 
@@ -712,10 +712,10 @@ wss.on('connection', (ws) => {
           portas.add(visitanteId + '|' + id);
           enviar(visitante.ws, { t: 'porta', com: id, aberta: true, nome: dono.name });
           enviar(ws, { t: 'porta', com: visitanteId, aberta: true, nome: visitante.name });
-          enviar(ws, { t: 'aviso', texto: 'Abriste a porta a ' + visitante.name + '.' });
+          enviar(ws, { t: 'aviso', texto: 'Você abriu a porta para ' + visitante.name + '.' });
         } else {
           enviar(visitante.ws, { t: 'aviso', texto: dono.name + ' não abriu a porta agora.' });
-          enviar(ws, { t: 'aviso', texto: 'Recusaste a visita de ' + visitante.name + '.' });
+          enviar(ws, { t: 'aviso', texto: 'Você recusou a visita de ' + visitante.name + '.' });
         }
         break;
       }
@@ -751,14 +751,14 @@ wss.on('connection', (ws) => {
         const texto = String(msg.texto || '').slice(0, 2000).trim();
         const f = msg.ficheiro && msg.ficheiro.url ? {
           url: String(msg.ficheiro.url).slice(0, 300),
-          nome: String(msg.ficheiro.nome || 'ficheiro').slice(0, 120),
+          nome: String(msg.ficheiro.nome || 'arquivo').slice(0, 120),
           mime: String(msg.ficheiro.mime || '').slice(0, 100),
           tamanho: Number(msg.ficheiro.tamanho) || 0,
         } : null;
 
         if (!texto && !f) return;
 
-        const tipo = f ? (f.mime.startsWith('image/') ? 'imagem' : 'ficheiro') : 'texto';
+        const tipo = f ? (f.mime.startsWith('image/') ? 'imagem' : 'arquivo') : 'texto';
 
         chat.guardar({ autor: p.name, texto, tipo, ficheiro: f })
           .then((m) => {
@@ -769,7 +769,7 @@ wss.on('connection', (ws) => {
             });
           })
           .catch((e) => {
-            console.log('erro ao guardar mensagem', e.message);
+            console.log('erro ao salvar mensagem', e.message);
             broadcast({ t: 'chat', de: p.name, cor: p.cor, texto, ficheiro: f, hora: Date.now() });
           });
         break;
@@ -803,7 +803,7 @@ wss.on('connection', (ws) => {
 // ---------------------------------------------------------------- chat guardado
 chat.iniciar()
   .then((pg) => {
-    console.log('mensagens: ' + (pg ? 'Postgres' : 'ficheiro local') + ' (7 dias, fixadas para sempre)');
+    console.log('mensagens: ' + (pg ? 'Postgres' : 'arquivo local') + ' (7 dias, fixadas para sempre)');
     chat.limparAntigas().catch(() => {});
     setInterval(() => chat.limparAntigas().catch(() => {}), 6 * 3600 * 1000);
   })
