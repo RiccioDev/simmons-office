@@ -9,6 +9,69 @@ const RAIO_AVATAR = 16;
 function $(id) { return document.getElementById(id); }
 function ligarClique(id, evento, fn) { const el = $(id); if (el) el[evento] = fn; }
 
+// ------------------------------------------------------------ som da batida
+let audioCtx = null;
+let somBatida = localStorage.getItem('som_batida') !== '0';
+
+function contextoAudio() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+    return audioCtx;
+  } catch (_) { return null; }
+}
+
+// o browser só deixa tocar som depois de um gesto; isto "destranca" à primeira tecla
+document.addEventListener('pointerdown', () => contextoAudio(), { once: true });
+document.addEventListener('keydown', () => contextoAudio(), { once: true });
+
+function tocarBatida() {
+  if (!somBatida) return;
+  const ctx = contextoAudio();
+  if (!ctx) return;
+
+  const agora = ctx.currentTime;
+  for (const atraso of [0, 0.30]) {
+    const t = agora + atraso;
+
+    // corpo grave: "toc"
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(200, t);
+    osc.frequency.exponentialRampToValueAtTime(78, t + 0.13);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.45, t + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.15);
+    osc.connect(g).connect(ctx.destination);
+    osc.start(t); osc.stop(t + 0.18);
+
+    // estalo da madeira
+    const amostras = Math.floor(ctx.sampleRate * 0.07);
+    const buffer = ctx.createBuffer(1, amostras, ctx.sampleRate);
+    const dados = buffer.getChannelData(0);
+    for (let i = 0; i < amostras; i++) {
+      dados[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / amostras, 7);
+    }
+    const ruido = ctx.createBufferSource();
+    ruido.buffer = buffer;
+    const filtro = ctx.createBiquadFilter();
+    filtro.type = 'lowpass';
+    filtro.frequency.value = 1600;
+    const g2 = ctx.createGain();
+    g2.gain.value = 0.22;
+    ruido.connect(filtro).connect(g2).connect(ctx.destination);
+    ruido.start(t);
+  }
+}
+
+function alternarSino() {
+  somBatida = !somBatida;
+  localStorage.setItem('som_batida', somBatida ? '1' : '0');
+  $('btnSino').classList.toggle('desligado', !somBatida);
+  if (somBatida) tocarBatida();
+}
+
 let erroMostrado = false;
 function relatarErro(origem, e) {
   if (erroMostrado) return;
@@ -301,9 +364,14 @@ function ligar(nome) {
         break;
       case 'batida': {
         batidaPendente = m;
-        document.getElementById('batidaTexto').textContent =
-          m.nome + ' está à porta da ' + m.mesa + '. Queres abrir para falarem?';
+        const iniciais = (m.nome || '?').trim().split(/\s+/).map(p => p[0]).slice(0, 2).join('').toUpperCase();
+        document.getElementById('batidaAvatar').textContent = iniciais;
+        document.getElementById('batidaTexto').innerHTML =
+          '<b>' + escapar(m.nome) + '</b> está à porta da <b>' + escapar(m.mesa) + '</b>.';
         document.getElementById('modalBatida').classList.remove('oculto');
+
+        tocarBatida();
+        marcarTitulo(m.nome);
         break;
       }
       case 'porta': {
@@ -490,10 +558,28 @@ function vizinhoFechado() {
   return dist < RAIO_CONECTA ? melhor : null;
 }
 
+let tituloOriginal = document.title;
+let piscaTitulo = null;
+
+function marcarTitulo(nome) {
+  if (piscaTitulo) return;
+  let visivel = true;
+  piscaTitulo = setInterval(() => {
+    document.title = visivel ? '🔔 ' + nome + ' está à porta' : tituloOriginal;
+    visivel = !visivel;
+  }, 900);
+  document.title = '🔔 ' + nome + ' está à porta';
+}
+
+function limparTitulo() {
+  if (piscaTitulo) { clearInterval(piscaTitulo); piscaTitulo = null; }
+  document.title = tituloOriginal;
+}
+
 function bater() {
   const alvo = vizinhoFechado();
   if (!alvo) { avisar('Não há ninguém de porta fechada aqui perto.'); return; }
-  ws.send(JSON.stringify({ t: 'bater', deskId: alvo.deskId }));
+  ws.send(JSON.stringify({ t: 'bater', para: alvo.id }));
 }
 
 document.getElementById('btnAceitarBatida').onclick = () => {
@@ -502,13 +588,16 @@ document.getElementById('btnAceitarBatida').onclick = () => {
   portasAbertas.add(batidaPendente.de);
   document.getElementById('modalBatida').classList.add('oculto');
   batidaPendente = null;
+  document.getElementById('modalBatida').classList.add('oculto');
+  limparTitulo();
 };
 
 document.getElementById('btnRecusarBatida').onclick = () => {
   if (!batidaPendente) return;
   ws.send(JSON.stringify({ t: 'responderBatida', para: batidaPendente.de, aceitar: false }));
-  document.getElementById('modalBatida').classList.add('oculto');
   batidaPendente = null;
+  document.getElementById('modalBatida').classList.add('oculto');
+  limparTitulo();
 };
 
 function alternarMic() {
@@ -559,6 +648,13 @@ function loop(t) {
 
   try { desenhar(); } catch (e) { relatarErro('desenho', e); }
   try { gerirProximidade(); posicionarVideos(); } catch (e) { relatarErro('proximidade', e); }
+
+  if (batidaPendente && !players.has(batidaPendente.de)) {
+    batidaPendente = null;
+    const md = $('modalBatida');
+    if (md) md.classList.add('oculto');
+    limparTitulo();
+  }
   requestAnimationFrame(loop);
 }
   // ------------------------------------------------------------ sala (modo reuniao)
@@ -661,6 +757,8 @@ function fecharSala() {
   atualizarBottaoSala();
 }
 
+if ($('btnSino')) $('btnSino').classList.toggle('desligado', !somBatida);
+ligarClique('btnSino', 'onclick', alternarSino);
 ligarClique('btnSala', 'onclick', abrirSala);
 ligarClique('btnSairSala', 'onclick', fecharSala);
 document.addEventListener('fullscreenchange', () => {

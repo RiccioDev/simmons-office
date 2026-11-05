@@ -142,7 +142,7 @@ body{
 /* ---------- modal da mesa ---------- */
 .modal{
   position:fixed;inset:0;display:grid;place-items:center;
-  background:rgba(6,9,13,.72);backdrop-filter:blur(4px);z-index:60;
+  background:rgba(6,9,13,.72);backdrop-filter:blur(4px);z-index:90;
 }
 .modalCaixa{
   width:min(400px,92vw);background:var(--painel);
@@ -279,3 +279,30 @@ body{
   position:absolute;inset:0;display:grid;place-items:center;
   font-size:44px;color:#39424e;font-weight:700;
 }
+
+
+/* ---------- batida à porta ---------- */
+#modalBatida .modalCaixa{
+  max-width:420px;text-align:center;
+  animation:chegouBatida .28s ease-out, pulsarBatida 1.6s ease-in-out .3s infinite;
+  border-color:rgba(201,162,39,.75);
+}
+@keyframes chegouBatida{
+  from{transform:scale(.9);opacity:0}
+  to{transform:scale(1);opacity:1}
+}
+@keyframes pulsarBatida{
+  0%,100%{box-shadow:0 24px 60px rgba(0,0,0,.6),0 0 0 0 rgba(201,162,39,.45)}
+  50%{box-shadow:0 24px 60px rgba(0,0,0,.6),0 0 0 12px rgba(201,162,39,0)}
+}
+.batidaAvatar{
+  width:64px;height:64px;border-radius:50%;margin:2px auto 14px;
+  display:grid;place-items:center;font-size:25px;font-weight:700;color:#12151a;
+  background:linear-gradient(140deg,#e5c25c,#b8901f);
+}
+#batidaTexto{font-size:14px;line-height:1.5;color:var(--tinta);margin:0 0 18px}
+#batidaTexto b{color:var(--ouro)}
+.dicaBatida{font-size:11px;color:#6f7a88;margin-top:12px}
+
+/* sino do topo */
+#btnSino.desligado{opacity:.35;filter:grayscale(1)}

@@ -70,6 +70,7 @@
       <span id="contagem">0 online</span>
       <button id="btnSom" title="Ligar/desligar a tua voz">🎤</button>
       <button id="btnCam" title="Ligar/desligar a tua câmara">📷</button>
+      <button id="btnSino" title="Som quando alguém bate à porta">🔔</button>
       <button id="btnAdmin" class="oculto" title="Contas e convites da equipa">👥</button>
     </div>
     <div id="chat"></div>
@@ -88,12 +89,14 @@
   <!-- aviso de batida na porta -->
   <div id="modalBatida" class="modal oculto">
     <div class="modalCaixa">
+      <div class="batidaAvatar" id="batidaAvatar">?</div>
       <h3 id="batidaTitulo">Bateram à tua porta</h3>
       <p id="batidaTexto"></p>
       <div class="modalBotoes">
         <button id="btnRecusarBatida" class="secundario">Não abrir</button>
         <button id="btnAceitarBatida">Abrir a porta</button>
       </div>
+      <div class="dicaBatida">A porta fica aberta só para esta pessoa.</div>
     </div>
   </div>
 

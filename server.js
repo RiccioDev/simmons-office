@@ -63,7 +63,8 @@ function guardarMesas() {
 
 // ---------------------------------------------------------------- jogadores
 const players = new Map(); // id -> dados
-const portas = new Set();  // "donoId|visitanteId" — quem foi autorizado a entrar
+const portas = new Set();
+const ultimaBatida = new Map();  // "quem|alvo" -> quando, para não repetir  // "donoId|visitanteId" — quem foi autorizado a entrar
 
 const CORES = [
   '#c9a227', '#4ea8de', '#e76f51', '#2a9d8f', '#9b5de5',
@@ -514,16 +515,21 @@ wss.on('connection', (ws) => {
         break;
       }
       case 'bater': {
-        const d = desks.find(x => x.id === msg.deskId);
-        if (!d) return;
-        if (!d.locked) { enviar(ws, { t: 'aviso', texto: 'A ' + d.label + ' está aberta.' }); return; }
-        if (!d.occupied || d.occupied === id) { enviar(ws, { t: 'aviso', texto: 'Não há ninguém nessa mesa.' }); return; }
+        const alvoId = String(msg.para || '');
+        const alvo = players.get(alvoId);
+        if (!alvo) { enviar(ws, { t: 'aviso', texto: 'Essa pessoa já saiu.' }); return; }
+        if (alvoId === id) return;
 
-        const dono = players.get(d.occupied);
-        if (!dono) return;
+        const mesa = desks.find(x => x.occupied === alvoId && x.locked);
+        if (!mesa) { enviar(ws, { t: 'aviso', texto: alvo.name + ' está com a mesa aberta.' }); return; }
 
-        enviar(dono.ws, { t: 'batida', de: id, nome: p.name, mesa: d.label, deskId: d.id });
-        enviar(ws, { t: 'aviso', texto: 'Bateste à porta de ' + dono.name + '. À espera de resposta.' });
+        // não deixar encher a pessoa de batidas
+        const agora = Date.now();
+        if (ultimaBatida.get(id + '|' + alvoId) > agora - 4000) return;
+        ultimaBatida.set(id + '|' + alvoId, agora);
+
+        enviar(alvo.ws, { t: 'batida', de: id, nome: p.name, mesa: mesa.label, deskId: mesa.id });
+        enviar(ws, { t: 'aviso', texto: 'Bateste à porta de ' + alvo.name + '. À espera de resposta.' });
         break;
       }
 
