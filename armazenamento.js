@@ -11,6 +11,7 @@ const usaPostgres = !!process.env.DATABASE_URL;
 let Pool = null;
 let pool = null;
 let pronto = Promise.resolve(false);
+let ultimoErro = null;
 
 if (usaPostgres) {
   try {
@@ -44,6 +45,7 @@ async function iniciar() {
 }
 
 pronto = iniciar().catch((e) => {
+  ultimoErro = e.message;
   console.log('Postgres indisponivel (' + e.message + '), a usar ficheiro local');
   pool = null;
   return false;
@@ -116,4 +118,14 @@ function modoArmazenamento() {
   return pool ? 'postgres' : 'ficheiro local';
 }
 
-module.exports = { carregar, gravar, modoArmazenamento, pronto };
+function diagnostico() {
+  return {
+    modo: modoArmazenamento(),
+    temDatabaseUrl: !!process.env.DATABASE_URL,
+    urlComeca: (process.env.DATABASE_URL || '').slice(0, 14),
+    temModuloPg: !!Pool,
+    erro: ultimoErro,
+  };
+}
+
+module.exports = { carregar, gravar, modoArmazenamento, diagnostico, pronto };

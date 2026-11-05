@@ -86,6 +86,7 @@ const server = http.createServer((req, res) => {
     return res.end(JSON.stringify({
       ok: true,
       armazenamento: armazem.modoArmazenamento(),
+      diagnostico: armazem.diagnostico(),
       online: players.size,
       mesas: desks.map(d => ({ id: d.id, owner: d.owner, locked: d.locked })),
     }));
