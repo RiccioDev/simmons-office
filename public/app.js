@@ -244,13 +244,6 @@ function ligar(nome) {
           if (p) p.cor = m.players.find(x => x.id === m.id)?.cor || '#c9a227';
         }
         sistema('Estás no escritório. Anda com WASD e chega-te a alguém para falar.');
-        setTimeout(() => {
-          const cv = document.getElementById('mapa');
-          const r = cv.getBoundingClientRect();
-          sistema('depuração: ' + (Array.isArray(desks) ? desks.length : 'sem') + ' mesas · tela ' +
-                   Math.round(r.width) + 'x' + Math.round(r.height) + ' · canvas ' + cv.width + 'x' + cv.height +
-                   ' · jogadores ' + players.size);
-        }, 1200);
         break;
       case 'estado':
         aplicarEstado(m);
@@ -547,24 +540,29 @@ function loop(t) {
     }
   }
 
-  desenhar();
-  gerirProximidade();
-  posicionarVideos();
+  try { desenhar(); } catch (e) { relatarErro('desenho', e); }
+  try { gerirProximidade(); posicionarVideos(); } catch (e) { relatarErro('proximidade', e); }
+  requestAnimationFrame(loop);
+}
   // ------------------------------------------------------------ contas (admin)
 const modalContas = document.getElementById('modalContas');
+const $ = (id) => document.getElementById(id);
+const ligarClique = (id, evento, fn) => { const el = $(id); if (el) el[evento] = fn; };
 
-document.getElementById('btnAdmin').onclick = async () => {
+ligarClique('btnAdmin', 'onclick', async () => {
+  if (!modalContas) return;
   modalContas.classList.remove('oculto');
   await carregarContas();
   await carregarConvites();
-};
+});
 
-document.getElementById('btnFecharContas').onclick = () => {
+ligarClique('btnFecharContas', 'onclick', () => {
+  if (!modalContas) return;
   modalContas.classList.add('oculto');
-  document.getElementById('resultadoConta').textContent = '';
-};
+  const r = $('resultadoConta'); if (r) r.textContent = '';
+});
 
-document.getElementById('btnGerarConvite').onclick = async () => {
+ligarClique('btnGerarConvite', 'onclick', async () => {
   const caixa = document.getElementById('linkConvite');
   const r = await fetch('/api/convites', {
     method: 'POST',
@@ -588,7 +586,7 @@ document.getElementById('btnGerarConvite').onclick = async () => {
   };
 
   await carregarConvites();
-};
+});
 
 async function carregarConvites() {
   const lista = document.getElementById('listaConvites');
@@ -653,7 +651,7 @@ async function carregarContas() {
   }
 }
 
-document.getElementById('btnCriarConta').onclick = async () => {
+ligarClique('btnCriarConta', 'onclick', async () => {
   const usuario = document.getElementById('novoUsuario').value.trim();
   const nome = document.getElementById('novoNome').value.trim();
   const res = document.getElementById('resultadoConta');
@@ -669,13 +667,13 @@ document.getElementById('btnCriarConta').onclick = async () => {
   if (!r.ok) { res.textContent = d.erro || 'Não foi possível criar.'; return; }
 
   res.innerHTML = 'Conta criada: <b>' + escapar(d.usuario) + '</b> · palavra-passe: <b>' + escapar(d.senha) + '</b><br><small>Guarda e envia ao colega. Ele pode mudar depois.</small>';
-  document.getElementById('novoUsuario').value = '';
-  document.getElementById('novoNome').value = '';
+  const nu = $('novoUsuario'); if (nu) nu.value = '';
+  const nn = $('novoNome'); if (nn) nn.value = '';
   await carregarContas();
-};
+});
 
-requestAnimationFrame(loop);
-}
+
+
 
 function resolverColisao(p) {
   for (const d of (Array.isArray(desks) ? desks : [])) {
