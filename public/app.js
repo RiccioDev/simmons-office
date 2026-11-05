@@ -699,8 +699,8 @@ function pontoNoMapa(clientX, clientY) {
   const r = canvas.getBoundingClientRect();
   const cx = caixaDoMapa();
   return {
-    x: (clientX - r.left - cx.offX) / cx.escala,
-    y: (clientY - r.top - cx.offY) / cx.escala,
+    x: (clientX - r.left - cx.offX) / cx.sx,
+    y: (clientY - r.top - cx.offY) / cx.sy,
   };
 }
 
@@ -1226,21 +1226,21 @@ function desenhar() {
   ctx.fillRect(0, 0, canvasCss.w, canvasCss.h);
 
   const cx = caixaDoMapa();
-  ctx.setTransform(dpr * cx.escala, 0, 0, dpr * cx.escala, dpr * cx.offX, dpr * cx.offY);
 
-  // chão
-  ctx.fillStyle = '#11161d';
-  ctx.fillRect(0, 0, LARG, ALT);
+  // grade em todo o ecrã, alinhada com o mapa (sem emendas nem barras)
+  const passo = 50 * cx.sx;
+  if (passo > 6) {
+    ctx.strokeStyle = 'rgba(255,255,255,.022)';
+    ctx.lineWidth = 1;
+    for (let x = cx.offX % passo; x < canvasCss.w; x += passo) {
+      ctx.beginPath(); ctx.moveTo(Math.round(x) + .5, 0); ctx.lineTo(Math.round(x) + .5, canvasCss.h); ctx.stroke();
+    }
+    for (let y = cx.offY % passo; y < canvasCss.h; y += passo) {
+      ctx.beginPath(); ctx.moveTo(0, Math.round(y) + .5); ctx.lineTo(canvasCss.w, Math.round(y) + .5); ctx.stroke();
+    }
+  }
 
-  // grade suave
-  ctx.strokeStyle = 'rgba(255,255,255,.022)';
-  ctx.lineWidth = 1;
-  for (let x = 0; x <= LARG; x += 50) {
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, ALT); ctx.stroke();
-  }
-  for (let y = 0; y <= ALT; y += 50) {
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(LARG, y); ctx.stroke();
-  }
+  ctx.setTransform(dpr * cx.sx, 0, 0, dpr * cx.sy, dpr * cx.offX, dpr * cx.offY);
 
   // tapete central
   ctx.fillStyle = 'rgba(201,162,39,.045)';
@@ -1567,6 +1567,8 @@ function montarToque() {
     if (!pequeno) lateral.classList.remove('aberta');
     // o canvas acompanha o espaco disponivel
     ajustarCanvas();
+    canvas.style.cursor = pequeno ? 'grab' : 'default';
+    if (!pequeno) { toqueDir.x = 0; toqueDir.y = 0; alvoToque = null; }
   };
 
   // ---- joystick (segurar para andar)
@@ -1621,6 +1623,8 @@ function montarToque() {
   }, { passive: true });
 
   // ---- tocar no mapa anda ate la; arrastar tambem
+  canvas.style.cursor = ehEcraPequeno() ? 'grab' : 'default';
+
   canvas.addEventListener('pointerdown', (e) => {
     if (!ehEcraPequeno()) return;
     arrastar = { x: e.clientX, y: e.clientY };
@@ -1631,7 +1635,7 @@ function montarToque() {
     if (!arrastar) return;
     alvoToque = pontoNoMapa(e.clientX, e.clientY);
   });
-  const fimArrasto = () => { arrastar = null; canvas.style.cursor = 'grab'; };
+  const fimArrasto = () => { arrastar = null; canvas.style.cursor = ehEcraPequeno() ? 'grab' : 'default'; };
   canvas.addEventListener('pointerup', fimArrasto);
   canvas.addEventListener('pointercancel', fimArrasto);
 
@@ -1652,10 +1656,12 @@ function montarToque() {
 
 // o canvas acompanha o espaço disponível (sem redimensionar a cada frame!)
 function ajustarCanvas() {
-  const area = canvas.parentElement.getBoundingClientRect();
+  // medir o PRÓPRIO canvas (o contentor é mais largo que ele no desktop)
+  let r = canvas.getBoundingClientRect();
+  if (!r.width || !r.height) r = canvas.parentElement.getBoundingClientRect();
   const dpr = Math.min(window.devicePixelRatio || 2, 2);
-  const larguraCss = Math.max(280, Math.round(area.width));
-  const alturaCss = Math.max(200, Math.round(area.height));
+  const larguraCss = Math.max(280, Math.round(r.width));
+  const alturaCss = Math.max(200, Math.round(r.height));
 
   // redimensionar o canvas apaga-o: só quando o tamanho mudou mesmo
   if (larguraCss === canvasCss.w && alturaCss === canvasCss.h) return;
@@ -1673,41 +1679,48 @@ let canvasCss = { w: 800, h: 600 };
 let camera = { x: LARG / 2, y: ALT / 2 };
 
 function modoCamera() {
-  return ehEcraPequeno();
+  // só em ecrãs verticais (telemóvel/tablet em pé).
+  // deitado ou no computador mostra-se o mapa inteiro.
+  return ehEcraPequeno() && window.innerHeight > 480;
 }
 
 function caixaDoMapa() {
+  // Computador: mostra o mapa inteiro, sem esticar (mantém a proporção 16:10).
   if (!modoCamera()) {
     const e = Math.min(canvasCss.w / LARG, canvasCss.h / ALT);
     return {
-      escala: e,
-      largura: LARG * e,
-      altura: ALT * e,
+      sx: e,
+      sy: e,
       offX: (canvasCss.w - LARG * e) / 2,
       offY: (canvasCss.h - ALT * e) / 2,
     };
   }
 
-  // telemovel/tablet: escolhe quanto do mapa se ve, conforme o ecra
-  const larguraTela = canvasCss.w;
-  const vistaLargura = Math.min(LARG, larguraTela < 520 ? 900 : (larguraTela < 900 ? 1150 : 1400));
-  const eLargura = canvasCss.w / vistaLargura;
-  const eAltura = canvasCss.h / ALT;
-  const e = Math.max(eLargura, eAltura);
+  // Telemóvel/tablet: mostra ~780 unidades de largura e segue o avatar.
+  // Só segue nos eixos em que o mapa é maior que o ecrã (senão ficaria deslocado).
+  const vista = canvasCss.w < 520 ? 780 : 1000;
+  const e = canvasCss.w / vista;
 
-  const larguraVisivel = canvasCss.w / e;
-  const alturaVisivel = canvasCss.h / e;
+  const largVis = canvasCss.w / e;
+  const altVis = canvasCss.h / e;
 
-  camera.x = Math.max(larguraVisivel / 2, Math.min(LARG - larguraVisivel / 2, camera.x));
-  camera.y = Math.max(alturaVisivel / 2, Math.min(ALT - alturaVisivel / 2, camera.y));
+  let offX, offY;
 
-  return {
-    escala: e,
-    largura: LARG * e,
-    altura: ALT * e,
-    offX: canvasCss.w / 2 - camera.x * e,
-    offY: canvasCss.h / 2 - camera.y * e,
-  };
+  if (largVis >= LARG) {
+    offX = (canvasCss.w - LARG * e) / 2;
+  } else {
+    camera.x = Math.max(largVis / 2, Math.min(LARG - largVis / 2, camera.x));
+    offX = canvasCss.w / 2 - camera.x * e;
+  }
+
+  if (altVis >= ALT) {
+    offY = (canvasCss.h - ALT * e) / 2;
+  } else {
+    camera.y = Math.max(altVis / 2, Math.min(ALT - altVis / 2, camera.y));
+    offY = canvasCss.h / 2 - camera.y * e;
+  }
+
+  return { sx: e, sy: e, offX, offY };
 }
 
 // ------------------------------------------------------------ vídeos no ecrã
@@ -1720,8 +1733,8 @@ function posicionarVideos() {
     const p = players.get(id);
     if (!p) { par.cardEl.style.opacity = '0'; continue; }
     par.cardEl.style.opacity = '1';
-    par.cardEl.style.left = (rect.left + cx.offX + p.x * cx.escala) + 'px';
-    par.cardEl.style.top = (rect.top + cx.offY + (p.y - RAIO_AVATAR - 26) * cx.escala) + 'px';
+    par.cardEl.style.left = (rect.left + cx.offX + p.x * cx.sx) + 'px';
+    par.cardEl.style.top = (rect.top + cx.offY + (p.y - RAIO_AVATAR - 26) * cx.sy) + 'px';
     par.cardEl.classList.toggle('semcam', !p.camOn);
   }
 }
