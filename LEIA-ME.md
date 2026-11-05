@@ -79,17 +79,22 @@ Se quem bateu se afastar ou sair, o painel fecha sozinho.
 Carrega em **🖥️** no topo (ou **Ctrl+T**). O Chrome pergunta o que queres partilhar — ecrã
 inteiro, janela ou separador — e, nas opções, podes **incluir o som do computador**.
 
-- Enquanto partilhas, aparece uma barra vermelha no topo e o teu avatar no mapa ganha o
-  selo **A PARTILHAR**
-- Quem estiver ao teu lado vê o ecrã em grande, com o som se o tiveres incluído, e pode
-  fechar com **Esc** para continuar a falar contigo e ver a tua câmara
-- No modo reunião (tela cheia), o ecrã partilhado ocupa a linha de cima e as câmaras ficam
-  por baixo
-- Para parar: **Parar** na barra vermelha, o mesmo botão 🖥️, ou o "Parar partilha" do
-  próprio Chrome (os três funcionam)
+**Quem recebe decide se quer ver.** Aparece um aviso no topo — *"Maria está a partilhar o
+ecrã"* — com o botão **Ver ecrã**. Nada abre sozinho. Se não quiseres, carrega no ✕ e o
+aviso não volta até essa partilha acabar.
 
-O som do sistema é opcional: se o Chrome não oferecer, partilha só a imagem. A voz continua
-sempre a passar — a partilha sobrepõe-se, não substitui.
+Ao abrir, o ecrã aparece numa **janela flutuante**, ao lado do chat:
+
+- **continuas a ver e a andar no mapa** com a janela aberta (WASD continua a funcionar)
+- **⤢** põe em ecrã inteiro / volta a flutuante
+- **Esc** fecha só a janela (as teclas não param de funcionar)
+- no modo reunião o ecrã entra na grelha, sem interromper nada
+
+Há **som quando alguém começa** (dois tons a subir) e **quando termina** (dois tons a
+descer) — para não passares a partilha sem dar conta.
+
+Para parar há três caminhos: o **Parar** na barra vermelha, o mesmo botão 🖥️, ou o "Parar
+partilha" do próprio Chrome. Parar a partilha **não corta a voz**.
 
 ## Modo reunião (tela cheia)
 

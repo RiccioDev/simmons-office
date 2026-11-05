@@ -437,16 +437,26 @@ function aplicarEstado(m) {
     const antesPartilha = new Set([...players.values()].filter(p => p.partilha).map(p => p.id));
     players = new Map(m.players.map(p => [p.id, p]));
 
-    // se alguem comecou a partilhar agora, avisa
+    // entrou/saiu da partilha: aviso + som
     for (const p of players.values()) {
-      if (p.partilha && !antesPartilha.has(p.id) && p.id !== eu?.id) {
-        avisar(p.name + ' começou a partilhar o ecrã.');
+      if (p.id === eu?.id) continue;
+
+      const comecou = p.partilha && !antesPartilha.has(p.id);
+      const acabou = !p.partilha && antesPartilha.has(p.id);
+
+      if (comecou) {
+        avisar(p.name + ' está a partilhar o ecrã.');
+        tocarAvisoEcra('inicio');
+        if (!salaAberta) mostrarAvisoEcra(p.name, p.id);
       }
-      if (!p.partilha && antesPartilha.has(p.id) && ecraRemoto && ecraRemoto.id === p.id) {
-        avisar('A partilha de ecrã terminou.');
-        document.getElementById('ecraOverlay').classList.add('oculto');
-        document.getElementById('ecraVideo').srcObject = null;
-        ecraRemoto = null;
+
+      if (acabou) {
+        avisoIgnorado.delete(p.id);
+        avisar(p.name + ' parou de partilhar o ecrã.');
+        tocarAvisoEcra('fim');
+        if (ecraRemoto && ecraRemoto.id === p.id) {
+          fecharEcra();
+        }
         if (salaAberta) atualizarSala();
       }
     }
@@ -801,6 +811,28 @@ function ligarEcra(id, pc) {
   renegociar(id, pc);
 }
 
+// se estou a partilhar e esta ligação ainda não leva o ecrã, acrescenta e renegocia
+function garantirPartilhaNoPar(id, pc) {
+  if (!streamEcra || !pc || pc.connectionState !== 'connected') return;
+
+  let falta = false;
+  for (const faixa of streamEcra.getTracks()) {
+    const t = pc.getTransceivers().find(x => x.sender && x.sender.track === faixa && x.mid != null);
+    if (!t) {
+      if (!pc.getSenders().some(x => x.track === faixa)) {
+        try { pc.addTrack(faixa, streamEcra); } catch (e) {}
+      }
+      falta = true;
+    }
+  }
+
+  if (falta) {
+    setTimeout(() => renegociar(id, pc), 300);
+  } else {
+    anunciarMidsEcra();
+  }
+}
+
 function pararPartilha() {
   if (!streamEcra) return;
   const faixasAlvo = streamEcra.getTracks().slice();
@@ -835,7 +867,18 @@ async function renegociar(id, pc) {
   try {
     const oferta = await pc.createOffer();
     await pc.setLocalDescription(oferta);
-    const dados = { tipo: 'offer', sdp: pc.localDescription };
+
+    // depois do setLocalDescription os mids já existem: dizemos qual é o do ecrã
+    const dados = { tipo: 'offer', sdp: pc.localDescription, partilha: !!streamEcra };
+    if (streamEcra) {
+      for (const t of pc.getTransceivers()) {
+        if (t.sender && t.sender.track && streamEcra.getTracks().includes(t.sender.track) &&
+            t.sender.track.kind === 'video' && t.mid != null) {
+          dados.midEcra = t.mid;
+          midEcra.set(id, t.mid);
+        }
+      }
+    }
     ws.send(JSON.stringify({ t: 'sinal', para: id, dados }));
 
     // depois de estabelecer, anuncia os mids das faixas de ecra
@@ -868,16 +911,39 @@ function negociar(id, pc, transmissor) {
 // ---------- do lado de quem VE ----------
 function receberEcra(id, stream) {
   const nome = players.get(id)?.name || 'Um colega';
+  const jaEstavaAberto = ecraRemoto && ecraRemoto.id === id &&
+    !document.getElementById('ecraOverlay').classList.contains('oculto');
+
   ecraRemoto = { id, stream, nome };
 
   if (salaAberta) {
+    // no modo reunião o ecrã entra na grelha, sem interromper nada
     atualizarSala();
-  } else {
-    mostrarEcra();
+    avisar(nome + ' está a partilhar o ecrã.');
+    return;
   }
 
-  avisar(nome + ' está a partilhar o ecrã. Carrega para ver em grande.');
-  tocarAvisoEcra();
+  if (jaEstavaAberto) {
+    mostrarEcra();          // já estava a ver: continua
+  } else {
+    mostrarAvisoEcra(nome, id); // não abre sozinho — a pessoa decide
+  }
+}
+
+// ---------- aviso de partilha (opcional) ----------
+let avisoIgnorado = new Set();   // quem já disse "não quero ver"
+
+function mostrarAvisoEcra(nome, id) {
+  if (id && avisoIgnorado.has(id)) return;
+  const b = document.getElementById('bannerEcra');
+  if (!b) return;
+  document.getElementById('bannerTexto').textContent = nome + ' está a partilhar o ecrã';
+  b.classList.remove('oculto');
+}
+
+function esconderAvisoEcra() {
+  const b = document.getElementById('bannerEcra');
+  if (b) b.classList.add('oculto');
 }
 
 function mostrarEcra() {
@@ -892,6 +958,7 @@ function mostrarEcra() {
 }
 
 function fecharEcra() {
+  esconderAvisoEcra();
   if (ecraNaGrelha) { ecraNaGrelha = false; return; }
   const ov = document.getElementById('ecraOverlay');
   const v = document.getElementById('ecraVideo');
@@ -900,21 +967,28 @@ function fecharEcra() {
   ecraRemoto = null;
 }
 
-function tocarAvisoEcra() {
+// som de entrar / sair da partilha (subir = entrou, descer = saiu)
+function tocarAvisoEcra(tipo) {
   if (!somBatida) return;
   const ctx = contextoAudio();
   if (!ctx) return;
-  const t = ctx.currentTime;
-  const osc = ctx.createOscillator();
-  const g = ctx.createGain();
-  osc.type = 'triangle';
-  osc.frequency.setValueAtTime(660, t);
-  osc.frequency.exponentialRampToValueAtTime(990, t + 0.12);
-  g.gain.setValueAtTime(0.0001, t);
-  g.gain.exponentialRampToValueAtTime(0.2, t + 0.02);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
-  osc.connect(g).connect(ctx.destination);
-  osc.start(t); osc.stop(t + 0.24);
+
+  const t = ctx.currentTime + 0.02;
+  const entra = tipo !== 'fim';
+  const notas = entra ? [523.25, 783.99] : [783.99, 523.25];
+
+  notas.forEach((freq, i) => {
+    const inicio = t + i * 0.13;
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(freq, inicio);
+    g.gain.setValueAtTime(0.0001, inicio);
+    g.gain.exponentialRampToValueAtTime(0.22, inicio + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, inicio + 0.24);
+    osc.connect(g).connect(ctx.destination);
+    osc.start(inicio); osc.stop(inicio + 0.26);
+  });
 }
 
 // ao receber uma ligacao nova, se estou a partilhar, levo o ecra comigo
@@ -925,9 +999,18 @@ function partilhaParaPar(id, pc) {
   }
 }
 
+ligarClique('btnVerEcra', 'onclick', () => { esconderAvisoEcra(); mostrarEcra(); });
+ligarClique('btnIgnorarEcra', 'onclick', () => {
+  if (ecraRemoto) avisoIgnorado.add(ecraRemoto.id);
+  esconderAvisoEcra();
+});
 ligarClique('btnTela', 'onclick', comecarPartilha);
 ligarClique('btnPararTela', 'onclick', pararPartilha);
 ligarClique('btnFecharEcra', 'onclick', fecharEcra);
+ligarClique('btnTamanhoEcra', 'onclick', () => {
+  const ov = document.getElementById('ecraOverlay');
+  ov.classList.toggle('grande');
+});
 
 // ------------------------------------------------------------ sala (modo reuniao)
 let salaAberta = false;
@@ -1061,7 +1144,10 @@ document.addEventListener('fullscreenchange', () => {
   if (!document.fullscreenElement && salaAberta) fecharSala();
 });
 window.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && salaAberta) fecharSala();
+  if (e.key !== 'Escape') return;
+  const ov = document.getElementById('ecraOverlay');
+  if (ov && !ov.classList.contains('oculto')) { fecharEcra(); return; }
+  if (salaAberta) fecharSala();
 });
 
 // ------------------------------------------------------------ contas (admin)
@@ -1449,22 +1535,44 @@ function criarPar(id, iniciador) {
   };
 
   pc.ontrack = (e) => {
-    const stream = e.streams[0];
-    // o mid diz de que transceiver veio; e o anunciado pelo outro lado diz se e o ecra
+    const par = pares.get(id);
+    if (!par) return;
+
     const meuMid = e.transceiver ? e.transceiver.mid : null;
-    const ehEcra = (midEcra.get(id) != null && String(midEcra.get(id)) === String(meuMid))
-      || /^screen[:\-]/i.test((e.track && e.track.label) || '');
+    const midDoEcra = midEcra.get(id);
+    const ehEcra = (midDoEcra != null && String(midDoEcra) === String(meuMid))
+      || (par.partilhaPendente && e.track.kind === 'video' &&
+          par.streamEcra && par.streamEcra.getVideoTracks().length > 0);
+
     if (ehEcra) {
-      receberEcra(id, stream);
+      // as faixas do ecrã vão para um stream só delas — nunca mexem no da câmara
+      if (!par.streamEcra) par.streamEcra = new MediaStream();
+      if (!par.streamEcra.getTracks().some(t => t.id === e.track.id)) {
+        par.streamEcra.addTrack(e.track);
+      }
+      receberEcra(id, par.streamEcra);
       return;
     }
-    videoEl.srcObject = stream;
+
+    // câmara/voz: um único stream por pessoa, que só cresce (nunca é substituído)
+    if (!par.streamRemoto) {
+      par.streamRemoto = new MediaStream();
+      videoEl.srcObject = par.streamRemoto;
+      videoEl.play().catch(() => {});
+    }
+    if (!par.streamRemoto.getTracks().some(t => t.id === e.track.id)) {
+      par.streamRemoto.addTrack(e.track);
+    }
     cardEl.classList.remove('semcam');
     atualizarSala();
   };
 
   pc.onconnectionstatechange = () => {
     if (['failed', 'closed', 'disconnected'].includes(pc.connectionState)) fecharPar(id);
+    if (pc.connectionState === 'connected') {
+      // já ligado: garantir que, se estou a partilhar, o ecrã também foi
+      setTimeout(() => garantirPartilhaNoPar(id, pc), 600);
+    }
   };
 
   // sempre que entram/saem faixas, alguém tem de mandar a nova oferta
@@ -1498,7 +1606,15 @@ function ofertar(id, pc) {
 async function tratarSinal(de, dados) {
   let par = pares.get(de);
 
-  if (dados.midEcra != null) midEcra.set(de, dados.midEcra);
+  if (dados.midEcra != null) {
+    midEcra.set(de, dados.midEcra);
+    const parAntes = pares.get(de);
+    if (parAntes) parAntes.partilhaPendente = true;
+  }
+  if (dados.partilha === false) {
+    const parAntes = pares.get(de);
+    if (parAntes) { parAntes.partilhaPendente = false; parAntes.streamEcra = null; }
+  }
   if (dados.tipo === 'midEcra' && dados.mid != null) {
     midEcra.set(de, dados.mid);
     // pode ja ter chegado antes do ontrack: reaproveitar a faixa

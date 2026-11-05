@@ -73,12 +73,23 @@
     <button id="btnPararTela">Parar</button>
   </div>
 
+  <!-- aviso de partilha (não abre nada sozinho) -->
+  <div id="bannerEcra" class="bannerEcra oculto">
+    <span class="pontoVermelho"></span>
+    <span id="bannerTexto">Alguém está a partilhar o ecrã</span>
+    <button id="btnVerEcra">Ver ecrã</button>
+    <button id="btnIgnorarEcra" title="Fechar aviso">✕</button>
+  </div>
+
   <!-- ecrã de alguém, em grande -->
   <div id="ecraOverlay" class="oculto">
     <video id="ecraVideo" autoplay playsinline></video>
     <div class="ecraBarra">
       <span id="ecraNome">Ecrã</span>
-      <button id="btnFecharEcra">Fechar · Esc</button>
+      <div class="ecraBotoes">
+        <button id="btnTamanhoEcra" title="Alternar tamanho">⤢</button>
+        <button id="btnFecharEcra">Fechar · Esc</button>
+      </div>
     </div>
   </div>
 
