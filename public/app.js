@@ -6,6 +6,9 @@ const RAIO_CORTA   = 320;   // a partir daqui desliga (histerese)
 const VEL = 4.2;
 const RAIO_AVATAR = 16;
 
+function $(id) { return document.getElementById(id); }
+function ligarClique(id, evento, fn) { const el = $(id); if (el) el[evento] = fn; }
+
 let erroMostrado = false;
 function relatarErro(origem, e) {
   if (erroMostrado) return;
@@ -215,6 +218,18 @@ async function entrarComSessao() {
   ligar(nome);
 
   if (euAdmin) document.getElementById('btnAdmin').classList.remove('oculto');
+  montarAutoVista();
+}
+
+// ------------------------------------------------------------ a minha camara
+function montarAutoVista() {
+  if (!meuStream || !temVideo) return;
+  const v = document.getElementById('autoVideo');
+  v.srcObject = meuStream;
+  v.muted = true;
+  v.play().catch(() => {});
+  document.getElementById('autoVista').classList.remove('oculto');
+  atualizarSala();
 }
 
 // ------------------------------------------------------------ rede
@@ -510,6 +525,8 @@ function alternarCam() {
   meuStream.getVideoTracks().forEach(t => t.enabled = camOn);
   ws.send(JSON.stringify({ t: 'cam', camOn }));
   document.getElementById('btnCam').classList.toggle('desligado', !camOn);
+  document.getElementById('autoVista').classList.toggle('oculto', !camOn || !temVideo);
+  atualizarSala();
 }
 document.getElementById('btnSom').onclick = alternarMic;
 document.getElementById('btnCam').onclick = alternarCam;
@@ -544,10 +561,118 @@ function loop(t) {
   try { gerirProximidade(); posicionarVideos(); } catch (e) { relatarErro('proximidade', e); }
   requestAnimationFrame(loop);
 }
-  // ------------------------------------------------------------ contas (admin)
+  // ------------------------------------------------------------ sala (modo reuniao)
+let salaAberta = false;
+
+function participantes() {
+  const lista = [];
+  if (eu && meuStream && temVideo && camOn) {
+    lista.push({ id: eu.id, nome: eu.name + ' (tu)', stream: meuStream, eu: true });
+  }
+  for (const [id, par] of pares) {
+    const p = players.get(id);
+    if (!p) continue;
+    lista.push({ id, nome: p.name, stream: par.videoEl.srcObject || null, eu: false });
+  }
+  return lista;
+}
+
+function atualizarBottaoSala() {
+  const btn = document.getElementById('btnSala');
+  const tem = pares.size > 0;
+  btn.classList.toggle('oculto', !tem || salaAberta);
+  if (!tem && salaAberta) fecharSala();
+}
+
+function atualizarSala() {
+  atualizarBottaoSala();
+  if (!salaAberta) return;
+
+  const grelha = document.getElementById('salaGrelha');
+  const lista = participantes();
+
+  // quantos para definir o tamanho das celulas
+  grelha.style.gridTemplateColumns = lista.length <= 1 ? '1fr'
+    : lista.length === 2 ? '1fr 1fr'
+    : 'repeat(2, 1fr)';
+
+  const idsAtuais = new Set(lista.map(p => p.id));
+  for (const el of [...grelha.children]) {
+    if (!idsAtuais.has(el.dataset.id)) el.remove();
+  }
+
+  for (const pessoa of lista) {
+    let tile = grelha.querySelector('[data-id="' + pessoa.id + '"]');
+    if (!tile) {
+      tile = document.createElement('div');
+      tile.className = 'tile' + (pessoa.eu ? ' eu' : '');
+      tile.dataset.id = pessoa.id;
+
+      const v = document.createElement('video');
+      v.autoplay = true;
+      v.playsInline = true;
+      v.muted = !!pessoa.eu;
+
+      const sem = document.createElement('div');
+      sem.className = 'semimagem';
+      sem.textContent = pessoa.nome ? pessoa.nome[0].toUpperCase() : '?';
+
+      const nome = document.createElement('div');
+      nome.className = 'nome';
+      nome.textContent = pessoa.nome;
+
+      tile.append(v, sem, nome);
+      grelha.appendChild(tile);
+    }
+
+    const video = tile.querySelector('video');
+    const sem = tile.querySelector('.semimagem');
+    if (pessoa.stream) {
+      if (video.srcObject !== pessoa.stream) {
+        video.srcObject = pessoa.stream;
+        video.play().catch(() => {});
+      }
+      sem.style.display = 'none';
+    } else {
+      sem.style.display = 'grid';
+    }
+  }
+
+  document.getElementById('salaTitulo').textContent =
+    lista.length <= 1 ? 'A tua câmara' : 'Reunião · ' + lista.length + ' pessoas';
+}
+
+function abrirSala() {
+  if (!pares.size) return;
+  salaAberta = true;
+  const sala = document.getElementById('sala');
+  sala.classList.remove('oculto');
+  document.getElementById('btnSala').classList.add('oculto');
+  atualizarSala();
+  if (sala.requestFullscreen) sala.requestFullscreen().catch(() => {});
+}
+
+function fecharSala() {
+  salaAberta = false;
+  const sala = document.getElementById('sala');
+  sala.classList.add('oculto');
+  document.getElementById('salaGrelha').innerHTML = '';
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  atualizarBottaoSala();
+}
+
+ligarClique('btnSala', 'onclick', abrirSala);
+ligarClique('btnSairSala', 'onclick', fecharSala);
+document.addEventListener('fullscreenchange', () => {
+  if (!document.fullscreenElement && salaAberta) fecharSala();
+});
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && salaAberta) fecharSala();
+});
+
+// ------------------------------------------------------------ contas (admin)
 const modalContas = document.getElementById('modalContas');
-const $ = (id) => document.getElementById(id);
-const ligarClique = (id, evento, fn) => { const el = $(id); if (el) el[evento] = fn; };
+
 
 ligarClique('btnAdmin', 'onclick', async () => {
   if (!modalContas) return;
@@ -899,6 +1024,7 @@ function criarPar(id, iniciador) {
   pc.ontrack = (e) => {
     videoEl.srcObject = e.streams[0];
     cardEl.classList.remove('semcam');
+    atualizarSala();
   };
 
   pc.onconnectionstatechange = () => {
@@ -906,12 +1032,25 @@ function criarPar(id, iniciador) {
   };
 
   pares.set(id, { pc, videoEl, cardEl });
+  atualizarSala();
 
-  if (iniciador) {
-    pc.createOffer().then(o => pc.setLocalDescription(o)).then(() => {
-      ws.send(JSON.stringify({ t: 'sinal', para: id, dados: { tipo: 'offer', sdp: pc.localDescription } }));
-    });
-  }
+  // rede de segurança: se em 2 s continuar "new", oferece de qualquer forma
+  setTimeout(() => {
+    const atual = pares.get(id);
+    if (!atual || atual.pc !== pc) return;
+    if (pc.connectionState === 'new' && pc.signalingState === 'stable') {
+      ofertar(id, pc);
+    }
+  }, 2000);
+
+  if (iniciador) ofertar(id, pc);
+}
+
+function ofertar(id, pc) {
+  if (pc.signalingState !== 'stable') return;
+  pc.createOffer().then(o => pc.setLocalDescription(o)).then(() => {
+    ws.send(JSON.stringify({ t: 'sinal', para: id, dados: { tipo: 'offer', sdp: pc.localDescription } }));
+  }).catch(() => {});
 }
 
 async function tratarSinal(de, dados) {
@@ -919,6 +1058,7 @@ async function tratarSinal(de, dados) {
 
   if (dados.tipo === 'offer') {
     if (!par) { criarPar(de, false); par = pares.get(de); }
+    if (par.pc.signalingState !== 'stable') return;
     await par.pc.setRemoteDescription(new RTCSessionDescription(dados.sdp));
     const resposta = await par.pc.createAnswer();
     await par.pc.setLocalDescription(resposta);
@@ -938,6 +1078,7 @@ function fecharPar(id) {
   try { par.pc.close(); } catch (e) { }
   par.cardEl.remove();
   pares.delete(id);
+  atualizarSala();
 }
 
 // ------------------------------------------------------------ vídeos no ecrã

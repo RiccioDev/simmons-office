@@ -212,3 +212,70 @@ body{
   background:var(--ouro);color:#12151a;font-weight:700;font-size:12.5px;cursor:pointer;
 }
 .linkConvite small{color:#5f6875;font-size:11px}
+
+
+/* ---------- a minha câmara ---------- */
+#autoVista{
+  position:absolute;left:18px;bottom:58px;
+  width:170px;border-radius:12px;overflow:hidden;
+  border:2px solid rgba(201,162,39,.55);
+  box-shadow:0 12px 30px rgba(0,0,0,.55);
+  background:#0b0e13;z-index:5;
+}
+#autoVista video{width:100%;height:106px;object-fit:cover;display:block;transform:scaleX(-1)}
+.autoEtiqueta{
+  position:absolute;bottom:0;left:0;right:0;padding:12px 8px 4px;
+  background:linear-gradient(transparent,rgba(0,0,0,.8));
+  font-size:10.5px;color:#c9a227;font-weight:600;text-align:right;
+}
+
+/* ---------- botão de tela cheia ---------- */
+.btnSala{
+  position:absolute;left:50%;bottom:52px;transform:translateX(-50%);
+  background:var(--ouro);color:#12151a;border:0;border-radius:22px;
+  padding:10px 22px;font-size:13.5px;font-weight:700;cursor:pointer;
+  box-shadow:0 10px 26px rgba(0,0,0,.5);z-index:6;
+}
+.btnSala:hover{filter:brightness(1.07)}
+
+/* ---------- sala (modo reunião) ---------- */
+#sala{
+  position:fixed;inset:0;z-index:80;
+  background:#0a0d12;
+  display:flex;flex-direction:column;
+}
+#sala.oculto{display:none}
+.salaTopo{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 20px;border-bottom:1px solid var(--linha);
+  background:#0f131a;
+}
+.salaTopo span{font-size:13px;color:#9aa4b2;letter-spacing:.04em}
+.salaTopo button{
+  background:#1d232c;border:1px solid var(--linha);color:var(--tinta);
+  padding:8px 16px;border-radius:9px;font-size:12.5px;cursor:pointer;
+}
+.salaTopo button:hover{border-color:var(--ouro)}
+
+.salaGrelha{
+  flex:1;display:grid;gap:12px;padding:16px;
+  grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+  align-items:stretch;overflow:hidden;
+}
+.tile{
+  position:relative;background:#12161c;border-radius:14px;overflow:hidden;
+  border:1px solid #222a34;min-height:200px;
+}
+.tile video{
+  width:100%;height:100%;object-fit:cover;display:block;background:#000;
+}
+.tile.eu video{transform:scaleX(-1)}
+.tile .nome{
+  position:absolute;left:0;right:0;bottom:0;padding:22px 14px 10px;
+  background:linear-gradient(transparent,rgba(0,0,0,.85));
+  font-size:13px;font-weight:600;color:#fff;
+}
+.tile .semimagem{
+  position:absolute;inset:0;display:grid;place-items:center;
+  font-size:44px;color:#39424e;font-weight:700;
+}

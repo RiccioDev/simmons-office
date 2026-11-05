@@ -47,6 +47,23 @@
 
   <div id="videoZone"></div>
 
+  <!-- a minha própria câmara -->
+  <div id="autoVista" class="oculto">
+    <video id="autoVideo" autoplay playsinline muted></video>
+    <span class="autoEtiqueta">tu</span>
+  </div>
+
+  <!-- modo reunião em tela cheia -->
+  <div id="sala" class="oculto">
+    <div class="salaTopo">
+      <span id="salaTitulo">Reunião</span>
+      <button id="btnSairSala">Voltar ao escritório</button>
+    </div>
+    <div id="salaGrelha" class="salaGrelha"></div>
+  </div>
+
+  <button id="btnSala" class="btnSala oculto">🎥 Tela cheia</button>
+
   <aside id="lateral">
     <div class="topo">
       <span class="ponto" id="estadoLigacao"></span>
