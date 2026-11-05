@@ -1,0 +1,164 @@
+:root{
+  --tinta:#efe9dc;
+  --fundo:#0e1116;
+  --painel:#161b22;
+  --linha:#242c37;
+  --ouro:#c9a227;
+  --verde:#2a9d8f;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{
+  background:var(--fundo);
+  color:var(--tinta);
+  font-family:"Segoe UI",Inter,system-ui,sans-serif;
+  overflow:hidden;
+}
+.oculto{display:none !important}
+
+/* ---------- entrada ---------- */
+.ecra{
+  position:fixed;inset:0;display:grid;place-items:center;
+  background:
+    radial-gradient(1200px 600px at 50% -10%, rgba(201,162,39,.16), transparent 60%),
+    var(--fundo);
+  z-index:50;
+}
+.cartao{
+  width:min(440px,92vw);
+  background:var(--painel);
+  border:1px solid var(--linha);
+  border-radius:18px;
+  padding:38px 34px 30px;
+  box-shadow:0 30px 80px rgba(0,0,0,.55);
+}
+.marca{
+  font-size:13px;letter-spacing:.34em;color:var(--ouro);font-weight:700;
+}
+.marca span{color:#6b7480;margin-left:6px;font-weight:600}
+.cartao h1{font-size:26px;margin:14px 0 6px;font-weight:600;letter-spacing:-.01em}
+.sub{color:#8b95a3;font-size:13.5px;margin:0 0 22px;line-height:1.5}
+.cartao input{
+  width:100%;padding:13px 15px;border-radius:11px;
+  border:1px solid var(--linha);background:#0f141a;color:var(--tinta);
+  font-size:15px;outline:none;
+}
+.cartao input:focus{border-color:var(--ouro)}
+.cartao button{
+  width:100%;margin-top:12px;padding:13px;border:0;border-radius:11px;
+  background:var(--ouro);color:#12151a;font-size:15px;font-weight:700;cursor:pointer;
+}
+.cartao button:hover{filter:brightness(1.08)}
+.dica{color:#5f6875;font-size:11.5px;margin:16px 0 0;text-align:center;line-height:1.5}
+
+/* ---------- app ---------- */
+#app{position:fixed;inset:0;display:flex;overflow:hidden}
+#mapa{
+  flex:1 1 auto;
+  min-width:0;
+  max-width:calc(100% - 330px);
+  background:#0b0e13;
+  height:100%;
+  display:block;
+}
+#videoZone{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.videoCard{
+  position:absolute;
+  width:150px;
+  border-radius:12px;
+  overflow:hidden;
+  background:#000;
+  border:2px solid var(--ouro);
+  box-shadow:0 12px 30px rgba(0,0,0,.6);
+  transform:translate(-50%,-100%);
+  transition:opacity .18s;
+}
+.videoCard video{width:100%;height:96px;object-fit:cover;display:block}
+.videoCard .etiqueta{
+  position:absolute;bottom:0;left:0;right:0;
+  background:linear-gradient(transparent,rgba(0,0,0,.85));
+  font-size:11px;padding:14px 7px 5px;color:#fff;font-weight:600;
+}
+.videoCard.semcam video{display:none}
+.videoCard.semcam{width:120px;background:#12161c}
+.videoCard .inicial{display:none}
+.videoCard.semcam .inicial{
+  height:62px;display:grid;place-items:center;font-size:24px;color:var(--ouro);font-weight:700;
+}
+
+#lateral{
+  width:330px;flex:0 0 330px;
+  background:var(--painel);
+  border-left:1px solid var(--linha);
+  display:flex;flex-direction:column;
+}
+.topo{
+  display:flex;align-items:center;gap:10px;
+  padding:14px 16px;border-bottom:1px solid var(--linha);font-size:12.5px;color:#9aa4b2;
+}
+.topo .ponto{width:8px;height:8px;border-radius:50%;background:#c0392b}
+.topo .ponto.on{background:var(--verde);box-shadow:0 0 10px rgba(42,157,143,.8)}
+.topo button{
+  margin-left:auto;background:#1d232c;border:1px solid var(--linha);color:var(--tinta);
+  width:34px;height:30px;border-radius:8px;cursor:pointer;font-size:14px;
+}
+.topo button + button{margin-left:6px}
+.topo button.desligado{opacity:.4}
+
+#chat{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:9px;font-size:13.5px}
+.msg{line-height:1.45;word-break:break-word}
+.msg b{color:var(--ouro);font-weight:600}
+.msg .hora{color:#5f6875;font-size:10.5px;margin-left:6px}
+.msg.sistema{color:#6b7480;font-size:12px;font-style:italic}
+
+#formChat{display:flex;border-top:1px solid var(--linha);padding:10px;gap:8px}
+#formChat input{
+  flex:1;padding:11px 13px;border-radius:10px;border:1px solid var(--linha);
+  background:#0f141a;color:var(--tinta);font-size:13.5px;outline:none;
+}
+#formChat input:focus{border-color:var(--ouro)}
+#formChat button{
+  width:42px;border:0;border-radius:10px;background:var(--ouro);color:#12151a;
+  font-weight:700;cursor:pointer;
+}
+
+#ajuda{
+  position:absolute;left:18px;bottom:16px;
+  background:rgba(15,19,25,.86);
+  border:1px solid var(--linha);border-radius:10px;
+  padding:9px 14px;font-size:12px;color:#9aa4b2;
+  backdrop-filter:blur(6px);
+}
+#ajuda b{color:var(--ouro)}
+
+#aviso{
+  position:absolute;left:50%;top:26px;transform:translateX(-50%);
+  background:rgba(201,162,39,.94);color:#12151a;font-weight:600;
+  padding:10px 20px;border-radius:10px;font-size:13px;
+  opacity:0;transition:opacity .25s;pointer-events:none;
+}
+#aviso.on{opacity:1}
+
+/* ---------- modal da mesa ---------- */
+.modal{
+  position:fixed;inset:0;display:grid;place-items:center;
+  background:rgba(6,9,13,.72);backdrop-filter:blur(4px);z-index:60;
+}
+.modalCaixa{
+  width:min(400px,92vw);background:var(--painel);
+  border:1px solid var(--linha);border-radius:16px;padding:26px 26px 20px;
+  box-shadow:0 30px 70px rgba(0,0,0,.6);
+}
+.modalCaixa h3{margin:0 0 8px;font-size:18px;font-weight:600}
+.modalCaixa p{margin:0 0 16px;color:#8b95a3;font-size:13.5px;line-height:1.5}
+.modalCaixa input{
+  width:100%;padding:12px 14px;border-radius:10px;border:1px solid var(--linha);
+  background:#0f141a;color:var(--tinta);font-size:14.5px;outline:none;
+}
+.modalCaixa input:focus{border-color:var(--ouro)}
+.modalBotoes{display:flex;gap:10px;margin-top:16px}
+.modalBotoes button{
+  flex:1;padding:11px;border-radius:10px;border:0;cursor:pointer;
+  font-size:14px;font-weight:700;background:var(--ouro);color:#12151a;
+}
+.modalBotoes button.secundario{background:#1d232c;color:#9aa4b2;border:1px solid var(--linha)}

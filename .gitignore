@@ -1,0 +1,7 @@
+node_modules/
+cloudflared.exe
+tunel.log
+log.txt
+url_publica.txt
+mesas.json
+*.log

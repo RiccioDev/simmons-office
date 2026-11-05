@@ -1,0 +1,12 @@
+{
+  "name": "simmons-office",
+  "version": "1.0.0",
+  "description": "Escritorio virtual 2D da Simmons Dellion - voz de proximidade, texto e mesas com lock",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

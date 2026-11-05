@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simmons Office</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ecrã de entrada -->
+<div id="entrada" class="ecra">
+  <div class="cartao">
+    <div class="marca">SIMMONS<span>DELLION</span></div>
+    <h1>Escritório virtual</h1>
+    <p class="sub">Escreve o teu nome. Se já tiveres mesa, ela é tua automaticamente.</p>
+    <input id="nome" type="text" maxlength="24" placeholder="O teu nome" autocomplete="off">
+    <button id="btnEntrar">Entrar no escritório</button>
+    <p class="dica">Precisas de microfone e câmara para falar com quem está perto.</p>
+  </div>
+</div>
+
+<!-- app -->
+<div id="app" class="oculto">
+  <canvas id="mapa" width="1600" height="1000"></canvas>
+
+  <div id="videoZone"></div>
+
+  <aside id="lateral">
+    <div class="topo">
+      <span class="ponto" id="estadoLigacao"></span>
+      <span id="contagem">0 online</span>
+      <button id="btnSom" title="Ligar/desligar a tua voz">🎤</button>
+      <button id="btnCam" title="Ligar/desligar a tua câmara">📷</button>
+    </div>
+    <div id="chat"></div>
+    <form id="formChat" autocomplete="off">
+      <input id="msg" type="text" maxlength="500" placeholder="Escrever para todos…">
+      <button type="submit">➤</button>
+    </form>
+  </aside>
+
+  <div id="ajuda">
+    <b>WASD</b> mover · <b>E</b> sentar/levantar · <b>L</b> fechar/abrir a minha mesa ·
+    <b>R</b> reclamar mesa · <b>M</b> micro · <b>C</b> câmara
+  </div>
+  <div id="aviso"></div>
+
+  <!-- modal para dar nome a mesa -->
+  <div id="modalMesa" class="modal oculto">
+    <div class="modalCaixa">
+      <h3>Esta mesa é tua</h3>
+      <p>Como queres que apareça o nome na mesa?</p>
+      <input id="nomeMesa" type="text" maxlength="28" placeholder="Ex.: Joao Riccio">
+      <div class="modalBotoes">
+        <button id="btnCancelarMesa" class="secundario">Cancelar</button>
+        <button id="btnConfirmarMesa">Ficar com a mesa</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
