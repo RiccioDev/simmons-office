@@ -1766,6 +1766,9 @@ function desenhar() {
       && Math.abs(pl.x - (d.x + d.w / 2)) < 34
       && pl.y > d.y + d.h - 18 && pl.y < d.y + d.h + 44);
 
+    // a cadeira fica atrás da mesa e atrás de quem se senta
+    desenhos.push({ y: d.y + 6, f: () => Visual.cadeiraDaMesa(ctx, d) });
+
     desenhos.push({
       y: d.y + d.h,
       f: () => {

@@ -595,36 +595,41 @@ const Visual = (() => {
     decor(est.decor, x + 11);
     decor(est.decor2, x + w - 11);
 
-    // placa do nome, encostada à frente do tampo
+    // placa do nome, à frente do tampo (não cruza com quem está sentado)
     if (d.owner || d.label) {
       const nome = String(d.owner || d.label).slice(0, 16);
       ctx.font = '600 6px "Segoe UI",sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       const larg = Math.min(w - 10, ctx.measureText(nome).width + 8);
-      ctx.fillStyle = 'rgba(12,15,20,.45)';
-      ctx.fillRect(cx - larg / 2, y + 22, larg, 9);
+      ctx.fillStyle = 'rgba(12,15,20,.5)';
+      ctx.fillRect(cx - larg / 2, y + h - 16, larg, 9);
       ctx.fillStyle = d.owner ? '#e5c25c' : '#93a0ad';
-      ctx.fillText(nome, cx, y + 26.5);
+      ctx.fillText(nome, cx, y + h - 11.5);
     }
 
     if (trancada) {
-      ctx.font = '8px "Segoe UI Emoji",sans-serif';
-      ctx.textAlign = 'center';
+      ctx.font = '7px "Segoe UI Emoji",sans-serif';
+      ctx.textAlign = 'right';
       ctx.textBaseline = 'middle';
-      ctx.fillText('🔒', cx, y + 26);
+      ctx.fillText('🔒', x + w - 4, y + h - 11);
     }
 
-    // cadeira à frente
-    if (!ocupada) {
-      const cadeira = {
-        escritorio: 'Chair_ChairBlueUp',
-        gamer: 'Chair_ChairRedUp',
-        madeira: 'Chair_ChairGreenUp',
-        banco: 'Chair_ChairGreyUp',
-      }[est.cadeira] || 'Chair_ChairBlueUp';
-      objeto(ctx, cadeira, cx, y + h + 16, 30);
-    }
+  }
+
+
+  // cadeira do lado de quem se senta (atrás da mesa): desenhada antes do
+  // boneco, para o encosto aparecer por trás dele
+  function cadeiraDaMesa(ctx, d) {
+    const est = d.estilo || {};
+    const cx = Math.round(d.x + d.w / 2);
+    const sprite = {
+      escritorio: 'Chair_ChairBlueUp',
+      gamer: 'Chair_ChairRedUp',
+      madeira: 'Chair_ChairGreenUp',
+      banco: 'Chair_ChairGreyUp',
+    }[est.cadeira] || 'Chair_ChairBlueUp';
+    objeto(ctx, sprite, cx, d.y + 18, 30);
   }
 
   // ---------------------------------------------------- computador (de costas)
@@ -827,7 +832,7 @@ const Visual = (() => {
   // objetos do pack do WorkAdventure (Pipoya), 1 píxel = 1 unidade de mundo
   const IMGS = new Map();
   const LISTA_OBJETOS = [
-    'Furniture_Shelf_ShelfBig', 'Furniture_Couch_CouchBrownDown',
+    'Furniture_Shelf_ShelfBig', 'Shelf_ShelfBig', 'Shelf_Shelf', 'Furniture_Couch_CouchBrownDown',
     'Office_Props_CoffeeDispenser', 'Office_Plant_PlantLarge', 'Office_Plant_Plant',
     'Office_Plant_PlantSmall', 'Office_Props_Bin', 'Office_Props_Mugs',
     'Office_Props_Folders', 'Office_Computer_Printer',
@@ -1119,7 +1124,7 @@ const Visual = (() => {
 
   return {
     padrao, personagem, mesa, planta, chao, paredes, tapete,
-    salaChao, salaMesa, SALA, objetos, carregarObjetos, objeto,
+    salaChao, salaMesa, SALA, objetos, carregarObjetos, objeto, cadeiraDaMesa,
     PELES, CABELOS, ROUPAS, corPele, corCabelo, corRoupa, tom,
   };
 })();
