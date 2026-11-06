@@ -551,7 +551,7 @@ const Pixel = (() => {
 
     // folha pronta (estilo WorkAdventure)
     if (av && av.sprite && SPRITES.has(av.sprite)) {
-      const escala = (opcoes.escala || 1.15) * 1.55;
+      const escala = (opcoes.escala || 1) * 1.55;
       const sombraL = 12 * escala;
       ctx.save();
       ctx.fillStyle = 'rgba(0,0,0,.28)';

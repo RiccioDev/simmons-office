@@ -1676,15 +1676,16 @@ function bloqueado(x, y, sentado) {
 
   for (const d of (Array.isArray(desks) ? desks : [])) {
     if (x > d.x - RAIO_CORPO && x < d.x + d.w + RAIO_CORPO &&
-        y > d.y - RAIO_CORPO && y < d.y + d.h * 0.86) return true;
+        y > d.y + 34 - RAIO_CORPO && y < d.y + d.h) return true;
   }
 
   const s = Visual.SALA;
-  const tx = s.x + (s.w - 140) / 2 + 8, ty = s.y + 128;
-  if (x > tx - 14 && x < tx + 154 && y > ty - 16 && y < ty + 456) return true;
+  const E = 0.62;
+  const tx = s.x + (s.w - 140 * E) / 2, ty = s.y + 128 * E;
+  if (x > tx - 8 && x < tx + 148 * E && y > ty - 10 && y < ty + 452 * E) return true;
 
   // sofá
-  if (x > 792 && x < 960 && y > 616 && y < 690) return true;
+  if (x > 800 && x < 950 && y > 646 && y < 706) return true;
 
   return false;
 }
@@ -1802,15 +1803,15 @@ function desenharJogador(p) {
     });
 
     ctx.textBaseline = 'alphabetic';
-    ctx.font = '600 9px "Segoe UI",sans-serif';
+    ctx.font = '600 6.5px "Segoe UI",sans-serif';
     ctx.textAlign = 'center';
     const largura = ctx.measureText(p.name).width;
     ctx.fillStyle = 'rgba(10,13,18,.82)';
     ctx.beginPath();
-    ctx.roundRect(p.x - largura / 2 - 5, p.y + 20, largura + 10, 13, 4);
+    ctx.roundRect(p.x - largura / 2 - 4, p.y + 12, largura + 8, 10, 3);
     ctx.fill();
     ctx.fillStyle = souEu ? '#e5c25c' : '#cfd6df';
-    ctx.fillText(p.name, p.x, p.y + 30);
+    ctx.fillText(p.name, p.x, p.y + 19.5);
 
     if (p.muted) {
       ctx.font = '11px "Segoe UI Emoji",sans-serif';
@@ -2406,7 +2407,7 @@ let canvasCss = { w: 800, h: 600 };
 // No computador continua a caber tudo, como sempre.
 let camera = { x: LARG / 2, y: ALT / 2 };
 
-const ZOOM_MAPA = () => (ehEcraPequeno() ? 1.7 : 1.42);
+const ZOOM_MAPA = () => (ehEcraPequeno() ? 2.6 : 2.3);
 
 function modoCamera() {
   return true;   // a câmara segue sempre o avatar
