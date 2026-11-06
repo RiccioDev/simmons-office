@@ -700,6 +700,43 @@ const Visual = (() => {
     }
   }
 
+  // ---------------------------------------------------- tampo de mesa reutilizável
+  // desenha um tampo fino com pernas e painel, pronto a receber objetos em cima
+  function tampoMesa(ctx, x, y, w, h, sprite) {
+    const topoY = y + 14;
+    const alturaTampo = 58;
+    const pernasY = topoY + alturaTampo;
+
+    // pernas
+    ctx.fillStyle = '#4a3521';
+    ctx.fillRect(x + 5, pernasY - 4, 5, h - (pernasY - y) + 2);
+    ctx.fillRect(x + w - 10, pernasY - 4, 5, h - (pernasY - y) + 2);
+    // painel de modéstia
+    ctx.fillStyle = '#563d26';
+    ctx.fillRect(x + 10, pernasY - 2, w - 20, h - (pernasY - y) - 6);
+    ctx.fillStyle = 'rgba(255,255,255,.07)';
+    ctx.fillRect(x + 10, pernasY - 2, w - 20, 2);
+    ctx.fillStyle = 'rgba(0,0,0,.26)';
+    ctx.fillRect(x, pernasY, w, 3);
+
+    // superfície
+    if (IMGS.get(sprite)) {
+      objetoParcial(ctx, sprite, 0, 20, 64, 58, x, topoY, w, alturaTampo);
+    } else {
+      ctx.fillStyle = '#8a6a48';
+      ctx.fillRect(x, topoY, w, alturaTampo);
+    }
+
+    // bisel: aresta de cima iluminada, frente em sombra, lados escurecidos
+    ctx.fillStyle = 'rgba(255,255,255,.20)';
+    ctx.fillRect(x, topoY, w, 2);
+    ctx.fillStyle = 'rgba(0,0,0,.26)';
+    ctx.fillRect(x, topoY + alturaTampo - 4, w, 4);
+    ctx.fillStyle = 'rgba(0,0,0,.14)';
+    ctx.fillRect(x, topoY, 2, alturaTampo);
+    ctx.fillRect(x + w - 2, topoY, 2, alturaTampo);
+  }
+
   // ---------------------------------------------------- mesa de trabalho
   const DECORACOES = {
     nada: null,
@@ -728,31 +765,7 @@ const Visual = (() => {
     ctx.ellipse(cx, y + h - 4, w * 0.58, 10, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // tampo fino (recorte do sprite do pack) + pernas + painel de fundo
-    const spriteTampo = TABELAS[est.mesa] || TABELAS.carvalho;
-    const topoY = y + 14;                 // o tampo começa 14 abaixo do topo
-    const alturaTampo = 58;
-    const pernasY = topoY + alturaTampo;  // y + 72
-    const img = IMGS.get(spriteTampo);
-
-    // pernas e painel primeiro (ficam por baixo do tampo)
-    ctx.fillStyle = '#4a3521';
-    ctx.fillRect(x + 5, pernasY - 4, 5, h - (pernasY - y) + 2);
-    ctx.fillRect(x + w - 10, pernasY - 4, 5, h - (pernasY - y) + 2);
-    ctx.fillStyle = '#563d26';
-    ctx.fillRect(x + 10, pernasY - 2, w - 20, h - (pernasY - y) - 6);
-    ctx.fillStyle = 'rgba(255,255,255,.07)';
-    ctx.fillRect(x + 10, pernasY - 2, w - 20, 2);
-    ctx.fillStyle = 'rgba(0,0,0,.26)';
-    ctx.fillRect(x, pernasY, w, 3);
-
-    if (img) {
-      // recorta só a superfície da mesa do sprite original
-      objetoParcial(ctx, spriteTampo, 0, 20, 64, 58, x, topoY, w, alturaTampo);
-    } else {
-      ctx.fillStyle = (TAMPOS[est.mesa] || TAMPOS.carvalho).tampo;
-      ctx.fillRect(x, topoY, w, alturaTampo);
-    }
+    tampoMesa(ctx, x, y, w, h, TABELAS[est.mesa] || TABELAS.carvalho);
 
     // tudo o que está em cima assenta a esta altura
     const tampo = y + 46;   // superfície do tampo (o monitor fica do lado de quem senta)
@@ -760,15 +773,15 @@ const Visual = (() => {
     // computador
     const pc = est.pc || 'monitor';
     if (pc === 'dual') {
-      objeto(ctx, 'Office_Computer_ScreenBlackUp', cx - 15, tampo, 28);
-      objeto(ctx, 'Office_Computer_ScreenBlackUp', cx + 15, tampo, 28);
+      objeto(ctx, 'Office_Computer_ScreenBlackUp', cx - 17, tampo, 32);
+      objeto(ctx, 'Office_Computer_ScreenBlackUp', cx + 17, tampo, 32);
     } else if (pc === 'portatil') {
-      objeto(ctx, 'Computer_LaptopBlackDown', cx, tampo, 30);
+      objeto(ctx, 'Computer_LaptopBlackDown', cx, tampo, 34);
     } else if (pc === 'torre') {
-      objeto(ctx, 'Office_Computer_ScreenBlackUp', cx - 6, tampo, 28);
+      objeto(ctx, 'Office_Computer_ScreenBlackUp', cx - 8, tampo, 32);
       objeto(ctx, 'Office_Props_Folders', cx + 22, tampo - 6, 14);
     } else {
-      objeto(ctx, 'Office_Computer_ScreenBlackUp', cx, tampo, 30);
+      objeto(ctx, 'Office_Computer_ScreenBlackUp', cx, tampo, 34);
     }
 
     // decorações dos cantos
@@ -813,7 +826,7 @@ const Visual = (() => {
       madeira: 'Chair_ChairGreenUp',
       banco: 'Chair_ChairGreyUp',
     }[est.cadeira] || 'Chair_ChairBlueUp';
-    objeto(ctx, sprite, cx, d.y + 18, 30);
+    objeto(ctx, sprite, cx, d.y + 20, 34);
   }
 
   // ---------------------------------------------------- computador (de costas)
@@ -1070,7 +1083,7 @@ const Visual = (() => {
     p(214, 150, 60, 8, 'rgba(0,0,0,.28)');
     objeto(ctx, 'Shelf_ShelfBig', 250, 236, 56);
     objeto(ctx, 'Shelf_Shelf', 300, 236, 56);
-    objeto(ctx, 'Table_TableDarkBrown', 372, 300, 64);
+    tampoMesa(ctx, 340, 204, 64, 96, 'Table_TableDarkBrown');
     objeto(ctx, 'Office_Computer_ScreenBlackUp', 372, 236, 30);
     objeto(ctx, 'Chair_ChairBlueUp', 372, 200, 28);
     objeto(ctx, 'Office_Plant_Plant', 440, 320, 56);
@@ -1149,7 +1162,7 @@ const Visual = (() => {
     objeto(ctx, 'Office_Computer_ScreenWhiteUp', 150, 736, 28);
     objeto(ctx, 'Office_Props_Basket', 196, 736, 16);
     // mesa de espera + cadeiras
-    objeto(ctx, 'Table_TableSmallWhite', 200, 880, 34);
+    tampoMesa(ctx, 178, 786, 44, 94, 'Table_TableSmallWhite');
     objeto(ctx, 'Chair_ChairGreyUp', 164, 888, 26);
     objeto(ctx, 'Chair_ChairGreyUp', 236, 888, 26);
     objeto(ctx, 'Chair_ChairBlueUp', 200, 830, 26);
@@ -1220,7 +1233,7 @@ const Visual = (() => {
 
     // mesa comprida (três módulos do pack)
     for (let i = 0; i < 2; i++) {
-      objeto(ctx, 'Table_TableBrown', cx, 236 + i * 58, 64);
+      tampoMesa(ctx, cx - 32, 140 + i * 58, 64, 96, 'Table_TableBrown');
     }
 
     // três cadeiras de cada lado
@@ -1373,7 +1386,7 @@ const Visual = (() => {
   return {
     padrao, personagem, mesa, planta, chao, paredes, tapete,
     salaChao, salaMesa, SALA, objetos, carregarObjetos, objeto, cadeiraDaMesa,
-    paredesInteriores, rotulos, MAPA, pisosZonas, objetoParcial,
+    paredesInteriores, rotulos, MAPA, pisosZonas, objetoParcial, tampoMesa,
     PELES, CABELOS, ROUPAS, corPele, corCabelo, corRoupa, tom,
   };
 })();
