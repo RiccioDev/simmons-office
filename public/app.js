@@ -802,7 +802,8 @@ window.addEventListener('keydown', (e) => {
 
     // sentado + andar = levanta (só numa tecla nova, para o botão de sentar funcionar)
     const euJogador = eu && players.get(eu.id);
-    if (euJogador && euJogador.sitting) {
+    // dentro de um jogo, as teclas são da raquete: não levantam o boneco
+    if (euJogador && euJogador.sitting && !jogoEmQueEstou()) {
       ws.send(JSON.stringify({ t: 'levantar' }));
       teclas.delete(k);
     }

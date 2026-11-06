@@ -1081,6 +1081,15 @@ function jogoEntrar(ws, p, id, chave) {
   const outro = lugar === 0 ? 1 : 0;
   const soUm = e.jogadores[outro] === null && !e.bot[outro];
 
+  // jogo que já tinha acabado: começa do zero
+  if (e.vencedor !== null) {
+    e.vencedor = null;
+    e.placar = [0, 0];
+    e.bola = { x: 0.5, y: 0.5, vx: 0, vy: 0 };
+    e.raquetes = [0.5, 0.5];
+    jogoSaque(chave, lugar === 0 ? 1 : 0);
+  }
+
   if (e.jogadores[0] !== null && (e.jogadores[1] !== null || e.bot[1])) {
     e.vencedor = null;
     e.placar = [0, 0];
@@ -1124,6 +1133,7 @@ function jogoTique(chave, dt) {
   const g = JOGOS[chave];
   const e = g.estado;
   if (!e.ativa) return;
+  if (e.vencedor !== null) return;   // jogo terminado: fica congelado
 
   // robô: segue a bola com velocidade limitada e um pouco de erro
   for (const lado of [0, 1]) {
@@ -1178,12 +1188,24 @@ function jogoTique(chave, dt) {
   if (b.x < 0.02) {
     e.placar[1] += 1;
     broadcast({ t: 'jogoSom', jogo: chave, som: 'golo' });
-    if (e.placar[1] >= g.pontos) { e.vencedor = 1; broadcast({ t: 'jogoSom', jogo: chave, som: 'vitoria' }); }
+    if (e.placar[1] >= g.pontos) {
+      e.vencedor = 1;
+      e.placar[1] = g.pontos;
+      broadcast({ t: 'jogoSom', jogo: chave, som: 'vitoria' });
+      jogoDifundir(chave);
+      return;
+    }
     jogoSaque(chave, 0);
   } else if (b.x > 0.98) {
     e.placar[0] += 1;
     broadcast({ t: 'jogoSom', jogo: chave, som: 'golo' });
-    if (e.placar[0] >= g.pontos) { e.vencedor = 0; broadcast({ t: 'jogoSom', jogo: chave, som: 'vitoria' }); }
+    if (e.placar[0] >= g.pontos) {
+      e.vencedor = 0;
+      e.placar[0] = g.pontos;
+      broadcast({ t: 'jogoSom', jogo: chave, som: 'vitoria' });
+      jogoDifundir(chave);
+      return;
+    }
     jogoSaque(chave, 1);
   }
 }
