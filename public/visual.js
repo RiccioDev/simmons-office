@@ -374,6 +374,7 @@ const Visual = (() => {
       { x: 380, y: 340, w: 560, h: 360, estilo: 'lajota' },   // estações
       { x: 40,  y: 700, w: 320, h: 260, estilo: 'carpete' },  // recepção
       { x: 1020, y: 700, w: 360, h: 260, estilo: 'carpete' }, // lounge
+      { x: 470, y: 716, w: 420, h: 226, estilo: 'carpete' },  // zona tranquila
     ],
     paredes: [
       // gabinete (parede de alvenaria, porta ao centro)
@@ -395,6 +396,7 @@ const Visual = (() => {
       { x: 380,  y: 340, w: 560, h: 360, nome: 'ESTAÇÕES DE TRABALHO' },
       { x: 40,   y: 700, w: 320, h: 260, nome: 'RECEPÇÃO' },
       { x: 1020, y: 700, w: 360, h: 260, nome: 'LOUNGE' },
+      { x: 470, y: 716, w: 420, h: 226, nome: 'ZONA TRANQUILA' },
     ],
   };
 
@@ -844,14 +846,22 @@ const Visual = (() => {
     // placa do nome, à frente do tampo (não cruza com quem está sentado)
     if (d.owner || d.label) {
       const nome = String(d.owner || d.label).slice(0, 16);
-      ctx.font = '600 6px "Segoe UI",sans-serif';
+      ctx.font = '700 7px "Segoe UI",sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      const larg = Math.min(w - 10, ctx.measureText(nome).width + 8);
-      ctx.fillStyle = 'rgba(12,15,20,.55)';
-      ctx.fillRect(cx - larg / 2, y + 62, larg, 8);
-      ctx.fillStyle = d.owner ? '#e5c25c' : '#93a0ad';
-      ctx.fillText(nome, cx, y + 66);
+      const larg = Math.min(w + 6, ctx.measureText(nome).width + 10);
+      // suporte da placa
+      ctx.fillStyle = '#2b3138';
+      ctx.fillRect(cx - larg / 2 + 3, y + 70, larg - 6, 3);
+      ctx.fillStyle = 'rgba(12,15,20,.78)';
+      ctx.beginPath();
+      ctx.roundRect(cx - larg / 2, y + 59, larg, 12, 3);
+      ctx.fill();
+      ctx.strokeStyle = d.owner ? 'rgba(229,194,92,.55)' : 'rgba(255,255,255,.12)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.fillStyle = d.owner ? '#f2d98a' : '#a8b4c0';
+      ctx.fillText(nome, cx, y + 65.5);
     }
 
     if (trancada) {
@@ -1115,6 +1125,8 @@ const Visual = (() => {
     'Office_Computer_ScreenBlackUp', 'Office_Computer_ScreenWhiteUp', 'Office_Computer_LaptopBlackDown',
     'Office_Computer_BigScreenBlackUp', 'Office_Props_Book1', 'Office_Props_Basket', 'Computer_LaptopBlackDown',
     'Chair_ChairBlueUp', 'Chair_ChairRedUp', 'Chair_ChairGreenUp', 'Chair_ChairGreyUp',
+    'Furniture_Armchair_ArmchairBlueDown', 'Furniture_Armchair_ArmchairGreyDown',
+    'Furniture_PoufBrown', 'Furniture_PoufOrange',
     'Table_TableBrown', 'Table_TableDarkBrown', 'Table_TableSmallWhite', 'Table_TableSmallGrey', 'Table_TableNarrowBrown',
   ];
 
@@ -1309,6 +1321,28 @@ const Visual = (() => {
     // bolinha
     p(1272, 888, 5, 5, '#f0e7d2');
 
+    // ============================================================ ZONA TRANQUILA (470..890 × 716..942)
+    p(470, 716, 420, 226, 'rgba(0,0,0,.18)');
+    p(474, 720, 412, 218, '#3f4a5a');
+    for (let i = 0; i < 412; i += 26) {
+      p(474 + i, 720, 1, 218, 'rgba(255,255,255,.025)');
+    }
+    // duas poltronas frente a frente
+    objeto(ctx, 'Furniture_Armchair_ArmchairBlueDown', 620, 890, 56);
+    objeto(ctx, 'Furniture_Armchair_ArmchairGreyDown', 700, 890, 56);
+    objeto(ctx, 'Furniture_Armchair_ArmchairBlueDown', 660, 760, 52);
+    // mesa de centro e pufes
+    objeto(ctx, 'Table_TableSmallWhite', 660, 862, 40);
+    objeto(ctx, 'Office_Props_Mugs', 652, 838, 14);
+    objeto(ctx, 'Furniture_PoufOrange', 560, 830, 26);
+    objeto(ctx, 'Furniture_PoufBrown', 800, 830, 26);
+    // estante e plantas
+    objeto(ctx, 'Shelf_Shelf', 520, 756, 52);
+    objeto(ctx, 'Shelf_ShelfBig', 830, 772, 52);
+    objeto(ctx, 'Office_Plant_PlantLarge', 500, 930, 58);
+    objeto(ctx, 'Office_Plant_Plant', 866, 930, 56);
+    objeto(ctx, 'Office_Props_Clock', 660, 730, 22);
+
     // ============================================================ ESTAÇÕES: plantas nos cantos
     objeto(ctx, 'Office_Plant_PlantLarge', 392, 690, 62);
     objeto(ctx, 'Office_Plant_PlantLarge', 920, 690, 62);
@@ -1326,6 +1360,28 @@ const Visual = (() => {
     // o piso da sala é a zona "xadrez" da planta; aqui só a porta de vidro
   }
 
+  // cadeira vista de lado (salas de reunião): dir -1 = encosto à esquerda
+  function cadeiraLado(ctx, cx, base, dir) {
+    const l = 22, alt = 26;
+    const x = cx - l / 2;
+    const y = base - alt;
+    // assento
+    ctx.fillStyle = '#2b3792';
+    ctx.beginPath(); ctx.roundRect(x, y + alt - 15, l, 12, 3); ctx.fill();
+    ctx.fillStyle = '#3a49bd';
+    ctx.beginPath(); ctx.roundRect(x + 1, y + alt - 14, l - 2, 9, 2); ctx.fill();
+    // encosto do lado de fora
+    const bx = dir < 0 ? x - 2 : x + l - 3;
+    ctx.fillStyle = '#2b3792';
+    ctx.beginPath(); ctx.roundRect(bx, y, 5, alt - 6, 2); ctx.fill();
+    ctx.fillStyle = '#5563d6';
+    ctx.fillRect(bx + 1, y + 1, 2, alt - 9);
+    // pernas
+    ctx.fillStyle = '#2b3138';
+    ctx.fillRect(x + 3, y + alt - 4, 2, 5);
+    ctx.fillRect(x + l - 5, y + alt - 4, 2, 5);
+  }
+
   function salaMesa(ctx) {
     const cx = Math.round(SALA.x + SALA.w / 2);
 
@@ -1334,10 +1390,10 @@ const Visual = (() => {
       tampoMesa(ctx, cx - 32, 140 + i * 58, 64, 96, 'Table_TableBrown');
     }
 
-    // três cadeiras de cada lado
+    // três cadeiras de cada lado (vistas de lado)
     for (let i = 0; i < 3; i++) {
-      objeto(ctx, 'Chair_ChairBlueUp', cx - 52, 250 + i * 44, 26);
-      objeto(ctx, 'Chair_ChairBlueUp', cx + 52, 250 + i * 44, 26);
+      cadeiraLado(ctx, cx - 50, 262 + i * 44, -1);
+      cadeiraLado(ctx, cx + 50, 262 + i * 44, 1);
     }
 
     // ecrã de projeção na parede

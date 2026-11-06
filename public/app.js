@@ -1701,6 +1701,12 @@ const MOVEIS_SOLIDOS = [
   { x: 1214, y: 866, w: 128, h: 56 },   // pebolim
   // sala de reunião
   { x: 1198, y: 160, w: 64, h: 140 },   // mesa comprida
+  // zona tranquila
+  { x: 596, y: 830, w: 56, h: 60 },     // poltrona azul
+  { x: 676, y: 830, w: 56, h: 60 },     // poltrona cinza
+  { x: 640, y: 786, w: 52, h: 40 },     // mesa de centro
+  { x: 494, y: 726, w: 52, h: 96 },     // estante
+  { x: 800, y: 730, w: 52, h: 96 },     // estante alta
 ];
 
 // sólidos: paredes, mesas, mesa da sala e sofá
