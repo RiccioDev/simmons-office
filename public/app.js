@@ -403,6 +403,8 @@ function ligar(nome) {
         const antesLugar = meuLugarJogo(m.jogo);
         const vencedorAntes = g.e ? g.e.vencedor : null;
         g.e = m.estado;
+        g.recebidoEm = performance.now();
+        if (!g.suave) g.suave = [0.5, 0.5];
         const agoraLugar = meuLugarJogo(m.jogo);
         if (agoraLugar !== -1 && agoraLugar !== antesLugar) raqueteLocal = g.e.raquetes[agoraLugar] ?? 0.5;
         if (g.e.vencedor !== null && vencedorAntes === null) {
@@ -1071,13 +1073,19 @@ function loop(t) {
     let dy = 0;
     if (teclas.has('w') || (lugarJ === 1 && teclas.has('arrowup'))) dy -= 1;
     if (teclas.has('s') || (lugarJ === 1 && teclas.has('arrowdown'))) dy += 1;
+
+    // delta de tempo, para o movimento ser igual em qualquer taxa de frames
+    const agoraFrame = performance.now();
+    const dtFrame = Math.min(50, agoraFrame - (ultimoFrameJogo || agoraFrame));
+    ultimoFrameJogo = agoraFrame;
+
     if (dy) {
-      raqueteLocal = Math.max(0.12, Math.min(0.88, raqueteLocal + dy * 0.032));
-      const agoraP = performance.now();
-      if (agoraP - ultimoEnvioJogo > 45) {
-        ultimoEnvioJogo = agoraP;
-        if (ws && ws.readyState === 1) ws.send(JSON.stringify({ t: 'jogoInput', jogo: emJogoAgora, y: raqueteLocal }));
-      }
+      raqueteLocal = Math.max(0.10, Math.min(0.90, raqueteLocal + dy * 0.9 * (dtFrame / 1000)));
+    }
+    // manda sempre que o valor muda (fica fluido para quem vê)
+    if (dy && agoraFrame - ultimoEnvioJogo > 16) {
+      ultimoEnvioJogo = agoraFrame;
+      if (ws && ws.readyState === 1) ws.send(JSON.stringify({ t: 'jogoInput', jogo: emJogoAgora, y: raqueteLocal }));
     }
   }
 
@@ -1820,6 +1828,7 @@ const JOGOS_CLI = {
 };
 let raqueteLocal = 0.5;
 let ultimoEnvioJogo = 0;
+let ultimoFrameJogo = 0;
 
 function meuLugarJogo(chave) {
   const g = JOGOS_CLI[chave];
@@ -1863,9 +1872,25 @@ function desenharJogo(ctx, chave) {
   if (!e || !e.ativa) return;
   const { x0, y0, w, h } = g;
 
+  const meuLado = meuLugarJogo(chave);
+  if (!g.suave) g.suave = [0.5, 0.5];
+
   for (let i = 0; i < 2; i++) {
     const px = x0 + (i === 0 ? 0.26 : 0.74) * w;
-    const py = y0 + (e.raquetes[i] ?? 0.5) * h;
+
+    // a minha raquete usa o valor local (resposta imediata);
+    // a do adversário/robô é suavizada entre pacotes do servidor
+    let valor;
+    if (i === meuLado) {
+      valor = raqueteLocal;
+      g.suave[i] = raqueteLocal;
+    } else {
+      const alvo = e.raquetes[i] ?? 0.5;
+      g.suave[i] += (alvo - g.suave[i]) * 0.28;
+      valor = g.suave[i];
+    }
+
+    const py = y0 + valor * h;
     ctx.fillStyle = 'rgba(0,0,0,.30)';
     ctx.fillRect(px - 2, py - 8, 4, 18);
     ctx.fillStyle = chave === 'pebolim' ? '#c3ccd5' : '#c8954a';
@@ -1887,8 +1912,10 @@ function desenharJogo(ctx, chave) {
     }
   }
 
-  const bx = x0 + (e.bola.x ?? 0.5) * w;
-  const by = y0 + (e.bola.y ?? 0.5) * h;
+  // a posição vem a 25 Hz: extrapola até 60 ms com a velocidade conhecida
+  const idade = Math.min(0.06, Math.max(0, (performance.now() - (g.recebidoEm || 0)) / 1000));
+  const bx = x0 + Math.min(1, Math.max(0, (e.bola.x ?? 0.5) + (e.bola.vx || 0) * idade)) * w;
+  const by = y0 + Math.min(1, Math.max(0, (e.bola.y ?? 0.5) + (e.bola.vy || 0) * idade)) * h;
   ctx.fillStyle = 'rgba(0,0,0,.40)';
   ctx.beginPath(); ctx.ellipse(bx, by + 3, 3, 1.6, 0, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = '#fdf8e8';
