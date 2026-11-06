@@ -77,6 +77,9 @@ const Visual = (() => {
     ctx.beginPath();
     ctx.roundRect(-largura, -40, largura * 2, 30, 7);
     ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,.22)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
 
     // gola
     ctx.fillStyle = roupaEscura;
@@ -110,6 +113,9 @@ const Visual = (() => {
     ctx.arc(0, cy, 11.5, 0, Math.PI * 2);
     ctx.fillStyle = pele;
     ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,.18)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
 
     // orelhas
     ctx.beginPath();
@@ -123,16 +129,32 @@ const Visual = (() => {
 
     // olhos e boca (só de frente)
     if (opcoes.costas !== true) {
-      ctx.fillStyle = '#2b2b2b';
-      ctx.beginPath();
-      ctx.arc(-4 + dir * 1.4, cy + 1.2, 1.5, 0, Math.PI * 2);
-      ctx.arc(4 + dir * 1.4, cy + 1.2, 1.5, 0, Math.PI * 2);
-      ctx.fill();
+      // olhos: branco + pupila (funciona em pele clara e escura)
+      for (const dx of [-4.3, 4.3]) {
+        ctx.fillStyle = '#f7f7f7';
+        ctx.beginPath();
+        ctx.ellipse(dx + dir * 0.6, cy + 1, 2.3, 2.5, 0, 0, Math.PI * 2);
+        ctx.fill();
 
-      ctx.strokeStyle = 'rgba(120,80,60,.55)';
-      ctx.lineWidth = 1.1;
+        ctx.fillStyle = '#20242a';
+        ctx.beginPath();
+        ctx.arc(dx + dir * 1.1, cy + 1.3, 1.15, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // sobrancelhas
+      ctx.strokeStyle = 'rgba(40,30,22,.55)';
+      ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.arc(dir * 1.2, cy + 5.2, 2.6, 0.15 * Math.PI, 0.85 * Math.PI);
+      ctx.moveTo(-6.4, cy - 3.2); ctx.lineTo(-2.6, cy - 3.6);
+      ctx.moveTo(2.6, cy - 3.6); ctx.lineTo(6.4, cy - 3.2);
+      ctx.stroke();
+
+      // boca
+      ctx.strokeStyle = 'rgba(90,50,40,.75)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.arc(dir * 1, cy + 4.6, 2.8, 0.12 * Math.PI, 0.88 * Math.PI);
       ctx.stroke();
     }
 

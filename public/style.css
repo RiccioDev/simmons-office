@@ -152,9 +152,13 @@ body{
 /* ---------- modal da mesa ---------- */
 .modal{
   position:fixed;inset:0;display:grid;place-items:center;
-  background:rgba(6,9,13,.72);backdrop-filter:blur(4px);z-index:90;
+  background:rgba(6,9,13,.88);z-index:100;
 }
 .modalCaixa{
+  max-height:calc(100dvh - 28px);
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
   width:min(400px,92vw);background:var(--painel);
   border:1px solid var(--linha);border-radius:16px;padding:26px 26px 20px;
   box-shadow:0 30px 70px rgba(0,0,0,.6);
@@ -293,6 +297,10 @@ body{
 
 /* ---------- batida à porta ---------- */
 #modalBatida .modalCaixa{
+  max-height:calc(100dvh - 28px);
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
   max-width:420px;text-align:center;
   animation:chegouBatida .28s ease-out, pulsarBatida 1.6s ease-in-out .3s infinite;
   border-color:rgba(201,162,39,.75);
@@ -569,7 +577,11 @@ body{
   .videoCard video{height:74px}
 
   /* modais a ocupar a largura toda */
-  .modalCaixa{width:calc(100% - 28px);max-width:420px;padding:26px 22px}
+  .modalCaixa{
+  max-height:calc(100dvh - 28px);
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;width:calc(100% - 28px);max-width:420px;padding:26px 22px}
 
   /* sala em grelha vertical */
   .salaGrelha{
@@ -649,7 +661,11 @@ body{
   #autoVista video{height:54px}
   .btnSala{bottom:66px;padding:8px 16px;font-size:12px}
   #ajuda{display:none}
-  .modalCaixa{padding:20px 18px}
+  .modalCaixa{
+  max-height:calc(100dvh - 28px);
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;padding:20px 18px}
 }
 
 /* ---------- ecras muito largos: nao deixa o mapa esticar demais ---------- */
@@ -764,7 +780,19 @@ body{
 .dicaAvatar{font-size:11px;color:#5f6875;margin-top:2px}
 
 @media (max-width:560px){
-  .avatarTopo{flex-direction:column;align-items:center}
-  #previaAvatar{width:170px;height:200px}
+  /* fundo sólido: o blur do Safari no iPhone estava a engolir os toques */
+  .modal{backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(6,9,13,.94)}
+  #modalAparencia .modalCaixa{padding:18px 16px 20px}
+  #modalAparencia h3{font-size:17px;margin:0 0 10px}
+  .avatarTopo{flex-direction:column;align-items:center;gap:12px}
+  #previaAvatar{width:132px;height:150px}
   .avatarControles{width:100%}
+  .grupoAvatar{margin-bottom:11px}
+  .grupoAvatar > span{font-size:10px;margin-bottom:4px}
+  .opcoes{gap:5px}
+  .opcoes button{padding:7px 10px;font-size:12.5px}
+  .opcoes.cores button{width:28px;height:28px}
+  #modalAparencia .modalBotoes{
+    position:sticky;bottom:0;background:#161b22;padding-top:12px;margin-top:4px;
+  }
 }

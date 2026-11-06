@@ -9,6 +9,22 @@ const RAIO_AVATAR = 16;
 function $(id) { return document.getElementById(id); }
 function ligarClique(id, evento, fn) { const el = $(id); if (el) el[evento] = fn; }
 
+// no iPhone o "click" falha em alguns casos; o pointerdown/touchend é mais fiável
+function aoTocar(el, fn) {
+  if (!el) return;
+  let ultimo = 0;
+  const dispara = (ev) => {
+    const agora = Date.now();
+    if (agora - ultimo < 350) return;   // evita disparar duas vezes
+    ultimo = agora;
+    if (ev && ev.cancelable) ev.preventDefault();
+    fn(ev);
+  };
+  el.addEventListener('pointerdown', dispara, { passive: false });
+  el.addEventListener('touchend', (ev) => { ev.preventDefault(); dispara(ev); }, { passive: false });
+  el.addEventListener('click', (ev) => { ev.preventDefault(); dispara(ev); });
+}
+
 // ------------------------------------------------------------ som da batida
 let audioCtx = null;
 let somBatida = localStorage.getItem('som_batida') !== '0';
@@ -1894,7 +1910,7 @@ function montarCriadorAvatar() {
 
     ctxp.save();
     ctxp.translate(w / 2, h - 40);
-    const escala = Math.min(w / 90, h / 150);
+    const escala = Math.min(w / 72, h / 118);
     ctxp.scale(escala, escala);
     Visual.personagem(ctxp, 0, 0, avatarEmEdicao, { dir: 1, andando: false });
     ctxp.restore();
@@ -1909,12 +1925,12 @@ function montarCriadorAvatar() {
   };
 
   document.querySelectorAll('#opGenero button').forEach(b => {
-    b.onclick = () => { avatarEmEdicao.genero = b.dataset.v; marcar('opGenero', b.dataset.v); pintar(); };
+    aoTocar(b, () => { avatarEmEdicao.genero = b.dataset.v; marcar('opGenero', b.dataset.v); pintar(); });
   });
 
   const opCabelo = $('opCabelo');
   opCabelo.querySelectorAll('button').forEach(b => {
-    b.onclick = () => { avatarEmEdicao.cabelo = b.dataset.v; marcar('opCabelo', b.dataset.v); pintar(); };
+    aoTocar(b, () => { avatarEmEdicao.cabelo = b.dataset.v; marcar('opCabelo', b.dataset.v); pintar(); });
   });
 
   const montarCores = (id, cores, campo) => {
@@ -1922,7 +1938,7 @@ function montarCriadorAvatar() {
     alvo.classList.add('cores');
     alvo.innerHTML = cores.map((c, i) => '<button data-v="' + i + '" style="background:' + c + '"></button>').join('');
     alvo.querySelectorAll('button').forEach(b => {
-      b.onclick = () => { avatarEmEdicao[campo] = Number(b.dataset.v); marcar(id, b.dataset.v); pintar(); };
+      aoTocar(b, () => { avatarEmEdicao[campo] = Number(b.dataset.v); marcar(id, b.dataset.v); pintar(); });
     });
   };
   montarCores('opPele', Visual.PELES, 'pele');
@@ -1942,7 +1958,7 @@ function montarCriadorAvatar() {
   };
 
   // ---- acções
-  ligarClique('btnAleatorio', 'onclick', () => {
+  aoTocar($('btnAleatorio'), () => {
     avatarEmEdicao = {
       genero: Math.random() < 0.5 ? 'f' : 'm',
       pele: Math.floor(Math.random() * Visual.PELES.length),
@@ -1958,7 +1974,7 @@ function montarCriadorAvatar() {
     pintar();
   });
 
-  ligarClique('btnSalvarAvatar', 'onclick', () => {
+  aoTocar($('btnSalvarAvatar'), () => {
     meuAvatar = copia();
     localStorage.setItem('simmons_avatar', JSON.stringify(meuAvatar));
     if (ws && ws.readyState === 1) {
