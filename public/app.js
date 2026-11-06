@@ -339,6 +339,9 @@ async function entrarComSessao() {
 
   document.getElementById('entrada').classList.add('oculto');
   document.getElementById('app').classList.remove('oculto');
+
+  // o foco fica no campo de senha e engolia o WASD: limpar
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   ligar(nome);
 
   if (avisoSemMicrofone) {
@@ -486,7 +489,19 @@ function aplicarEstado(m) {
 
   if (Array.isArray(m.players)) {
     const antesPartilha = new Set([...players.values()].filter(p => p.partilha).map(p => p.id));
+    const meuAntes = eu ? players.get(eu.id) : null;
+
     players = new Map(m.players.map(p => [p.id, p]));
+
+    // quem manda na minha posição sou eu: se o servidor mandar um valor atrasado
+    // (menos de 60 unidades de diferença), mantenho o meu
+    if (meuAntes && eu && players.has(eu.id)) {
+      const euAgora = players.get(eu.id);
+      if (Math.hypot(euAgora.x - meuAntes.x, euAgora.y - meuAntes.y) < 60) {
+        euAgora.x = meuAntes.x;
+        euAgora.y = meuAntes.y;
+      }
+    }
 
     // entrou/saiu da partilha: aviso + som
     for (const p of players.values()) {
@@ -732,8 +747,12 @@ document.getElementById('ficheiro').addEventListener('change', async (e) => {
 
 // ------------------------------------------------------------ teclado
 const teclas = new Set();
+let ultimoLevantar = 0;
 window.addEventListener('keydown', (e) => {
-  if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+  const foco = document.activeElement;
+  const aEscrever = foco && (foco.tagName === 'INPUT' || foco.tagName === 'TEXTAREA' || foco.isContentEditable)
+    && foco.offsetParent !== null;   // campo escondido não bloqueia o boneco
+  if (aEscrever) return;
   const k = e.key.toLowerCase();
   teclas.add(k);
 
@@ -745,20 +764,49 @@ window.addEventListener('keydown', (e) => {
   if (k === 'm') alternarMic();
   if (k === 'c') alternarCam();
 
-  if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) e.preventDefault();
+  if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) {
+    e.preventDefault();
+
+    // sentado + andar = levanta (só numa tecla nova, para o botão de sentar funcionar)
+    const euJogador = eu && players.get(eu.id);
+    if (euJogador && euJogador.sitting) {
+      ws.send(JSON.stringify({ t: 'levantar' }));
+      teclas.delete(k);
+    }
+  }
 });
 window.addEventListener('keyup', e => teclas.delete(e.key.toLowerCase()));
 
-function minhaMesaMaisProxima() {
+// mesa em alcance: a minha tem prioridade, senão a mais próxima que dê para usar
+function mesaParaSentar() {
   const p = players.get(eu?.id);
   if (!p) return null;
-  let melhor = null, dist = 1e9;
+
+  const perto = [];
   for (const d of desks) {
-    const cx = d.x + d.w / 2, cy = d.y + d.h / 2;
-    const dist2 = Math.hypot(cx - p.x, cy - p.y);
-    if (dist2 < dist) { dist = dist2; melhor = d; }
+    const nx = Math.max(d.x, Math.min(p.x, d.x + d.w));
+    const ny = Math.max(d.y, Math.min(p.y, d.y + d.h));
+    const dist = Math.hypot(p.x - nx, p.y - ny);
+    if (dist <= 100) perto.push({ d, dist });
   }
-  return dist < 150 ? melhor : null;
+  if (!perto.length) return null;
+  perto.sort((a, b) => a.dist - b.dist);
+
+  const meuNome = eu ? String(eu.name).toLowerCase() : '';
+  const minha = perto.find(c => c.d.owner && c.d.owner.toLowerCase() === meuNome);
+  if (minha) return minha.d;
+
+  const usavel = perto.find(c => {
+    const deOutro = c.d.owner && c.d.owner.toLowerCase() !== meuNome;
+    if (c.d.occupied && c.d.occupied !== eu.id) return false;
+    if (c.d.locked && deOutro) return false;
+    return true;
+  });
+  return usavel ? usavel.d : perto[0].d;
+}
+
+function minhaMesaMaisProxima() {
+  return mesaParaSentar();
 }
 
 function alternarSentar() {
@@ -766,8 +814,9 @@ function alternarSentar() {
   const p = players.get(eu.id);
   if (!p) return;
   if (p.sitting) { ws.send(JSON.stringify({ t: 'levantar' })); return; }
-  const d = minhaMesaMaisProxima();
-  if (!d) { avisar('Chegue perto de uma mesa para se sentar.'); return; }
+
+  const d = mesaParaSentar();
+  if (!d) { avisar('Chegue mais perto de uma mesa para se sentar.'); return; }
   ws.send(JSON.stringify({ t: 'sentar', deskId: d.id, nome: eu.name }));
 }
 
@@ -995,6 +1044,13 @@ function loop(t) {
       btnF.classList.toggle('trancada', !!(minha && minha.locked));
       btnF.title = minha ? (minha.locked ? 'Destrancar a minha mesa' : 'Trancar a minha mesa') : 'Trancar mesa (chegue perto de uma mesa livre)';
     }
+
+    const btnS = document.querySelector('#acoesToque [data-acao="sentar"]');
+    const euP = eu && players.get(eu.id);
+    if (btnS) {
+      btnS.classList.toggle('activo', !!(euP && euP.sitting));
+      btnS.title = euP && euP.sitting ? 'Levantar' : 'Sentar na mesa';
+    }
   } catch (e) {}
 
   try { desenhar(); } catch (e) { relatarErro('desenho', e); }
@@ -1007,8 +1063,7 @@ function loop(t) {
     limparTitulo();
   }
   montarToque();
-montarCriadorAvatar();
-requestAnimationFrame(loop);
+  requestAnimationFrame(loop);
 }
   // ------------------------------------------------------------ partilha de ecra
 async function comecarPartilha() {
@@ -2041,6 +2096,7 @@ function montarCriadorAvatar() {
       ws.send(JSON.stringify({ t: 'avatar', avatar: meuAvatar }));
     }
     modal.classList.add('oculto');
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
     avisar('Personagem salvo.');
   });
 
@@ -2101,16 +2157,18 @@ function montarToque() {
   if (!window.__acoesLigadas) {
     window.__acoesLigadas = true;
 
-    let ultimoToque = 0;
+    const ultimoToque = new Map();
 
     const executar = (ev) => {
       const btn = ev.target && ev.target.closest ? ev.target.closest('[data-acao]') : null;
       if (!btn) return;
 
       // um toque gera pointerdown + touchend + click: só a primeira conta
+      // (o travão é por botão, para dar para sentar e levantar logo a seguir)
       const agora = Date.now();
-      if (agora - ultimoToque < 400) return;
-      ultimoToque = agora;
+      const chave = btn.dataset.acao;
+      if (agora - (ultimoToque.get(chave) || 0) < 300) return;
+      ultimoToque.set(chave, agora);
 
       if (ev.cancelable) ev.preventDefault();
 

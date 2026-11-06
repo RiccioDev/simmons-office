@@ -779,6 +779,19 @@ body{
 .opcoes.cores button.escolhido{border-color:#fff;box-shadow:0 0 0 2px var(--ouro)}
 .dicaAvatar{font-size:11px;color:#5f6875;margin-top:2px}
 
+/* criador de personagem no computador: maior e em duas colunas */
+@media (min-width:561px){
+  .caixaAvatar{max-width:940px}
+  #modalAparencia .modalCaixa{width:min(940px,94vw)}
+  .avatarTopo{gap:30px}
+  #previaAvatar{width:300px;height:400px}
+  .avatarControles{display:grid;grid-template-columns:1fr 1fr;gap:0 26px;align-items:start}
+  .grupoAvatar{margin-bottom:13px}
+  .opcoes button{padding:7px 12px;font-size:12.5px}
+  .opcoes.cores button{width:28px;height:28px}
+  #modalAparencia .modalBotoes{grid-column:1 / -1}
+}
+
 @media (max-width:560px){
   /* fundo sólido: o blur do Safari no iPhone estava a engolir os toques */
   .modal{backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(6,9,13,.94)}
@@ -824,3 +837,5 @@ body{
   #acoesToque{right:auto;left:150px;bottom:12px;flex-direction:row}
   .acaoBtn{width:44px;height:44px;font-size:18px}
 }
+
+.jsAcao.activo{border-color:var(--ouro);background:rgba(201,162,39,.22)}
