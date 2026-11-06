@@ -780,6 +780,11 @@ body{
 .dicaAvatar{font-size:11px;color:#5f6875;margin-top:2px}
 
 /* grelha de personagens prontos */
+.rotuloModelos{
+  grid-column:1 / -1;margin:8px 0 2px;font-size:10px;letter-spacing:.09em;
+  text-transform:uppercase;color:#8b95a3;font-weight:600;
+}
+.rotuloModelos:first-child{margin-top:0}
 .opcoes.personagens{display:grid;grid-template-columns:repeat(auto-fill,minmax(58px,1fr));gap:8px}
 .opcoes.personagens button{
   width:100%;height:72px;padding:0;border-radius:8px;border:2px solid var(--linha);

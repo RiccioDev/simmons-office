@@ -1703,6 +1703,9 @@ function desenhar() {
 
   Visual.paredes(ctx, LARG, ALT);
 
+  // móveis do escritório (tapete, estante, café, sofá, plantas)
+  Visual.objetos(ctx);
+
   // sala de reunião (zona onde o raio de distância não conta)
   Visual.salaReuniao(ctx);
 
@@ -2060,11 +2063,16 @@ function montarCriadorAvatar() {
   };
 
   const grid = $('opPersonagens');
-  if (grid && !grid.children.length) {
-    grid.innerHTML = Pixel.LISTA_SPRITES.map(nome =>
-      '<button data-v="' + nome + '" title="' + nome.replace(/_/g, ' ').replace('-1', '') +
-      '" style="background-image:url(sprites/' + nome + '.png)"></button>'
+
+  const montarGrelha = (modelos) => {
+    if (!grid) return;
+    const botoes = (lista) => lista.map(nome =>
+      '<button data-v="' + nome + '" style="background-image:url(sprites/' + nome + '.png)"></button>'
     ).join('');
+
+    grid.innerHTML =
+      '<p class="rotuloModelos">Feminino</p>' + botoes(modelos.feminino) +
+      '<p class="rotuloModelos">Masculino</p>' + botoes(modelos.masculino);
 
     grid.querySelectorAll('button').forEach(b => {
       aoTocar(b, () => {
@@ -2073,7 +2081,10 @@ function montarCriadorAvatar() {
         pintar();
       });
     });
-  }
+    marcar(avatarEmEdicao && avatarEmEdicao.sprite);
+  };
+
+  window.__montarGrelhaModelos = montarGrelha;
 
   const abrir = () => {
     const atual = meuAvatar && meuAvatar.sprite ? meuAvatar : { sprite: Pixel.LISTA_SPRITES[2] };
@@ -2412,7 +2423,18 @@ function posicionarVideos() {
 }
 
 montarToque();
-Pixel.carregarSprites().then(() => { pintarPreviaAtual && pintarPreviaAtual(); });
 montarCriadorAvatar();
+
+// modelos prontos: lê o manifesto e carrega as folhas
+fetch('sprites/modelos.json').then(r => r.json()).then(async (m) => {
+  await Pixel.carregarSprites([...m.feminino, ...m.masculino]);
+  if (window.__montarGrelhaModelos) window.__montarGrelhaModelos(m);
+  if (pintarPreviaAtual) pintarPreviaAtual();
+}).catch(() => {
+  Pixel.carregarSprites().then(() => {
+    if (window.__montarGrelhaModelos) window.__montarGrelhaModelos({ feminino: [], masculino: Pixel.LISTA_SPRITES });
+    if (pintarPreviaAtual) pintarPreviaAtual();
+  });
+});
 montarMesaCriador();
 requestAnimationFrame(loop);

@@ -402,64 +402,94 @@ const Visual = (() => {
   }
 
   function paredes(ctx, largura, altura) {
-    const esp = 26;
+    const ESP = 26;          // espessura (vista de cima)
+    const ALTO = 92;         // altura da parede (face visível)
 
-    // parede de cima
-    ctx.fillStyle = '#1a1f26';
-    ctx.fillRect(0, 0, largura, esp);
-    ctx.fillStyle = 'rgba(255,255,255,.04)';
-    ctx.fillRect(0, esp - 4, largura, 4);
+    const face = '#2b3440', faceLuz = '#35404e', faceEsc = '#232b35';
+    const capa = '#43505f', rodape = '#1d242c';
 
-    // parede da esquerda
-    ctx.fillStyle = '#171c22';
-    ctx.fillRect(0, 0, esp, altura);
-    ctx.fillStyle = 'rgba(255,255,255,.03)';
-    ctx.fillRect(esp - 4, esp, 4, altura - esp);
+    const sombraChao = (x0, y0, w0, h0, vertical) => {
+      const g = vertical
+        ? ctx.createLinearGradient(x0, 0, x0 + w0, 0)
+        : ctx.createLinearGradient(0, y0, 0, y0 + h0);
+      g.addColorStop(0, 'rgba(0,0,0,.42)');
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(x0, y0, w0, h0);
+    };
 
-    // janelas na parede de cima (dão ar de escritório)
-    const janelas = [[360, 150], [1080, 150]];
-    for (const [jx, jw] of janelas) {
-      ctx.fillStyle = '#0b0f14';
-      ctx.fillRect(jx - 4, 5, jw + 8, 21);
-
-      const grad = ctx.createLinearGradient(jx, 6, jx, 22);
-      grad.addColorStop(0, 'rgba(150,205,235,.85)');
-      grad.addColorStop(0.55, 'rgba(96,150,190,.75)');
-      grad.addColorStop(1, 'rgba(58,96,128,.75)');
-      ctx.fillStyle = grad;
-      ctx.fillRect(jx, 8, jw, 16);
-      ctx.fillStyle = 'rgba(0,0,0,.35)';
-      ctx.fillRect(jx - 4, 24, jw + 8, 2);
-
-      // caixilho
-      ctx.strokeStyle = 'rgba(20,26,32,.95)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(jx + jw / 2, 8);
-      ctx.lineTo(jx + jw / 2, 24);
-      ctx.stroke();
-
-      // brilho
-      ctx.fillStyle = 'rgba(255,255,255,.20)';
-      ctx.beginPath();
-      ctx.moveTo(jx + 8, 24);
-      ctx.lineTo(jx + 40, 6);
-      ctx.lineTo(jx + 62, 6);
-      ctx.lineTo(jx + 30, 24);
-      ctx.closePath();
-      ctx.fill();
-    }
-
+    // ---- parede de cima (face + topo + rodapé)
+    ctx.fillStyle = face;
+    ctx.fillRect(0, 0, largura, ALTO);
+    // painéis
+    ctx.fillStyle = faceLuz;
+    for (let x = 0; x < largura; x += 120) ctx.fillRect(x, 6, 2, ALTO - 18);
+    ctx.fillStyle = 'rgba(0,0,0,.10)';
+    for (let x = 60; x < largura; x += 120) ctx.fillRect(x, 6, 1, ALTO - 18);
+    // topo iluminado
+    ctx.fillStyle = capa;
+    ctx.fillRect(0, 0, largura, 6);
+    ctx.fillStyle = 'rgba(255,255,255,.08)';
+    ctx.fillRect(0, 0, largura, 2);
     // rodapé
-    ctx.strokeStyle = 'rgba(201,162,39,.18)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(esp, esp + 1);
-    ctx.lineTo(largura, esp + 1);
-    ctx.moveTo(esp + 1, esp);
-    ctx.lineTo(esp + 1, altura);
-    ctx.stroke();
+    ctx.fillStyle = rodape;
+    ctx.fillRect(0, ALTO - 10, largura, 10);
+    ctx.fillStyle = 'rgba(255,255,255,.07)';
+    ctx.fillRect(0, ALTO - 10, largura, 2);
+    // sombra no chão
+    sombraChao(0, ALTO, largura, 22, false);
+
+    // ---- parede da esquerda
+    ctx.fillStyle = faceEsc;
+    ctx.fillRect(0, 0, ESP, altura);
+    ctx.fillStyle = capa;
+    ctx.fillRect(0, 0, 6, altura);
+    ctx.fillStyle = 'rgba(255,255,255,.06)';
+    ctx.fillRect(0, 0, 2, altura);
+    ctx.fillStyle = rodape;
+    ctx.fillRect(ESP - 6, ALTO, 6, altura - ALTO);
+    sombraChao(ESP, 0, 20, altura, true);
+
+    // ---- parede da direita
+    ctx.fillStyle = faceEsc;
+    ctx.fillRect(largura - ESP, 0, ESP, altura);
+    ctx.fillStyle = capa;
+    ctx.fillRect(largura - 6, 0, 6, altura);
+    sombraChao(largura - ESP - 20, 0, 20, altura, true);
+
+    // ---- janelas na parede de cima
+    const janelas = [[300, 200], [700, 200], [1100, 200]];
+    for (const [jx, jw] of janelas) {
+      // moldura
+      ctx.fillStyle = '#141a21';
+      ctx.fillRect(jx - 6, 14, jw + 12, 52);
+      // vidro com céu
+      const g = ctx.createLinearGradient(0, 18, 0, 62);
+      g.addColorStop(0, 'rgba(168,214,240,.92)');
+      g.addColorStop(0.55, 'rgba(108,164,203,.85)');
+      g.addColorStop(1, 'rgba(70,110,145,.85)');
+      ctx.fillStyle = g;
+      ctx.fillRect(jx, 18, jw, 44);
+      // nuvens
+      ctx.fillStyle = 'rgba(255,255,255,.30)';
+      ctx.fillRect(jx + 24, 28, 46, 8);
+      ctx.fillRect(jx + 40, 24, 30, 5);
+      ctx.fillRect(jx + jw - 90, 38, 40, 7);
+      // caixilho
+      ctx.fillStyle = '#141a21';
+      ctx.fillRect(jx + jw / 2 - 2, 18, 4, 44);
+      ctx.fillRect(jx, 38, jw, 3);
+      // reflexo
+      ctx.fillStyle = 'rgba(255,255,255,.18)';
+      ctx.fillRect(jx + 6, 20, 16, 40);
+      // peitoril
+      ctx.fillStyle = '#3c4959';
+      ctx.fillRect(jx - 8, 64, jw + 16, 6);
+      ctx.fillStyle = 'rgba(255,255,255,.10)';
+      ctx.fillRect(jx - 8, 64, jw + 16, 2);
+    }
   }
+
   // ---------------------------------------------------------------- mesa
   // cada pessoa escolhe o tampo, o computador, a cadeira e as decorações
   const TAMPOS = {
@@ -487,33 +517,53 @@ const Visual = (() => {
     const pal = TAMPOS[est.mesa] || TAMPOS.carvalho;
     const tampo = trancada ? tom(pal.tampo, 0.88) : pal.tampo;
 
-    // sombra
-    ctx.fillStyle = 'rgba(0,0,0,.34)';
-    ctx.fillRect(x + 3 * B, y + 4 * B, w, h);
-    ctx.fillStyle = 'rgba(0,0,0,.16)';
-    ctx.fillRect(x + 4 * B, y + 5 * B, w, h);
+    // sombra projectada no chão
+    ctx.fillStyle = 'rgba(0,0,0,.30)';
+    ctx.fillRect(x + 4, y + 10, w, h);
+    ctx.fillStyle = 'rgba(0,0,0,.14)';
+    ctx.fillRect(x + 8, y + 14, w, h);
 
-    // tampo
-    ctx.fillStyle = tampo;
-    ctx.fillRect(x, y, w, h);
-    ctx.fillStyle = pal.luz;
-    ctx.fillRect(x + B, y + B, w - 2 * B, 2 * B);
+    // pernas
     ctx.fillStyle = pal.esc;
-    ctx.fillRect(x, y + h - 3 * B, w, 3 * B);
+    ctx.fillRect(x + 8, y + h - 2, 10, 14);
+    ctx.fillRect(x + w - 18, y + h - 2, 10, 14);
+    ctx.fillStyle = 'rgba(255,255,255,.06)';
+    ctx.fillRect(x + 8, y + h - 2, 2, 14);
+    ctx.fillRect(x + w - 18, y + h - 2, 2, 14);
+
+    // tampo com cantos cortados
+    ctx.fillStyle = tampo;
+    ctx.fillRect(x + 3, y, w - 6, h);
+    ctx.fillRect(x, y + 3, w, h - 6);
+
+    // bisel: luz em cima e à esquerda, sombra em baixo e à direita
+    ctx.fillStyle = pal.luz;
+    ctx.fillRect(x + 5, y + 1, w - 10, 2);
+    ctx.fillRect(x + 1, y + 4, 2, h - 10);
+    ctx.fillStyle = pal.esc;
+    ctx.fillRect(x + 5, y + h - 4, w - 10, 4);
+    ctx.fillRect(x + w - 3, y + 4, 3, h - 10);
 
     // veios / juntas
     ctx.fillStyle = pal.veio;
     if (est.mesa === 'vidro') {
-      ctx.fillRect(x + 4 * B, y + 6 * B, w - 8 * B, B);
-      ctx.fillRect(x + 4 * B, y + h - 8 * B, w - 8 * B, B);
+      ctx.fillRect(x + 10, y + 14, w - 20, 2);
+      ctx.fillRect(x + 10, y + h - 18, w - 20, 2);
+      ctx.fillStyle = 'rgba(255,255,255,.16)';
+      ctx.fillRect(x + 14, y + 10, w - 40, 2);
     } else {
-      for (let tx = x + 12 * B; tx < x + w; tx += 16 * B) ctx.fillRect(tx, y + B, B, h - 3 * B);
+      for (let tx = x + 26; tx < x + w - 12; tx += 34) {
+        ctx.fillRect(tx, y + 4, 2, h - 10);
+        ctx.fillStyle = tom(pal.tampo, 1.06);
+        ctx.fillRect(tx + 2, y + 4, 10, h - 10);
+        ctx.fillStyle = pal.veio;
+      }
     }
 
     // rebordo
-    ctx.strokeStyle = trancada ? '#e08b57' : (minha ? '#e5c25c' : 'rgba(0,0,0,.45)');
+    ctx.strokeStyle = trancada ? '#e08b57' : (minha ? '#e5c25c' : 'rgba(0,0,0,.50)');
     ctx.lineWidth = 2;
-    ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
+    ctx.strokeRect(x + 2, y + 2, w - 4, h - 4);
 
     const mx = Math.round(x + w / 2);
 
@@ -722,6 +772,67 @@ const Visual = (() => {
       p(3, 1, 4, 5, '#2f7a55');
       return;
     }
+  }
+
+  // ---------------------------------------------------- objetos do escritório
+  function objetos(ctx) {
+    const p = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
+
+    const sombra = (x, y, w, h) => p(x + 4, y + h - 4, w, 8, 'rgba(0,0,0,.28)');
+
+    // ---- tapete grande por baixo das filas de mesas
+    p(56, 132, 908, 412, '#22303f');                 // sombra/borda
+    p(60, 136, 900, 404, '#2c3d4f');                 // tapete
+    p(60, 136, 900, 3, 'rgba(255,255,255,.07)');
+    p(60, 537, 900, 3, 'rgba(0,0,0,.30)');
+    // padrão discreto
+    for (let x = 76; x < 950; x += 64) p(x, 148, 2, 380, 'rgba(255,255,255,.035)');
+    for (let y = 160; y < 530; y += 64) p(72, y, 876, 2, 'rgba(255,255,255,.03)');
+
+    // ---- estante contra a parede de cima
+    sombra(360, 96, 190, 58);
+    p(360, 96, 190, 58, '#3a2b1d');
+    p(364, 100, 182, 50, '#241a11');
+    for (let i = 0; i < 3; i++) {
+      p(366, 104 + i * 16, 178, 12, '#4a3624');
+      const cores = ['#a3526c', '#3f6fa8', '#2f7a55', '#c99a33', '#7a4fa8'];
+      for (let b = 0; b < 9; b++) p(368 + b * 19, 104 + i * 16, 7, 12, cores[(b + i) % cores.length]);
+    }
+    p(360, 96, 190, 3, '#5c4326');
+
+    // ---- máquina de café (bancada)
+    sombra(600, 96, 120, 54);
+    p(600, 96, 120, 54, '#3a2b1d');
+    p(604, 100, 112, 46, '#4a3624');
+    p(612, 104, 34, 34, '#20262f');          // máquina
+    p(616, 108, 26, 12, '#2f3a46');
+    p(618, 122, 22, 6, '#12161b');
+    p(626, 130, 8, 8, '#e3e0d8');            // copo
+    p(660, 104, 44, 10, '#5c4326');          // prateleira
+    p(664, 100, 8, 10, '#e3e0d8'); p(676, 100, 8, 10, '#a3526c'); p(688, 100, 8, 10, '#3f6fa8');
+
+    // ---- sofá perto da sala de reunião
+    sombra(800, 620, 150, 66);
+    p(800, 620, 150, 66, '#2f3a46');         // base
+    p(804, 624, 142, 26, '#3f4c5b');         // encosto
+    p(806, 650, 138, 28, '#4a5866');         // assento
+    p(806, 650, 138, 4, '#5c6d7e');
+    p(812, 654, 60, 20, '#55657a');          // almofadas
+    p(880, 654, 58, 20, '#55657a');
+    p(800, 620, 8, 66, '#232b35');           // braços
+    p(942, 620, 8, 66, '#232b35');
+
+    // ---- plantas grandes
+    const planta = (x, y) => {
+      p(x - 12, y - 2, 24, 14, 'rgba(0,0,0,.28)');
+      p(x - 14, y - 46, 28, 44, '#3f7f57');
+      p(x - 18, y - 58, 36, 22, '#2f6b45');
+      p(x - 8, y - 70, 16, 16, '#59a86f');
+      p(x - 16, y - 4, 32, 12, '#7a4c2c');
+      p(x - 16, y - 4, 32, 3, '#9a6238');
+    };
+    planta(60, 620);
+    planta(1240, 300);
   }
 
   // ---------------------------------------------------- sala de reunião
@@ -980,7 +1091,7 @@ const Visual = (() => {
 
   return {
     padrao, personagem, mesa, planta, chao, paredes, tapete,
-    salaReuniao, SALA,
+    salaReuniao, SALA, objetos,
     PELES, CABELOS, ROUPAS, corPele, corCabelo, corRoupa, tom,
   };
 })();
