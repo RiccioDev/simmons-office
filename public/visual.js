@@ -1388,15 +1388,7 @@ const Visual = (() => {
         ctx.fillRect(jx, ry + 1, 6, 2);
       }
     }
-    ctx.fillStyle = '#f6efdc';
-    ctx.beginPath(); ctx.arc(1272, 890, 3, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = 'rgba(12,15,20,.75)';
-    ctx.fillRect(1254, 846, 52, 11);
-    ctx.fillStyle = '#f2d98a';
-    ctx.font = '700 7px "Segoe UI",sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('0  ·  0', 1280, 852);
+    // a bola e o placar são desenhados pelo estado do jogo (app.js)
 
     // ============================================================ ZONA TRANQUILA (470..890 × 716..942)
     p(470, 716, 420, 226, 'rgba(0,0,0,.18)');

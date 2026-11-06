@@ -726,6 +726,60 @@ wss.on('connection', (ws) => {
         broadcastEstado();
         break;
       }
+      case 'pebolimEntrar': {
+        if (pebolim.vencedor !== null) {
+          pebolim.vencedor = null;
+          pebolim.placar = [0, 0];
+        }
+        let lugar = pebolim.jogadores.indexOf(id);
+        if (lugar === -1) {
+          lugar = pebolim.jogadores[0] === null ? 0 : (pebolim.jogadores[1] === null ? 1 : -1);
+        }
+        if (lugar === -1) { enviar(ws, { t: 'aviso', texto: 'O pebolim já tem dois jogadores.' }); return; }
+        pebolim.jogadores[lugar] = id;
+        pebolim.nomes[lugar] = p.name;
+        pebolim.ativa = true;
+        p.sitting = true;
+        p.deskId = null;
+        p.peca = 'pebolim';
+        p.x = lugar === 0 ? 1188 : 1372;
+        p.y = 892;
+        if (pebolim.jogadores[0] && pebolim.jogadores[1] && pebolim.bola.vx === 0 && pebolim.pausa <= 0) {
+          pebolim.vencedor = null;                 // nova partida
+          pebolim.placar = [0, 0];
+          pebolimSaque(Math.random() < 0.5 ? 0 : 1);
+        }
+        broadcastEstado();
+        pebolimDifundir();
+        break;
+      }
+      case 'pebolimSair': {
+        const lugar = pebolim.jogadores.indexOf(id);
+        if (lugar === -1) return;
+        pebolim.jogadores[lugar] = null;
+        pebolim.nomes[lugar] = '';
+        p.peca = null;
+        p.sitting = false;
+        p.y = 940;
+        if (!pebolim.jogadores[0] && !pebolim.jogadores[1]) {
+          pebolim.ativa = false;
+          pebolim.placar = [0, 0];
+          pebolim.bola = { x: 0.5, y: 0.5, vx: 0, vy: 0 };
+          pebolim.pausa = 0;
+          pebolim.vencedor = null;
+        }
+        broadcastEstado();
+        pebolimDifundir();
+        break;
+      }
+      case 'pebolimInput': {
+        const lugar = pebolim.jogadores.indexOf(id);
+        if (lugar === -1) return;
+        const alvo = Math.max(0.12, Math.min(0.88, Number(msg.y)));
+        if (!Number.isFinite(alvo)) return;
+        pebolim.raquetes[lugar] = alvo;
+        break;
+      }
       case 'levantar': {
         if (p.deskId) {
           const d = desks.find(x => x.id === p.deskId);
@@ -970,11 +1024,121 @@ wss.on('connection', (ws) => {
     for (const chave of [...portas]) {
       if (chave.startsWith(id + '|') || chave.endsWith('|' + id)) portas.delete(chave);
     }
+    const lugarPebolim = pebolim.jogadores.indexOf(id);
+    if (lugarPebolim !== -1) {
+      pebolim.jogadores[lugarPebolim] = null;
+      pebolim.nomes[lugarPebolim] = '';
+      if (!pebolim.jogadores[0] && !pebolim.jogadores[1]) {
+        pebolim.ativa = false;
+        pebolim.placar = [0, 0];
+        pebolim.vencedor = null;
+      }
+      pebolimDifundir();
+    }
     players.delete(id);
     broadcast({ t: 'saiu', id });
     broadcastEstado();
   });
 });
+
+// ---------------------------------------------------------------- pebolim
+// Mini-jogo: duas pessoas, uma raquete cada (varão), bola com física simples.
+const pebolim = {
+  ativa: false,
+  jogadores: [null, null],      // ids
+  nomes: ['', ''],
+  bola: { x: 0.5, y: 0.5, vx: 0, vy: 0 },
+  placar: [0, 0],
+  raquetes: [0.5, 0.5],
+  pausa: 0,                     // segundos de espera antes do saque
+  vencedor: null,
+  ultimo: Date.now(),
+};
+
+function pebolimEstado() {
+  return {
+    ativa: pebolim.ativa,
+    jogadores: pebolim.jogadores,
+    nomes: pebolim.nomes,
+    bola: pebolim.bola,
+    placar: pebolim.placar,
+    raquetes: pebolim.raquetes,
+    pausa: pebolim.pausa,
+    vencedor: pebolim.vencedor,
+  };
+}
+
+function pebolimDifundir() {
+  broadcast({ t: 'pebolim', estado: pebolimEstado() });
+}
+
+function pebolimSaque(contra) {
+  pebolim.bola = { x: 0.5, y: 0.5, vx: 0, vy: 0 };
+  pebolim.pausa = 1.0;
+  pebolim.saquePara = contra;   // 0 = para a esquerda, 1 = para a direita
+}
+
+function pebolimTique() {
+  const agora = Date.now();
+  const dt = Math.min(0.06, (agora - pebolim.ultimo) / 1000);
+  pebolim.ultimo = agora;
+  if (!pebolim.ativa) return;
+
+  if (pebolim.pausa > 0) {
+    pebolim.pausa -= dt;
+    if (pebolim.pausa <= 0) {
+      const dir = pebolim.saquePara === 1 ? 1 : -1;
+      pebolim.bola.x = 0.5;
+      pebolim.bola.y = 0.25 + Math.random() * 0.5;
+      pebolim.bola.vx = dir * 0.62;
+      pebolim.bola.vy = (Math.random() - 0.5) * 0.4;
+    }
+    pebolimDifundir();
+    return;
+  }
+
+  const b = pebolim.bola;
+  b.x += b.vx * dt;
+  b.y += b.vy * dt;
+
+  // paredes de cima e de baixo
+  if (b.y < 0.07) { b.y = 0.07; b.vy = Math.abs(b.vy); }
+  if (b.y > 0.93) { b.y = 0.93; b.vy = -Math.abs(b.vy); }
+
+  // raquetes (varões) — esquerda em 0.26, direita em 0.74
+  const meia = 0.17;
+  if (b.x < 0.32 && b.x > 0.20 && b.vx < 0) {
+    const d = b.y - pebolim.raquetes[0];
+    if (Math.abs(d) < meia) {
+      b.x = 0.33;
+      b.vx = Math.abs(b.vx) * 1.04;
+      b.vy = b.vy * 0.6 + d * 1.6;
+    }
+  }
+  if (b.x > 0.68 && b.x < 0.80 && b.vx > 0) {
+    const d = b.y - pebolim.raquetes[1];
+    if (Math.abs(d) < meia) {
+      b.x = 0.67;
+      b.vx = -Math.abs(b.vx) * 1.04;
+      b.vy = b.vy * 0.6 + d * 1.6;
+    }
+  }
+
+  // golos
+  if (b.x < 0.02) {
+    pebolim.placar[1] += 1;
+    if (pebolim.placar[1] >= 5) { pebolim.vencedor = 1; }
+    pebolimSaque(0);
+  } else if (b.x > 0.98) {
+    pebolim.placar[0] += 1;
+    if (pebolim.placar[0] >= 5) { pebolim.vencedor = 0; }
+    pebolimSaque(1);
+  }
+
+  pebolimDifundir();
+}
+
+setInterval(pebolimTique, 40);
 
 // ---------------------------------------------------------------- chat guardado
 chat.iniciar()
