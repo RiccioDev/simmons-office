@@ -28,6 +28,7 @@ function mesasIniciais() {
         owner: '',      // nome de quem é a mesa
         locked: false,  // fechada = só o dono se senta
         occupied: '',   // id de quem está sentado agora
+        estilo: {},     // tampo, computador, cadeira e decorações escolhidos
       });
       n++;
     }
@@ -51,6 +52,7 @@ armazem.carregar().then((guardado) => {
       d.owner = g.owner;
       d.ownerUser = g.ownerUser || '';
       d.locked = g.locked;
+      d.estilo = g.estilo || {};
     }
   }
   console.log('mesas carregadas de: ' + armazem.modoArmazenamento());
@@ -603,6 +605,7 @@ function estadoPublico() {
     desks: desks.map(d => ({
       id: d.id, label: d.label, x: d.x, y: d.y, w: d.w, h: d.h,
       owner: d.owner, ownerUser: d.ownerUser || '', locked: d.locked, occupied: d.occupied,
+      estilo: d.estilo || {},
     })),
   };
 }
@@ -724,6 +727,34 @@ wss.on('connection', (ws) => {
         broadcastEstado();
         break;
       }
+      case 'estiloMesa': {
+        const d = desks.find(x => x.id === Number(msg.deskId));
+        if (!d) return;
+        if (!d.owner || d.owner.toLowerCase() !== String(p.name).toLowerCase()) {
+          enviar(ws, { t: 'aviso', texto: 'Só o dono da mesa pode mudar o visual dela.' });
+          return;
+        }
+
+        const permitido = {
+          mesa: ['carvalho', 'nogueira', 'branco', 'preto', 'vidro'],
+          pc: ['monitor', 'dual', 'portatil', 'torre'],
+          cadeira: ['escritorio', 'gamer', 'madeira', 'banco'],
+          decor: ['nenhuma', 'planta', 'caneca', 'candeeiro', 'lapis', 'moldura', 'telefone', 'livros'],
+          decor2: ['nenhuma', 'planta', 'caneca', 'candeeiro', 'lapis', 'moldura', 'telefone', 'livros'],
+        };
+        const limpo = {};
+        for (const campo of Object.keys(permitido)) {
+          const v = msg.estilo && msg.estilo[campo];
+          limpo[campo] = permitido[campo].includes(v) ? v : permitido[campo][0];
+        }
+
+        d.estilo = limpo;
+        guardarMesas();
+        broadcast({ t: 'mesa', desk: { ...d } });
+        broadcastEstado();
+        break;
+      }
+
       case 'fecharMesa': {
         const d = desks.find(x => x.id === msg.deskId);
         if (!d) return;

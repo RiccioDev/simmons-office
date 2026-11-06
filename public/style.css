@@ -779,6 +779,22 @@ body{
 .opcoes.cores button.escolhido{border-color:#fff;box-shadow:0 0 0 2px var(--ouro)}
 .dicaAvatar{font-size:11px;color:#5f6875;margin-top:2px}
 
+/* criador da mesa */
+.caixaMesa{max-width:880px}
+#modalEstilo .modalCaixa{width:min(880px,94vw)}
+.mesaTopo{display:flex;flex-wrap:wrap;gap:22px;margin:6px 0 18px;align-items:flex-start}
+#previaMesa{
+  flex:0 0 auto;width:400px;height:230px;border-radius:14px;
+  background:#241b13;border:1px solid var(--linha);
+}
+.mesaControles{flex:1;min-width:0}
+
+@media (max-width:560px){
+  .mesaTopo{flex-direction:column;align-items:center}
+  #previaMesa{width:100%;height:190px}
+  .caixaMesa{max-width:100%}
+}
+
 /* criador de personagem no computador: maior e em duas colunas */
 @media (min-width:561px){
   .caixaAvatar{max-width:940px}

@@ -1059,6 +1059,11 @@ function loop(t) {
     }
   } catch (e) {}
 
+  try {
+    const btnMM = $('btnMinhaMesa');
+    if (btnMM) btnMM.classList.toggle('oculto', !minhaMesa());
+  } catch (e) {}
+
   try { desenhar(); } catch (e) { relatarErro('desenho', e); }
   try { gerirProximidade(); posicionarVideos(); } catch (e) { relatarErro('proximidade', e); }
 
@@ -1712,7 +1717,13 @@ function desenhar() {
   // mesas
   for (const d of (Array.isArray(desks) ? desks : [])) {
     const minha = eu && d.owner && d.owner.toLowerCase() === eu.name.toLowerCase();
-    Visual.mesa(ctx, d, { minha, trancada: !!d.locked, ocupada: !!d.occupied });
+
+    // se alguém está de pé à frente da mesa, a cadeira não aparece (a pessoa ocupa o lugar)
+    const alguemEmPe = [...players.values()].some(pl => !pl.sitting
+      && Math.abs(pl.x - (d.x + d.w / 2)) < 50
+      && pl.y > d.y + d.h - 30 && pl.y < d.y + d.h + 70);
+
+    Visual.mesa(ctx, d, { minha, trancada: !!d.locked, ocupada: !!d.occupied || alguemEmPe });
 
     if (d.locked && d.occupied) {
       ctx.fillStyle = 'rgba(232,168,90,.9)';
@@ -2119,6 +2130,112 @@ function montarCriadorAvatar() {
   ligarClique('btnAparencia', 'onclick', () => window.abrirAparencia());
 }
 
+// ------------------------------------------------------------ a minha mesa
+let estiloEmEdicao = null;
+
+function minhaMesa() {
+  if (!eu) return null;
+  return desks.find(d => d.owner && d.owner.toLowerCase() === String(eu.name).toLowerCase()) || null;
+}
+
+function montarMesaCriador() {
+  const modal = $('modalEstilo');
+  if (!modal) return;
+
+  const previa = $('previaMesa');
+  if (!previa) return;
+
+  const pintar = () => {
+    const g = previa.getContext('2d');
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = previa.clientWidth || 440;
+    const h = previa.clientHeight || 260;
+    previa.width = w * dpr;
+    previa.height = h * dpr;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.imageSmoothingEnabled = false;
+    g.fillStyle = '#2b2118';
+    g.fillRect(0, 0, w, h);
+
+    const escala = 1.35;
+    g.save();
+    g.translate(w / 2 - (180 * escala) / 2, 26);
+    g.scale(escala, escala);
+    Visual.mesa(g, {
+      id: 0, x: 0, y: 0, w: 180, h: 90, label: 'Minha mesa',
+      owner: (eu && eu.name) || 'Minha mesa', locked: false,
+      estilo: estiloEmEdicao,
+    }, { minha: true, trancada: false, ocupada: false });
+    g.restore();
+  };
+
+  const marcar = (id, valor) => {
+    document.querySelectorAll('#' + id + ' button').forEach(b => {
+      b.classList.toggle('escolhido', String(b.dataset.v) === String(valor));
+    });
+  };
+
+  const ligar = (id, campo) => {
+    document.querySelectorAll('#' + id + ' button').forEach(b => {
+      aoTocar(b, () => {
+        estiloEmEdicao[campo] = b.dataset.v;
+        marcar(id, b.dataset.v);
+        pintar();
+      });
+    });
+  };
+
+  ligar('opTampo', 'mesa');
+  ligar('opPC', 'pc');
+  ligar('opCadeira', 'cadeira');
+  ligar('opDecor', 'decor');
+  ligar('opDecor2', 'decor2');
+
+  const abrir = () => {
+    const d = minhaMesa();
+    if (!d) { avisar('Você ainda não tem mesa. Chegue perto de uma mesa livre e aperte R.'); return; }
+
+    estiloEmEdicao = Object.assign(
+      { mesa: 'carvalho', pc: 'monitor', cadeira: 'escritorio', decor: 'planta', decor2: 'caneca' },
+      d.estilo || {}
+    );
+    marcar('opTampo', estiloEmEdicao.mesa);
+    marcar('opPC', estiloEmEdicao.pc);
+    marcar('opCadeira', estiloEmEdicao.cadeira);
+    marcar('opDecor', estiloEmEdicao.decor);
+    marcar('opDecor2', estiloEmEdicao.decor2);
+
+    modal.classList.remove('oculto');
+    setTimeout(pintar, 30);
+  };
+  window.abrirMinhaMesa = abrir;
+
+  aoTocar($('btnMesaAleatoria'), () => {
+    const sorteia = (lista) => lista[Math.floor(Math.random() * lista.length)];
+    estiloEmEdicao.mesa = sorteia(['carvalho', 'nogueira', 'branco', 'preto', 'vidro']);
+    estiloEmEdicao.pc = sorteia(['monitor', 'dual', 'portatil', 'torre']);
+    estiloEmEdicao.cadeira = sorteia(['escritorio', 'gamer', 'madeira', 'banco']);
+    estiloEmEdicao.decor = sorteia(['nenhuma', 'planta', 'caneca', 'candeeiro', 'lapis', 'moldura', 'telefone', 'livros']);
+    estiloEmEdicao.decor2 = sorteia(['nenhuma', 'planta', 'caneca', 'candeeiro', 'lapis', 'moldura', 'telefone', 'livros']);
+    marcar('opTampo', estiloEmEdicao.mesa);
+    marcar('opPC', estiloEmEdicao.pc);
+    marcar('opCadeira', estiloEmEdicao.cadeira);
+    marcar('opDecor', estiloEmEdicao.decor);
+    marcar('opDecor2', estiloEmEdicao.decor2);
+    pintar();
+  });
+
+  aoTocar($('btnSalvarMesa'), () => {
+    const d = minhaMesa();
+    if (!d) return;
+    ws.send(JSON.stringify({ t: 'estiloMesa', deskId: d.id, estilo: estiloEmEdicao }));
+    modal.classList.add('oculto');
+    avisar('Mesa atualizada.');
+  });
+
+  ligarClique('btnMinhaMesa', 'onclick', () => abrir());
+}
+
 // desenha o meu personagem no mapa mesmo antes de o servidor responder
 function avatarDe(p) {
   if (eu && p.id === eu.id && meuAvatar) return meuAvatar;
@@ -2343,4 +2460,5 @@ function posicionarVideos() {
 
 montarToque();
 montarCriadorAvatar();
+montarMesaCriador();
 requestAnimationFrame(loop);

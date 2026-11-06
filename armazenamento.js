@@ -43,6 +43,7 @@ async function iniciar() {
 
   // quem é o dono (username), para libertar a mesa quando a conta sai do sistema
   await pool.query(`ALTER TABLE mesas ADD COLUMN IF NOT EXISTS owner_user TEXT NOT NULL DEFAULT ''`);
+  await pool.query(`ALTER TABLE mesas ADD COLUMN IF NOT EXISTS estilo TEXT NOT NULL DEFAULT '{}'`);
 
   // aparência do personagem
   await pool.query(`ALTER TABLE utilizadores ADD COLUMN IF NOT EXISTS avatar TEXT NOT NULL DEFAULT ''`);
@@ -88,12 +89,15 @@ async function carregar() {
 
   if (pool) {
     try {
-      const r = await pool.query('SELECT id, owner, owner_user, locked FROM mesas');
+      const r = await pool.query('SELECT id, owner, owner_user, locked, estilo FROM mesas');
       for (const linha of r.rows) {
+        let estilo = {};
+        try { estilo = JSON.parse(linha.estilo || '{}'); } catch (e) { estilo = {}; }
         saida.set(linha.id, {
           owner: linha.owner || '',
           ownerUser: linha.owner_user || '',
           locked: !!linha.locked,
+          estilo,
         });
       }
       return saida;
@@ -108,6 +112,7 @@ async function carregar() {
       if (Array.isArray(lista)) {
         for (const m of lista) saida.set(m.id, {
           owner: m.owner || '', ownerUser: m.ownerUser || '', locked: !!m.locked,
+          estilo: m.estilo || {},
         });
       }
     }
@@ -123,15 +128,17 @@ async function gravar(mesa) {
   if (pool) {
     try {
       await pool.query(
-        `INSERT INTO mesas (id, label, owner, owner_user, locked, atualizado)
-         VALUES ($1, $2, $3, $4, $5, now())
+        `INSERT INTO mesas (id, label, owner, owner_user, locked, estilo, atualizado)
+         VALUES ($1, $2, $3, $4, $5, $6, now())
          ON CONFLICT (id) DO UPDATE
            SET label = EXCLUDED.label,
                owner = EXCLUDED.owner,
                owner_user = EXCLUDED.owner_user,
                locked = EXCLUDED.locked,
+               estilo = EXCLUDED.estilo,
                atualizado = now()`,
-        [mesa.id, mesa.label, mesa.owner || '', mesa.ownerUser || '', !!mesa.locked]
+        [mesa.id, mesa.label, mesa.owner || '', mesa.ownerUser || '', !!mesa.locked,
+         JSON.stringify(mesa.estilo || {})]
       );
       return;
     } catch (e) {
@@ -140,8 +147,8 @@ async function gravar(mesa) {
   }
 
   try {
-    const lista = (global.__mesasParaFicheiro || []).map(({ id, label, owner, ownerUser, locked }) =>
-      ({ id, label, owner, ownerUser: ownerUser || '', locked }));
+    const lista = (global.__mesasParaFicheiro || []).map(({ id, label, owner, ownerUser, locked, estilo }) =>
+      ({ id, label, owner, ownerUser: ownerUser || '', locked, estilo: estilo || {} }));
     fs.writeFileSync(FICHEIRO, JSON.stringify(lista, null, 2), 'utf8');
   } catch (e) {
     console.log('erro ao gravar mesas.json:', e.message);

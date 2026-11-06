@@ -46,6 +46,20 @@ balançam ao contrário, o corpo sobe 1 pixel a cada passo e a saia do vestido b
 Para ver todas as combinações lado a lado, abre **`/laboratorio-personagens.html`** —
 mostra 12 modelos, cada um parado e com os 4 passos.
 
+## Minha mesa
+
+Quem tem mesa pode escolher o visual dela no botão **🪑** (ao lado do 🎨). É só do dono —
+ninguém muda a mesa dos outros.
+
+- **Tampo**: carvalho, nogueira, branco, preto ou vidro
+- **Computador**: monitor, dois monitores, portátil ou torre + monitor
+- **Cadeira**: escritório, gamer, madeira ou banco alto
+- **Decoração**: nada, planta, caneca, candeeiro, lápis, moldura, telefone ou livros —
+  uma à esquerda e outra à direita do tampo
+- **Aleatório** sorteia uma combinação inteira
+
+A escolha fica guardada na conta e aparece em todos os aparelhos.
+
 ## Mesma conta em dois aparelhos
 
 Se entrares com a mesma conta no computador e no celular, **não aparecem dois bonecos**:
@@ -68,6 +82,20 @@ Escolhes:
 A prévia à esquerda mostra o resultado em tamanho grande; **Aleatório** gera uma combinação.
 Ao salvar, fica guardado na tua conta — aparece igual em qualquer aparelho, e os colegas
 vêem o teu boneco com essas cores.
+
+## Minha mesa
+
+Quem tem mesa pode escolher o visual dela no botão **🪑** (ao lado do 🎨). É só do dono —
+ninguém muda a mesa dos outros.
+
+- **Tampo**: carvalho, nogueira, branco, preto ou vidro
+- **Computador**: monitor, dois monitores, portátil ou torre + monitor
+- **Cadeira**: escritório, gamer, madeira ou banco alto
+- **Decoração**: nada, planta, caneca, candeeiro, lápis, moldura, telefone ou livros —
+  uma à esquerda e outra à direita do tampo
+- **Aleatório** sorteia uma combinação inteira
+
+A escolha fica guardada na conta e aparece em todos os aparelhos.
 
 ## Mesma conta em dois aparelhos
 

@@ -152,6 +152,7 @@
       <button id="btnCam" title="Ligar/desligar sua câmera">📷</button>
       <button id="btnTela" title="Compartilhar minha tela (Ctrl+Shift+T)">🖥️</button>
       <button id="btnAparencia" title="Mudar meu personagem">🎨</button>
+      <button id="btnMinhaMesa" class="oculto" title="Escolher a minha mesa, computador, cadeira e decoração">🪑</button>
       <button id="btnSino" title="Som quando alguém bate à porta">🔔</button>
       <button id="btnAdmin" class="oculto" title="Contas e convites da equipe">👥</button>
     </div>
@@ -249,6 +250,81 @@
       <div class="modalBotoes">
         <button id="btnAleatorio" class="secundario">Aleatório</button>
         <button id="btnSalvarAvatar">Salvar personagem</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalEstilo" class="modal oculto">
+    <div class="modalCaixa caixaMesa">
+      <h3>Minha mesa</h3>
+
+      <div class="mesaTopo">
+        <canvas id="previaMesa" width="440" height="260"></canvas>
+        <div class="mesaControles">
+          <div class="grupoAvatar">
+            <span>Tampo</span>
+            <div class="opcoes" id="opTampo">
+              <button data-v="carvalho" class="escolhido">Carvalho</button>
+              <button data-v="nogueira">Nogueira</button>
+              <button data-v="branco">Branco</button>
+              <button data-v="preto">Preto</button>
+              <button data-v="vidro">Vidro</button>
+            </div>
+          </div>
+
+          <div class="grupoAvatar">
+            <span>Computador</span>
+            <div class="opcoes" id="opPC">
+              <button data-v="monitor" class="escolhido">Monitor</button>
+              <button data-v="dual">Dois monitores</button>
+              <button data-v="portatil">Portátil</button>
+              <button data-v="torre">Torre + monitor</button>
+            </div>
+          </div>
+
+          <div class="grupoAvatar">
+            <span>Cadeira</span>
+            <div class="opcoes" id="opCadeira">
+              <button data-v="escritorio" class="escolhido">Escritório</button>
+              <button data-v="gamer">Gamer</button>
+              <button data-v="madeira">Madeira</button>
+              <button data-v="banco">Banco alto</button>
+            </div>
+          </div>
+
+          <div class="grupoAvatar">
+            <span>Decoração da esquerda</span>
+            <div class="opcoes" id="opDecor">
+              <button data-v="nenhuma">Nada</button>
+              <button data-v="planta" class="escolhido">Planta</button>
+              <button data-v="caneca">Caneca</button>
+              <button data-v="candeeiro">Candeeiro</button>
+              <button data-v="lapis">Lápis</button>
+              <button data-v="moldura">Moldura</button>
+              <button data-v="telefone">Telefone</button>
+              <button data-v="livros">Livros</button>
+            </div>
+          </div>
+
+          <div class="grupoAvatar">
+            <span>Decoração da direita</span>
+            <div class="opcoes" id="opDecor2">
+              <button data-v="nenhuma">Nada</button>
+              <button data-v="caneca" class="escolhido">Caneca</button>
+              <button data-v="planta">Planta</button>
+              <button data-v="candeeiro">Candeeiro</button>
+              <button data-v="lapis">Lápis</button>
+              <button data-v="moldura">Moldura</button>
+              <button data-v="telefone">Telefone</button>
+              <button data-v="livros">Livros</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modalBotoes">
+        <button id="btnMesaAleatoria" class="secundario">Aleatório</button>
+        <button id="btnSalvarMesa">Salvar mesa</button>
       </div>
     </div>
   </div>

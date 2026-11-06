@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Teste das mesas</title>
+<style>body{margin:0;background:#171c23}canvas{display:block;image-rendering:pixelated}</style>
+</head>
+<body>
+<canvas id="c" width="1000" height="700"></canvas>
+<script src="pixel.js"></script>
+<script src="visual.js"></script>
+<script>
+const g = document.getElementById('c').getContext('2d');
+g.imageSmoothingEnabled = false;
+g.scale(1, 1);
+Visual.chao(g, 940, 440);
+
+// 4 tampões
+const tampões = ['carvalho', 'nogueira', 'branco', 'preto', 'vidro'];
+tampões.forEach((t, i) => {
+  Visual.mesa(g, { id: i + 1, x: 30 + i * 180, y: 20, w: 180, h: 90, label: 'Mesa ' + (i + 1),
+    owner: '', locked: false, estilo: { mesa: t, pc: 'monitor', cadeira: 'escritorio', decor: 'planta', decor2: 'caneca' } },
+    { minha: false, trancada: false, ocupada: false });
+});
+
+// 4 computadores
+const pcs = ['monitor', 'dual', 'portatil', 'torre'];
+pcs.forEach((t, i) => {
+  Visual.mesa(g, { id: 10 + i, x: 30 + i * 230, y: 210, w: 180, h: 90, label: t,
+    owner: 'PC ' + t, locked: false, estilo: { mesa: 'carvalho', pc: t, cadeira: 'escritorio', decor: 'nenhuma', decor2: 'nenhuma' } },
+    { minha: false, trancada: false, ocupada: false });
+});
+
+// 4 cadeiras
+const cads = ['escritorio', 'gamer', 'madeira', 'banco'];
+cads.forEach((t, i) => {
+  Visual.mesa(g, { id: 20 + i, x: 30 + i * 230, y: 380, w: 180, h: 90, label: t,
+    owner: 'Cadeira ' + t, locked: false, estilo: { mesa: 'nogueira', pc: 'monitor', cadeira: t, decor: 'nenhuma', decor2: 'nenhuma' } },
+    { minha: false, trancada: false, ocupada: false });
+});
+
+// decorações
+const decs = ['planta', 'caneca', 'candeeiro', 'lapis', 'moldura', 'telefone', 'livros'];
+decs.forEach((t, i) => {
+  Visual.mesa(g, { id: 30 + i, x: 30 + (i % 4) * 230, y: 520 + Math.floor(i / 4) * 130, w: 180, h: 90, label: t,
+    owner: t, locked: false, estilo: { mesa: 'branco', pc: 'monitor', cadeira: 'escritorio', decor: t, decor2: 'nenhuma' } },
+    { minha: false, trancada: false, ocupada: false });
+});
+</script>
+</body>
+</html>
