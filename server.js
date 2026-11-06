@@ -486,11 +486,33 @@ function enviar(ws, obj) {
   if (ws.readyState === 1) ws.send(JSON.stringify(obj));
 }
 
-function broadcast(obj, exceptId) {
+function socketsDe(p) {
+  if (!p) return [];
+  if (p.sockets && p.sockets.size) return [...p.sockets];
+  return p.ws ? [p.ws] : [];
+}
+
+// manda a todos os dispositivos de um jogador
+function enviarPara(p, obj, exceptWs) {
   const txt = JSON.stringify(obj);
+  for (const s of socketsDe(p)) {
+    if (s === exceptWs) continue;
+    if (s.readyState === 1) s.send(txt);
+  }
+}
+
+// exceptId: ignora este jogador. opcoes.mesmoDono: manda na mesma aos outros
+// dispositivos da mesma conta. opcoes.exceptWs: não devolve a quem enviou.
+function broadcast(obj, exceptId, opcoes) {
+  const txt = JSON.stringify(obj);
+  const mesmoDono = !!(opcoes && opcoes.mesmoDono);
+  const exceptWs = opcoes && opcoes.exceptWs;
   for (const [id, p] of players) {
-    if (id === exceptId) continue;
-    if (p.ws.readyState === 1) p.ws.send(txt);
+    if (id === exceptId && !mesmoDono) continue;
+    for (const s of socketsDe(p)) {
+      if (s === exceptWs) continue;
+      if (s.readyState === 1) s.send(txt);
+    }
   }
 }
 
@@ -564,8 +586,8 @@ function expulsarUtilizador(usuario) {
   const alvo = String(usuario || '').toLowerCase();
   for (const [id, p] of players) {
     if (String(p.usuario || '').toLowerCase() !== alvo) continue;
-    try { enviar(p.ws, { t: 'expulso', texto: 'Sua conta foi removida.' }); } catch (e) {}
-    try { p.ws.close(); } catch (e) {}
+    try { enviarPara(p, { t: 'expulso', texto: 'Sua conta foi removida.' }); } catch (e) {}
+    for (const s of socketsDe(p)) { try { s.close(); } catch (e) {} }
     players.delete(id);
   }
   broadcastEstado();
@@ -590,13 +612,13 @@ function broadcastEstado() {
 }
 
 wss.on('connection', (ws) => {
-  const id = Math.random().toString(36).slice(2, 9);
-  ws.id = id;
+  const sid = Math.random().toString(36).slice(2, 9);   // id do dispositivo
+  ws.id = sid;
 
   ws.on('message', (raw) => {
     let msg;
     try { msg = JSON.parse(raw); } catch { return; }
-    const p = players.get(id);
+    const p = players.get(ws.jogadorId);
 
     if (msg.t === 'auth') {
       const dados = auth.verificar(msg.token);
@@ -609,9 +631,28 @@ wss.on('connection', (ws) => {
     if (msg.t === 'entrar') {
       if (!ws.usuario) { enviar(ws, { t: 'auth_erro', texto: 'Você precisa entrar com a sua conta.' }); return; }
       const mesa = desks.find(d => d.owner && d.owner.toLowerCase() === String(ws.usuario.n || '').toLowerCase().trim());
+
+      // mesma conta noutro dispositivo: é o MESMO boneco
+      const chaveConta = String(ws.usuario.u || '').toLowerCase();
+      for (const q of players.values()) {
+        if (!chaveConta || q.usuario !== chaveConta) continue;
+
+        q.sockets.add(ws);
+        ws.jogadorId = q.id;
+        if (msg.avatar && typeof msg.avatar === 'object') {
+          q.avatar = msg.avatar;
+          armazem.guardarAvatar(q.usuario, q.avatar).catch(() => {});
+        }
+        enviar(ws, { t: 'bemvindo', id: q.id, ...estadoPublico() });
+        broadcastEstado();
+        console.log('mesma conta ligada noutro dispositivo: ' + q.name);
+        return;
+      }
+
       const jogador = {
-        id,
+        id: sid,
         ws,
+        sockets: new Set([ws]),
         name: String(ws.usuario.n || 'Convidado').slice(0, 24).trim() || 'Convidado',
         x: mesa ? mesa.x + mesa.w / 2 : 800,
         y: mesa ? mesa.y + mesa.h + 40 : 500,
@@ -625,8 +666,9 @@ wss.on('connection', (ws) => {
         dir: 1,
         passo: 0,
       };
-      players.set(id, jogador);
-      enviar(ws, { t: 'bemvindo', id, ...estadoPublico() });
+      ws.jogadorId = sid;
+      players.set(sid, jogador);
+      enviar(ws, { t: 'bemvindo', id: sid, ...estadoPublico() });
 
       if (!jogador.avatar) {
         armazem.lerAvatar(jogador.usuario).then((a) => {
@@ -635,18 +677,19 @@ wss.on('connection', (ws) => {
       } else {
         armazem.guardarAvatar(jogador.usuario, jogador.avatar).catch(() => {});
       }
-      broadcast({ t: 'entrou', id, name: jogador.name }, id);
+      broadcast({ t: 'entrou', id: sid, name: jogador.name }, sid);
       broadcastEstado();
       return;
     }
 
     if (!p) return;
+    const id = p.id;   // id do jogador (igual nos vários dispositivos da conta)
 
     switch (msg.t) {
       case 'mover': {
         p.x = Math.max(0, Math.min(1600, Number(msg.x) || 0));
         p.y = Math.max(0, Math.min(1000, Number(msg.y) || 0));
-        broadcast({ t: 'mover', id, x: p.x, y: p.y }, id);
+        broadcast({ t: 'mover', id, x: p.x, y: p.y }, id, { mesmoDono: true, exceptWs: ws });
         break;
       }
       case 'sentar': {
@@ -772,7 +815,7 @@ wss.on('connection', (ws) => {
         if (ultimaBatida.get(id + '|' + alvoId) > agora - 4000) return;
         ultimaBatida.set(id + '|' + alvoId, agora);
 
-        enviar(alvo.ws, { t: 'batida', de: id, nome: p.name, mesa: mesa.label, deskId: mesa.id });
+        enviarPara(alvo, { t: 'batida', de: id, nome: p.name, mesa: mesa.label, deskId: mesa.id });
         enviar(ws, { t: 'aviso', texto: 'Você bateu à porta de ' + alvo.name + '. À espera de resposta.' });
         break;
       }
@@ -786,11 +829,11 @@ wss.on('connection', (ws) => {
         if (msg.aceitar) {
           portas.add(id + '|' + visitanteId);
           portas.add(visitanteId + '|' + id);
-          enviar(visitante.ws, { t: 'porta', com: id, aberta: true, nome: dono.name });
+          enviarPara(visitante, { t: 'porta', com: id, aberta: true, nome: dono.name });
           enviar(ws, { t: 'porta', com: visitanteId, aberta: true, nome: visitante.name });
           enviar(ws, { t: 'aviso', texto: 'Você abriu a porta para ' + visitante.name + '.' });
         } else {
-          enviar(visitante.ws, { t: 'aviso', texto: dono.name + ' não abriu a porta agora.' });
+          enviarPara(visitante, { t: 'aviso', texto: dono.name + ' não abriu a porta agora.' });
           enviar(ws, { t: 'aviso', texto: 'Você recusou a visita de ' + visitante.name + '.' });
         }
         break;
@@ -801,7 +844,7 @@ wss.on('connection', (ws) => {
         portas.delete(id + '|' + com);
         portas.delete(com + '|' + id);
         const outro = players.get(com);
-        if (outro) enviar(outro.ws, { t: 'porta', com: id, aberta: false });
+        if (outro) enviarPara(outro, { t: 'porta', com: id, aberta: false });
         enviar(ws, { t: 'porta', com, aberta: false });
         enviar(ws, { t: 'aviso', texto: 'Porta fechada.' });
         break;
@@ -861,17 +904,22 @@ wss.on('connection', (ws) => {
       // ---- sinalização WebRTC (vai só para o destinatário)
       case 'sinal': {
         const alvo = players.get(msg.para);
-        if (alvo && alvo.ws.readyState === 1) {
-          alvo.ws.send(JSON.stringify({ t: 'sinal', de: id, dados: msg.dados }));
-        }
+        if (alvo) enviarPara(alvo, { t: 'sinal', de: id, dados: msg.dados });
         break;
       }
     }
   });
 
   ws.on('close', () => {
-    const p = players.get(id);
-    if (p && p.deskId) {
+    const p = players.get(ws.jogadorId);
+    if (!p) return;
+
+    if (p.sockets) p.sockets.delete(ws);
+    // a conta ainda está ligada noutro dispositivo: o boneco fica
+    if (p.sockets && p.sockets.size > 0) return;
+
+    const id = p.id;
+    if (p.deskId) {
       const d = desks.find(x => x.id === p.deskId);
       if (d && d.occupied === id) d.occupied = '';
     }

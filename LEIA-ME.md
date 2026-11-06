@@ -46,6 +46,12 @@ balançam ao contrário, o corpo sobe 1 pixel a cada passo e a saia do vestido b
 Para ver todas as combinações lado a lado, abre **`/laboratorio-personagens.html`** —
 mostra 12 modelos, cada um parado e com os 4 passos.
 
+## Mesma conta em dois aparelhos
+
+Se entrares com a mesma conta no computador e no celular, **não aparecem dois bonecos**:
+é o mesmo personagem, na mesma posição. Podes andar de qualquer um dos aparelhos — o outro
+acompanha. O boneco só sai do escritório quando o **último** aparelho fecha.
+
 ## O escritório
 
 Na primeira vez que entras, abre o criador de personagem — e podes voltar sempre pelo botão
@@ -62,6 +68,12 @@ Escolhes:
 A prévia à esquerda mostra o resultado em tamanho grande; **Aleatório** gera uma combinação.
 Ao salvar, fica guardado na tua conta — aparece igual em qualquer aparelho, e os colegas
 vêem o teu boneco com essas cores.
+
+## Mesma conta em dois aparelhos
+
+Se entrares com a mesma conta no computador e no celular, **não aparecem dois bonecos**:
+é o mesmo personagem, na mesma posição. Podes andar de qualquer um dos aparelhos — o outro
+acompanha. O boneco só sai do escritório quando o **último** aparelho fecha.
 
 ## O escritório
 

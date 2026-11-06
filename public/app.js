@@ -399,7 +399,10 @@ function ligar(nome) {
         break;
       case 'mover': {
         const p = players.get(m.id);
-        if (p) { p.x = m.x; p.y = m.y; }
+        if (!p) break;
+        // se sou eu e estou a andar aqui, mando eu (evita o vaivém entre dispositivos)
+        if (eu && m.id === eu.id && performance.now() - ultimoEnvioLocal < 400) break;
+        p.x = m.x; p.y = m.y;
         break;
       }
       case 'player': {
@@ -748,6 +751,7 @@ document.getElementById('ficheiro').addEventListener('change', async (e) => {
 // ------------------------------------------------------------ teclado
 const teclas = new Set();
 let ultimoLevantar = 0;
+let ultimoEnvioLocal = 0;
 window.addEventListener('keydown', (e) => {
   const foco = document.activeElement;
   const aEscrever = foco && (foco.tagName === 'INPUT' || foco.tagName === 'TEXTAREA' || foco.isContentEditable)
@@ -1033,6 +1037,7 @@ function loop(t) {
       if (t - ultimoEnvio > 45) {
         ws.send(JSON.stringify({ t: 'mover', x: p.x, y: p.y }));
         ultimoEnvio = t;
+        ultimoEnvioLocal = performance.now();
       }
     }
   }
