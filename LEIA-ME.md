@@ -46,6 +46,15 @@ balançam ao contrário, o corpo sobe 1 pixel a cada passo e a saia do vestido b
 Para ver todas as combinações lado a lado, abre **`/laboratorio-personagens.html`** —
 mostra 12 modelos, cada um parado e com os 4 passos.
 
+## Sala de reunião
+
+Em baixo no mapa, com carpete, parede de vidro com porta, ecrã de projeção e uma mesa
+com oito cadeiras.
+
+**Dentro da sala o raio de distância não conta**: quem lá está ouve todos os outros que
+lá estejam, mesmo do outro lado da mesa. Ao entrar e ao sair, o chat avisa e o áudio
+volta ao modo de proximidade.
+
 ## Minha mesa
 
 Quem tem mesa pode escolher o visual dela no botão **🪑** (ao lado do 🎨). É só do dono —
@@ -82,6 +91,15 @@ Escolhes:
 A prévia à esquerda mostra o resultado em tamanho grande; **Aleatório** gera uma combinação.
 Ao salvar, fica guardado na tua conta — aparece igual em qualquer aparelho, e os colegas
 vêem o teu boneco com essas cores.
+
+## Sala de reunião
+
+Em baixo no mapa, com carpete, parede de vidro com porta, ecrã de projeção e uma mesa
+com oito cadeiras.
+
+**Dentro da sala o raio de distância não conta**: quem lá está ouve todos os outros que
+lá estejam, mesmo do outro lado da mesa. Ao entrar e ao sair, o chat avisa e o áudio
+volta ao modo de proximidade.
 
 ## Minha mesa
 

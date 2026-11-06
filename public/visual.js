@@ -716,6 +716,109 @@ const Visual = (() => {
     }
   }
 
+  // ---------------------------------------------------- sala de reunião
+  // zona onde o raio de distância deixa de contar: todos se ouvem
+  const SALA = { x: 520, y: 772, w: 940, h: 214 };
+
+  function salaReuniao(ctx) {
+    const { x, y, w, h } = SALA;
+    const p = (dx, dy, dw, dh, c) => { ctx.fillStyle = c; ctx.fillRect(Math.round(x + dx), Math.round(y + dy), dw, dh); };
+
+    const vidro = 'rgba(158,206,230,.26)';
+    const vidroLuz = 'rgba(200,238,250,.55)';
+    const moldura = '#39465a';
+    const molduraLuz = '#55657c';
+    const carpete = '#2c3646';
+    const ALT_PAREDE = 16;
+
+    // carpete
+    p(0, ALT_PAREDE, w, h - ALT_PAREDE, carpete);
+    for (let i = 0; i < h; i += 12) p(0, ALT_PAREDE + i, w, 1, 'rgba(255,255,255,.020)');
+    // rebordo claro do piso (separa do chão de madeira)
+    p(0, ALT_PAREDE, w, 1, 'rgba(255,255,255,.10)');
+    p(0, h - 2, w, 2, 'rgba(0,0,0,.40)');
+
+    // ---- parede de vidro no topo, com vão de porta
+    const portaX = 120, portaL = 120;
+    p(0, 0, w, ALT_PAREDE, moldura);
+    // painéis de vidro
+    p(3, 3, portaX - 6, ALT_PAREDE - 6, vidro);
+    p(portaX + portaL + 3, 3, w - portaX - portaL - 6, ALT_PAREDE - 6, vidro);
+    // reflexo
+    p(3, 3, portaX - 6, 1, vidroLuz);
+    p(portaX + portaL + 3, 3, w - portaX - portaL - 6, 1, vidroLuz);
+    // montantes verticais
+    p(0, 0, 3, ALT_PAREDE + 2, molduraLuz);
+    p(portaX, 0, 3, ALT_PAREDE + 2, molduraLuz);
+    p(portaX + portaL, 0, 3, ALT_PAREDE + 2, molduraLuz);
+    p(w - 3, 0, 3, ALT_PAREDE + 2, molduraLuz);
+    // porta encostada (aberta, encostada à esquerda do vão)
+    p(portaX + 3, 2, 14, ALT_PAREDE - 4, 'rgba(180,220,240,.30)');
+    p(portaX + 3, 2, 1, ALT_PAREDE - 4, vidroLuz);
+
+    // ---- ecrã de projeção no meio da parede
+    const cx = Math.round(w / 2);
+    p(cx - 85, 2, 170, 12, '#151a21');
+    p(cx - 82, 4, 164, 8, 'rgba(120,210,220,.30)');
+    p(cx - 82, 4, 164, 1, 'rgba(190,240,250,.45)');
+
+    // ---- tapete discreto sob a mesa
+    const tw = 620, th = 74;
+    const tx = Math.round((w - tw) / 2), ty = 96;
+    p(tx - 18, ty - 30, tw + 36, th + 62, 'rgba(255,255,255,.028)');
+
+    // ---- cadeiras: encosto com brilho + assento + pés
+    const cadeira = (cx2, baseY, paraBaixo) => {
+      if (!paraBaixo) {
+        p(cx2 - 18, baseY - 34, 36, 18, '#1c232d');   // contorno
+        p(cx2 - 16, baseY - 32, 32, 14, '#4e5d73');   // encosto
+        p(cx2 - 16, baseY - 32, 32, 3, '#6a7c96');    // brilho
+        p(cx2 - 4, baseY - 29, 8, 9, 'rgba(255,255,255,.05)');
+        p(cx2 - 15, baseY - 16, 30, 8, '#1c232d');    // assento
+        p(cx2 - 13, baseY - 15, 26, 6, '#39434f');
+        p(cx2 - 13, baseY - 15, 26, 1, '#4b5769');
+      } else {
+        p(cx2 - 15, baseY, 30, 8, '#1c232d');         // assento
+        p(cx2 - 13, baseY + 1, 26, 6, '#39434f');
+        p(cx2 - 13, baseY + 1, 26, 1, '#4b5769');
+        p(cx2 - 18, baseY + 8, 36, 18, '#1c232d');    // encosto
+        p(cx2 - 16, baseY + 10, 32, 14, '#4e5d73');
+        p(cx2 - 16, baseY + 10, 32, 3, '#6a7c96');
+      }
+    };
+
+    for (let i = 0; i < 4; i++) cadeira(tx + 95 + i * 150, ty - 4, false);
+    for (let i = 0; i < 4; i++) cadeira(tx + 95 + i * 150, ty + th + 6, true);
+
+    // ---- mesa
+    p(tx + 7, ty + 9, tw, th, 'rgba(0,0,0,.36)');
+    p(tx, ty, tw, th, '#6d5233');
+    p(tx, ty, tw, 4, '#9c7c4c');
+    p(tx, ty + th - 6, tw, 6, '#3f2f1c');
+    p(tx + tw / 2 - 3, ty + 5, 6, th - 11, 'rgba(0,0,0,.15)');
+
+    // ---- objetos na mesa
+    p(tx + 60, ty + 20, 34, 20, '#2f3540');          // portátil
+    p(tx + 63, ty + 23, 28, 14, '#1b2027');
+    p(tx + 63, ty + 23, 28, 1, 'rgba(255,255,255,.12)');
+    p(tx + 190, ty + 24, 44, 24, '#e8e4da');         // papéis
+    p(tx + 198, ty + 29, 28, 2, '#b9b3a6');
+    p(tx + 206, ty + 35, 20, 2, '#b9b3a6');
+    p(tx + 370, ty + 18, 15, 16, '#20252c');         // jarro
+    p(tx + 373, ty + 10, 9, 9, '#3f8a58');
+    p(tx + 376, ty + 6, 5, 5, '#5cae74');
+    p(tx + 520, ty + 26, 12, 12, '#e3e0d8');         // caneca
+    p(tx + 532, ty + 29, 3, 5, '#e3e0d8');
+    p(tx + 522, ty + 28, 8, 2, '#6b4433');
+
+    // ---- placa
+    ctx.fillStyle = 'rgba(201,162,39,.60)';
+    ctx.font = '600 11px "Segoe UI",sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText('SALA DE REUNIÃO · aqui todos se ouvem', x + 16, y + h - 8);
+  }
+
   // ---------------------------------------------------- cadeiras
   function cadeira(ctx, cx, y0, tipo = 'escritorio') {
     const B = 2;
@@ -845,6 +948,7 @@ const Visual = (() => {
 
   return {
     padrao, personagem, mesa, planta, chao, paredes, tapete,
+    salaReuniao, SALA,
     PELES, CABELOS, ROUPAS, corPele, corCabelo, corRoupa, tom,
   };
 })();

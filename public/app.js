@@ -1702,12 +1702,15 @@ function desenhar() {
 
   Visual.paredes(ctx, LARG, ALT);
 
+  // sala de reunião (zona onde o raio de distância não conta)
+  Visual.salaReuniao(ctx);
+
   // plantas decorativas
   Visual.planta(ctx, 62, 150, 1);
   Visual.planta(ctx, 62, 520, 1.1);
   Visual.planta(ctx, 1548, 140, 1.05);
   Visual.planta(ctx, 1548, 700, 0.95);
-  Visual.planta(ctx, 760, 960, 0.85);
+  Visual.planta(ctx, 1500, 900, 0.85);
 
   // quem está sentado é desenhado ANTES das mesas (fica atrás, como na vida real)
   for (const p of players.values()) {
@@ -1802,29 +1805,47 @@ function estaBloqueado(jogador) {
   return !!(d && d.locked);
 }
 
+function naSalaReuniao(p) {
+  const s = Visual.SALA;
+  return !!p && p.x > s.x && p.x < s.x + s.w && p.y > s.y && p.y < s.y + s.h;
+}
+
+let dentroDaSala = false;
+
 function gerirProximidade() {
   if (!eu || !meuStream) return;
   const p = players.get(eu.id);
   if (!p) return;
 
   const euBloqueado = estaBloqueado(p);
+  const euNaSala = naSalaReuniao(p);
+
+  if (euNaSala !== dentroDaSala) {
+    dentroDaSala = euNaSala;
+    sistema(euNaSala
+      ? 'Você entrou na sala de reunião. Aqui todos se ouvem, mesmo longe.'
+      : 'Você saiu da sala de reunião. O áudio volta a funcionar por proximidade.');
+  }
 
   for (const outro of players.values()) {
     if (outro.id === eu.id) continue;
     const dist = Math.hypot(outro.x - p.x, outro.y - p.y);
     const par = pares.get(outro.id);
 
+    // mesa trancada: só fala com quem abriu a porta
     const bloqueado = (estaBloqueado(outro) || euBloqueado) && !portasAbertas.has(outro.id);
+
+    // na sala de reunião a distância não conta: todos se ouvem
+    const ambosNaSala = euNaSala && naSalaReuniao(outro);
 
     if (bloqueado) {
       if (par) fecharPar(outro.id);
       continue;
     }
 
-    if (dist < RAIO_CONECTA && !par) {
-      // só o de id menor inicia, para não haver oferta dupla
-      criarPar(outro.id, eu.id < outro.id);
-    } else if (dist > RAIO_CORTA && par) {
+    if (ambosNaSala || dist < RAIO_CONECTA) {
+      if (!par) criarPar(outro.id, eu.id < outro.id);
+    } else if (par && dist > RAIO_CORTA) {
       fecharPar(outro.id);
     }
   }
