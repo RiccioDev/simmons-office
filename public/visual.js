@@ -498,25 +498,51 @@ const Visual = (() => {
 
     const mx = Math.round(x + w / 2);
 
-    // monitor
-    ctx.fillStyle = '#14171c';
-    ctx.fillRect(mx - 15 * B, y + 5 * B, 30 * B, 12 * B);
-    ctx.fillStyle = ocupada ? '#2f7f72' : '#213040';
-    ctx.fillRect(mx - 14 * B, y + 6 * B, 28 * B, 10 * B);
-    ctx.fillStyle = 'rgba(255,255,255,.14)';
-    ctx.fillRect(mx - 13 * B, y + 7 * B, 26 * B, B);
-    // base do monitor
-    ctx.fillStyle = '#1b1f25';
-    ctx.fillRect(mx - 4 * B, y + 17 * B, 8 * B, 2 * B);
-
-    // teclado
+    // teclado do lado de quem trabalha
     ctx.fillStyle = '#20252c';
-    ctx.fillRect(mx - 11 * B, y + 21 * B, 22 * B, 5 * B);
+    ctx.fillRect(mx - 9 * B, y + 4 * B, 18 * B, 5 * B);
+    ctx.fillStyle = 'rgba(255,255,255,.12)';
+    for (let kx = mx - 8 * B; kx < mx + 8 * B; kx += 3 * B) ctx.fillRect(kx, y + 5 * B, 2 * B, 3 * B);
+    ctx.fillStyle = '#20252c';                       // rato
+    ctx.fillRect(mx + 11 * B, y + 5 * B, 3 * B, 5 * B);
     ctx.fillStyle = 'rgba(255,255,255,.10)';
-    for (let kx = mx - 10 * B; kx < mx + 10 * B; kx += 3 * B) ctx.fillRect(kx, y + 22 * B, 2 * B, 3 * B);
-    // rato
-    ctx.fillStyle = '#20252c';
-    ctx.fillRect(mx + 13 * B, y + 22 * B, 3 * B, 4 * B);
+    ctx.fillRect(mx + 11 * B, y + 5 * B, 3 * B, B);
+
+    // luz do ecrã a bater no tampo (só com alguém a trabalhar)
+    if (ocupada) {
+      ctx.fillStyle = 'rgba(120,210,220,.10)';
+      ctx.fillRect(mx - 12 * B, y + 3 * B, 24 * B, 5 * B);
+      ctx.fillStyle = 'rgba(120,210,220,.06)';
+      ctx.fillRect(mx - 14 * B, y + 2 * B, 28 * B, 8 * B);
+    }
+
+    // monitor visto DE COSTAS (o ecrã está virado para quem se senta)
+    ctx.fillStyle = 'rgba(0,0,0,.35)';
+    ctx.fillRect(mx - 13 * B, y + 10 * B, 26 * B, 11 * B);   // sombra projectada
+    ctx.fillStyle = '#2f3540';
+    ctx.fillRect(mx - 13 * B, y + 9 * B, 26 * B, 10 * B);    // caixa
+    ctx.fillStyle = '#3f4753';
+    ctx.fillRect(mx - 13 * B, y + 9 * B, 26 * B, B);         // aresta de cima
+    ctx.fillStyle = '#232830';
+    ctx.fillRect(mx - 13 * B, y + 18 * B, 26 * B, B);        // aresta de baixo
+
+    // ranhuras de ventilação
+    ctx.fillStyle = '#4a525f';
+    for (let i = 0; i < 3; i++) ctx.fillRect(mx - 8 * B, y + 11 * B + i * 2 * B, 16 * B, B);
+
+    // marca
+    ctx.fillStyle = 'rgba(230,235,242,.45)';
+    ctx.fillRect(mx - B, y + 16 * B, 3 * B, B);
+
+    // pé do monitor (cola ao tampo)
+    ctx.fillStyle = '#1d222a';
+    ctx.fillRect(mx - 2 * B, y + 19 * B, 4 * B, 3 * B);
+    ctx.fillStyle = '#262c35';
+    ctx.fillRect(mx - 7 * B, y + 21 * B, 14 * B, 2 * B);
+
+    // cabo a descer para trás do tampo
+    ctx.fillStyle = '#12161b';
+    ctx.fillRect(mx + 13 * B, y + 14 * B, B, 6 * B);
 
     // candeeiro
     ctx.fillStyle = '#3a3f48';
