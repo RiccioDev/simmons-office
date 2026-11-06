@@ -1,0 +1,15 @@
+<!DOCTYPE html><html><head><meta charset=utf-8><style>body{margin:0;background:#1b2028}</style></head>
+<body><canvas id=c width=1150 height=560></canvas>
+<script src="pixel.js"></script><script>
+const g=document.getElementById('c').getContext('2d');g.imageSmoothingEnabled=false;
+g.fillStyle='#1b2028';g.fillRect(0,0,1150,560);
+const av={genero:'m',pele:2,cabelo:'curto',corCabelo:1,roupa:2,tipo:'terno',oculos:'nenhum',barba:true};
+const av2={genero:'f',pele:1,cabelo:'longo',corCabelo:8,roupa:6,tipo:'vestido',oculos:'nenhum',barba:false};
+const nomes=['frente','costas','esquerda','direita'];
+const E=4, L=32*E, A=48*E;
+for(let d=0;d<4;d++)for(let f=0;f<4;f++){
+  const x=40+d*280+f*0, y=40+f*130;
+  Pixel.desenhar(g, 40+d*280, 150+f*130, av, {escala:E, direcao:d, andando:f>0, passo:[0,.2,.5,.8][f]});
+}
+for(let d=0;d<4;d++) Pixel.desenhar(g, 40+d*280, 160+4*130+20, av2, {escala:E*0.8, direcao:d});
+</script></body></html>

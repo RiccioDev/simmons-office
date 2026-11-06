@@ -1004,8 +1004,9 @@ function animarPersonagens() {
     pl.aAndar = !!moveu;
     if (moveu) {
       pl.passo = ((pl.passo || 0) + 0.038) % 1;
-      const dx = pl.x - antes.x;
-      if (Math.abs(dx) > 0.4) pl.dir = dx < 0 ? -1 : 1;
+      const dx = pl.x - antes.x, dy = pl.y - antes.y;
+      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 0.4) pl.dir = dx < 0 ? 2 : 3;   // 2 esquerda · 3 direita
+      else if (Math.abs(dy) > 0.4) pl.dir = dy < 0 ? 1 : 0;                              // 1 costas · 0 frente
     }
     ultimasPos.set(pl.id, { x: pl.x, y: pl.y });
   }
@@ -1723,16 +1724,16 @@ function desenhar() {
 
     // se alguém está de pé à frente da mesa, a cadeira não aparece (a pessoa ocupa o lugar)
     const alguemEmPe = [...players.values()].some(pl => !pl.sitting
-      && Math.abs(pl.x - (d.x + d.w / 2)) < 50
-      && pl.y > d.y + d.h - 30 && pl.y < d.y + d.h + 70);
+      && Math.abs(pl.x - (d.x + d.w / 2)) < 34
+      && pl.y > d.y + d.h - 18 && pl.y < d.y + d.h + 44);
 
     Visual.mesa(ctx, d, { minha, trancada: !!d.locked, ocupada: !!d.occupied || alguemEmPe });
 
     if (d.locked && d.occupied) {
       ctx.fillStyle = 'rgba(232,168,90,.9)';
-      ctx.font = '600 11px "Segoe UI",sans-serif';
+      ctx.font = '600 6px "Segoe UI",sans-serif';
       ctx.textAlign = 'left';
-      ctx.fillText('porta fechada · K para bater', d.x + 12, d.y + d.h + 20);
+      ctx.fillText('porta fechada · K para bater', d.x + 6, d.y + d.h + 12);
     }
   }
 
@@ -1758,23 +1759,23 @@ function desenharJogador(p) {
     }
 
     Pixel.desenhar(ctx, p.x, p.y + (p.sitting ? 8 : 26), avatarDe(p), {
-      dir: p.dir || 1,
+      direcao: typeof p.dir === 'number' && p.dir >= 0 ? p.dir : 0,
       passo: p.passo || 0,
       andando: !!p.aAndar,
       sentado: !!p.sitting,
-      escala: 1.9,
+      escala: 1.15,
     });
 
     ctx.textBaseline = 'alphabetic';
-    ctx.font = '600 12.5px "Segoe UI",sans-serif';
+    ctx.font = '600 9px "Segoe UI",sans-serif';
     ctx.textAlign = 'center';
     const largura = ctx.measureText(p.name).width;
     ctx.fillStyle = 'rgba(10,13,18,.82)';
     ctx.beginPath();
-    ctx.roundRect(p.x - largura / 2 - 7, p.y + 33, largura + 14, 19, 6);
+    ctx.roundRect(p.x - largura / 2 - 5, p.y + 20, largura + 10, 13, 4);
     ctx.fill();
     ctx.fillStyle = souEu ? '#e5c25c' : '#cfd6df';
-    ctx.fillText(p.name, p.x, p.y + 47);
+    ctx.fillText(p.name, p.x, p.y + 30);
 
     if (p.muted) {
       ctx.font = '11px "Segoe UI Emoji",sans-serif';
@@ -2417,30 +2418,16 @@ let canvasCss = { w: 800, h: 600 };
 // No computador continua a caber tudo, como sempre.
 let camera = { x: LARG / 2, y: ALT / 2 };
 
+const ZOOM_MAPA = () => (ehEcraPequeno() ? 2.1 : 1.85);
+
 function modoCamera() {
-  // só em telas verticais (celular/tablet em pé).
-  // deitado ou no computador mostra-se o mapa inteiro.
-  return ehEcraPequeno() && window.innerHeight > 480;
+  return true;   // a câmara segue sempre o avatar
 }
 
 function caixaDoMapa() {
-  // Computador: mostra o mapa inteiro, sem esticar (mantém a proporção 16:10).
-  if (!modoCamera()) {
-    const e = Math.min(canvasCss.w / LARG, canvasCss.h / ALT);
-    return {
-      sx: e,
-      sy: e,
-      offX: (canvasCss.w - LARG * e) / 2,
-      offY: (canvasCss.h - ALT * e) / 2,
-    };
-  }
-
-  // Telemóvel/tablet: mostra ~780 unidades de largura e segue o avatar.
-  // Só segue nos eixos em que o mapa é maior que o tela (senão ficaria deslocado).
-  // escala que enche o ecrã (sem faixas pretas); a câmara segue o avatar
-  const vista = canvasCss.w < 520 ? 900 : 1200;
-  const e = Math.max(canvasCss.w / vista, canvasCss.h / ALT);
-
+  // Câmara com zoom fixo que segue o avatar (como no WorkAdventure):
+  // o mapa deixa de caber todo no ecrã e passa a rolar.
+  const e = ZOOM_MAPA();
   const largVis = canvasCss.w / e;
   const altVis = canvasCss.h / e;
 

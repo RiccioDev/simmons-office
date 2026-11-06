@@ -75,6 +75,14 @@ Se entrares com a mesma conta no computador e no celular, **não aparecem dois b
 é o mesmo personagem, na mesma posição. Podes andar de qualquer um dos aparelhos — o outro
 acompanha. O boneco só sai do escritório quando o **último** aparelho fecha.
 
+## Câmara e personagens (estilo WorkAdventure)
+
+O mapa já não cabe todo no ecrã: a **câmara segue o avatar com zoom** (1,85 no
+computador, 2,1 no celular), como no WorkAdventure. O escritório passa a rolar.
+
+Os personagens têm **quatro direções** (frente, costas, esquerda, direita) com ciclo de
+caminhada em cada uma — de costas vê-se a nuca e a gola, de perfil um olho só e o nariz.
+
 ## O escritório
 
 Na primeira vez que entras, abre o criador de personagem — e podes voltar sempre pelo botão
@@ -120,6 +128,14 @@ A escolha fica guardada na conta e aparece em todos os aparelhos.
 Se entrares com a mesma conta no computador e no celular, **não aparecem dois bonecos**:
 é o mesmo personagem, na mesma posição. Podes andar de qualquer um dos aparelhos — o outro
 acompanha. O boneco só sai do escritório quando o **último** aparelho fecha.
+
+## Câmara e personagens (estilo WorkAdventure)
+
+O mapa já não cabe todo no ecrã: a **câmara segue o avatar com zoom** (1,85 no
+computador, 2,1 no celular), como no WorkAdventure. O escritório passa a rolar.
+
+Os personagens têm **quatro direções** (frente, costas, esquerda, direita) com ciclo de
+caminhada em cada uma — de costas vê-se a nuca e a gola, de perfil um olho só e o nariz.
 
 ## O escritório
 

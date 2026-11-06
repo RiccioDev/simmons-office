@@ -21,10 +21,10 @@ function mesasIniciais() {
       mesas.push({
         id: n,
         label: 'Mesa ' + n,
-        x: 110 + col * 215,
-        y: fila === 0 ? 180 : 560,
-        w: 180,
-        h: 90,
+        x: 80 + col * 150,
+        y: fila === 0 ? 170 : 430,
+        w: 110,
+        h: 56,
         owner: '',      // nome de quem é a mesa
         locked: false,  // fechada = só o dono se senta
         occupied: '',   // id de quem está sentado agora
@@ -711,7 +711,7 @@ wss.on('connection', (ws) => {
         p.sitting = true;
         p.deskId = d.id;
         p.x = d.x + d.w / 2;
-        p.y = d.y + 34;   // sentado atrás da mesa (a mesa desenha-se por cima)
+        p.y = d.y + 20;   // sentado atrás da mesa (a mesa desenha-se por cima)
         broadcastEstado();
         break;
       }
@@ -723,7 +723,7 @@ wss.on('connection', (ws) => {
         p.sitting = false;
         p.deskId = null;
         p.x = Math.max(40, Math.min(1560, p.x));
-        p.y = Math.min(960, p.y + 90);   // levanta-se e sai para a frente da mesa
+        p.y = Math.min(960, p.y + 56);   // levanta-se e sai para a frente da mesa
         broadcastEstado();
         break;
       }

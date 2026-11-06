@@ -367,18 +367,18 @@ const Visual = (() => {
   function chao(ctx, largura, altura) {
     // piso em blocos (2 unidades = 1 "pixel" grande), estilo pixel art
     const B = 2;                       // tamanho do bloco
-    const tabua = 46;                  // altura da tábua (em unidades)
+    const tabua = 26;                  // altura da tábua (em unidades)
 
     ctx.fillStyle = '#54402a';
     ctx.fillRect(0, 0, largura, altura);
 
     for (let y = 0; y < altura; y += tabua) {
       const linha = Math.round(y / tabua);
-      for (let x = 0; x < largura; x += 14 * B) {
+      for (let x = 0; x < largura; x += 9 * B) {
         const semente = Math.abs(Math.sin(x * 0.013 + linha * 1.7));
         const claro = semente > 0.55;
         ctx.fillStyle = claro ? 'rgba(255,236,196,.075)' : 'rgba(0,0,0,.035)';
-        ctx.fillRect(x, y + B, 14 * B - B, tabua - B * 2);
+        ctx.fillRect(x, y + B, 9 * B - B, tabua - B * 2);
       }
 
       // veio
@@ -471,12 +471,18 @@ const Visual = (() => {
   };
 
   function mesa(ctx, d, estado = {}) {
-    const { x, y, w, h } = d;
+    let { x, y, w, h } = d;
+    const k = w / 180;                     // escala da mesa (a arte é desenhada em 180x90)
     const minha = !!estado.minha;
     const trancada = !!estado.trancada;
     const ocupada = !!estado.ocupada;
     const est = d.estilo || {};
     const B = 2;
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(k, k);
+    x = 0; y = 0; w = 180; h = 90;
 
     const pal = TAMPOS[est.mesa] || TAMPOS.carvalho;
     const tampo = trancada ? tom(pal.tampo, 0.88) : pal.tampo;
@@ -536,6 +542,8 @@ const Visual = (() => {
 
     // cadeira (com alguém sentado não se vê: a pessoa está lá)
     if (!ocupada) cadeira(ctx, mx, y + h - 2 * B, est.cadeira);
+
+    ctx.restore();
   }
 
   // ---------------------------------------------------- computador (de costas)
@@ -719,7 +727,7 @@ const Visual = (() => {
   // ---------------------------------------------------- sala de reunião
   // fica à direita do escritório: caminha-se para a direita para entrar.
   // Aqui o raio de distância não conta — todos se ouvem.
-  const SALA = { x: 1236, y: 150, w: 348, h: 680 };
+  const SALA = { x: 930, y: 140, w: 380, h: 700 };
 
   function salaReuniao(ctx) {
     const { x, y, w, h } = SALA;

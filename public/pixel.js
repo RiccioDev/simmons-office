@@ -43,7 +43,7 @@ const Pixel = (() => {
 
   // ---------------------------------------------------------------- pernas
   // 0 = parado, 1 = passo esquerdo, 2 = passagem, 3 = passo direito
-  function pernas(g, av, frame, c) {
+  function pernas(g, av, frame, c, dir = 0) {
     const calca = tom(c.roupa, 0.5);
     const calcaLuz = tom(c.roupa, 0.63);
     const sapato = '#23262c';
@@ -63,11 +63,23 @@ const Pixel = (() => {
       return;
     }
 
-    let esq = 0, dir = 0, sobeEsq = 0, sobeDir = 0;
+    let esq = 0, dirP = 0, sobeEsq = 0, sobeDir = 0;
 
-    if (frame === 1) { esq = -2; dir = 2; sobeEsq = 1; }
-    else if (frame === 3) { esq = 2; dir = -2; sobeDir = 1; }
-    else if (frame === 2 || frame === 4) { esq = -1; dir = 1; }
+    if (frame === 1) { esq = -2; dirP = 2; sobeEsq = 1; }
+    else if (frame === 3) { esq = 2; dirP = -2; sobeDir = 1; }
+    else if (frame === 2 || frame === 4) { esq = -1; dirP = 1; }
+
+    // de perfil: pernas mais estreitas e uma à frente da outra
+    if (dir === 2 || dir === 3) {
+      const frente = frame === 1 ? 3 : (frame === 3 ? -3 : 0);
+      px(g, 13 + frente, 33, 4, 8, calca);
+      px(g, 13 + frente, 33, 1, 8, calcaLuz);
+      px(g, 12 + frente, 41, 6, 3, sapato);
+      px(g, 12 + frente, 41, 6, 1, sapatoLuz);
+      px(g, 16 - frente, 33, 4, 8, tom(calca, 0.85));
+      px(g, 15 - frente, 41, 6, 3, tom(sapato, 0.9));
+      return;
+    }
 
     px(g, 10 + esq, 34, 4, 8 - sobeEsq, calca);
     px(g, 10 + esq, 34, 1, 8 - sobeEsq, calcaLuz);
@@ -104,7 +116,7 @@ const Pixel = (() => {
   }
 
   // ---------------------------------------------------------------- tronco
-  function tronco(g, av, frame, c) {
+  function tronco(g, av, frame, c, dir = 0) {
     const base = c.roupa;
     const claro = tom(base, 1.15);
     const escuro = tom(base, 0.72);
@@ -168,6 +180,43 @@ const Pixel = (() => {
       for (let i = 0; i < 3; i++) px(g, 15, 25 + i * 3, 1, 1, tom(base, 1.42));
     }
 
+    // de costas: sem gravata, sem botões — só a gola
+    if (dir === 1) {
+      px(g, 9, 20, 14, 14, base);
+      px(g, 9, 20, 14, 2, tom(base, 0.72));      // gola atrás
+      px(g, 12, 20, 8, 3, escuro);
+      px(g, 9, 20, 1, 14, claro);
+      px(g, 22, 20, 1, 14, escuro);
+      px(g, 15, 23, 1, 10, tom(base, 0.86));     // costura central
+      px(g, 7, 21 + bEsq, 2, 11, tom(base, 0.8));
+      px(g, 23, 21 + bDir, 2, 11, tom(base, 0.62));
+      px(g, 7, 32 + bEsq, 2, 3, c.pele);
+      px(g, 23, 32 + bDir, 2, 3, c.pele);
+      return;
+    }
+
+    // de perfil: corpo mais estreito, um braço só
+    if (dir === 2 || dir === 3) {
+      px(g, 12, 20, 9, 14, base);
+      px(g, 12, 20, 1, 14, claro);
+      px(g, 20, 20, 1, 14, escuro);
+      if (tipo === 'terno' || tipo === 'blazer') {
+        px(g, 16, 20, 3, 3, '#f2efe7');
+        px(g, 17, 23, 2, 9, '#f2efe7');
+        px(g, 13, 20, 3, 9, tom(base, 0.8));
+      } else if (tipo === 'moletom') {
+        px(g, 12, 22, 8, 6, escuro);
+        px(g, 14, 21, 1, 4, '#efece4');
+      } else if (tipo === 'vestido') {
+        px(g, 13, 20, 4, 3, c.pele);
+      } else {
+        for (let i = 0; i < 3; i++) px(g, 17, 25 + i * 3, 1, 1, tom(base, 1.4));
+      }
+      px(g, 17, 21, 2, 11, tom(base, 0.86));     // braço da frente
+      px(g, 17, 32, 2, 3, c.pele);
+      return;
+    }
+
     // mangas e mãos
     if (tipo === 'vestido') {
       px(g, 9, 21 + bEsq, 2, 2, base);        // ombro
@@ -186,7 +235,7 @@ const Pixel = (() => {
   }
 
   // ---------------------------------------------------------------- cabeça
-  function cabeca(g, av, c) {
+  function cabeca(g, av, c, dir = 0) {
     const pele = c.pele;
     const sombra = tom(pele, 0.84);
     const luz = tom(pele, 1.09);
@@ -227,6 +276,54 @@ const Pixel = (() => {
     // boca (escondida quando há barba)
     if (!av.barba) px(g, 15, 15, 2, 1, tom(pele, 0.52));
 
+    if (dir === 1) {
+      // de costas: nuca, sem rosto
+      px(g, 10, 6, 12, 12, pele);
+      px(g, 10, 6, 2, 12, luz);
+      px(g, 20, 6, 2, 12, sombra);
+      px(g, 9, 11, 1, 3, sombra);
+      px(g, 22, 11, 1, 3, sombra);
+      cabelo(g, av, c);
+      px(g, 10, 6, 12, 9, c.cabelo);           // cabelo cobre a nuca
+      px(g, 10, 6, 12, 2, tom(c.cabelo, 1.2));
+      px(g, 12, 12, 8, 1, tom(c.cabelo, 0.72));
+      return;
+    }
+
+    if (dir === 2 || dir === 3) {
+      // de perfil: um olho, nariz saliente, orelha atrás
+      px(g, 11, 6, 10, 12, pele);
+      px(g, 11, 6, 2, 12, luz);
+      px(g, 19, 6, 2, 12, sombra);
+      px(g, 10, 11, 1, 3, sombra);             // orelha
+      px(g, 21, 12, 2, 2, sombra);             // nariz
+      px(g, 21, 14, 1, 1, escuro);
+      // olho
+      px(g, 16, 11, 3, 2, '#f8f8f8');
+      px(g, 18, 11, 1, 2, '#20242a');
+      px(g, 16, 9, 3, 1, tom(c.cabelo, 0.75));  // sobrancelha
+      // boca
+      if (!av.barba) px(g, 18, 15, 2, 1, tom(pele, 0.52));
+      if (av.barba) {
+        px(g, 14, 14, 7, 1, c.cabelo);
+        px(g, 13, 12, 1, 4, tom(c.cabelo, 0.78));
+        px(g, 14, 16, 6, 1, c.cabelo);
+        px(g, 15, 17, 5, 1, tom(c.cabelo, 0.78));
+      }
+      cabelo(g, av, c, dir);
+      if (av.oculos === 'escuro' || av.oculos === 'sol') {
+        px(g, 15, 10, 5, 3, '#1a1d22');
+        px(g, 15, 10, 5, 1, '#2b3038');
+        px(g, 16, 11, 1, 1, 'rgba(255,255,255,.4)');
+      } else if (av.oculos === 'redondo') {
+        px(g, 15, 10, 1, 3, '#2a2e35');
+        px(g, 19, 10, 1, 3, '#2a2e35');
+        px(g, 16, 9, 3, 1, '#2a2e35');
+        px(g, 16, 13, 3, 1, '#2a2e35');
+      }
+      return;
+    }
+
     if (av.barba) barba(g, av, c);
     cabelo(g, av, c);
     oculos(g, av);
@@ -253,7 +350,7 @@ const Pixel = (() => {
     px(g, 15, 16, 2, 1, peleEscura);
   }
 
-  function cabelo(g, av, c) {
+  function cabelo(g, av, c, dir = 0) {
     const cor = c.cabelo;
     const escuro = tom(cor, 0.72);
     const claro = tom(cor, 1.2);
@@ -270,6 +367,24 @@ const Pixel = (() => {
 
     if (estilo === 'careca') {
       px(g, 10, 6, 12, 1, tom(c.pele, 0.92));
+      return;
+    }
+
+    // de perfil: o cabelo cobre a parte de trás da cabeça
+    if (dir === 2 || dir === 3) {
+      px(g, 10, 5, 11, 4, cor);
+      px(g, 10, 5, 5, 10, cor);
+      px(g, 10, 5, 3, 2, claro);
+      px(g, 13, 8, 3, 2, escuro);
+      if (estilo === 'longo' || estilo === 'rabo') {
+        px(g, 10, 8, 3, 12, escuro);
+        px(g, 9, 12, 2, 9, cor);
+      }
+      if (estilo === 'coque') px(g, 12, 2, 4, 3, cor);
+      if (estilo === 'afro') {
+        px(g, 8, 3, 12, 6, cor);
+        px(g, 9, 2, 8, 2, claro);
+      }
       return;
     }
 
@@ -357,8 +472,8 @@ const Pixel = (() => {
     px(g, 16 - larg / 2, 46, larg, 2, 'rgba(0,0,0,.32)');
   }
 
-  function sprite(av, frame = 0) {
-    const chave = JSON.stringify([av, frame]);
+  function sprite(av, frame = 0, dir = 0) {
+    const chave = JSON.stringify([av, frame, dir]);
     if (cache.has(chave)) return cache.get(chave);
 
     const { c: canvas, g } = novoDesenho();
@@ -369,13 +484,13 @@ const Pixel = (() => {
     };
 
     sombra(g, frame);
-    pernas(g, av, frame, cores);
+    pernas(g, av, frame, cores, dir);
 
     // balanço do corpo nos passos
     g.save();
     if (frame === 1 || frame === 3) g.translate(0, -1);
-    tronco(g, av, frame, cores);
-    cabeca(g, av, cores);
+    tronco(g, av, frame, cores, dir);
+    cabeca(g, av, cores, dir);
     g.restore();
 
     cache.set(chave, canvas);
@@ -385,7 +500,8 @@ const Pixel = (() => {
 
   function desenhar(ctx, x, y, av, opcoes = {}) {
     const frame = opcoes.sentado ? 5 : (opcoes.andando ? 1 + Math.min(3, ((opcoes.passo || 0) * 4) | 0) : 0);
-    const img = sprite(av || padrao(), frame);
+    const dir = opcoes.direcao || 0;          // 0 frente · 1 costas · 2 esquerda · 3 direita
+    const img = sprite(av || padrao(), frame, dir);
     const escala = opcoes.escala || 2;
     const largura = LARG * escala;
     const altura = ALT * escala;
@@ -393,7 +509,7 @@ const Pixel = (() => {
     ctx.save();
     ctx.imageSmoothingEnabled = false;
 
-    if (opcoes.dir === -1) {
+    if (dir === 2) {
       ctx.translate(Math.round(x), 0);
       ctx.scale(-1, 1);
       ctx.drawImage(img, Math.round(-largura / 2), Math.round(y - altura), largura, altura);
