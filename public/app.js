@@ -1680,6 +1680,26 @@ ligarClique('btnCriarConta', 'onclick', async () => {
 
 const RAIO_CORPO = 11;
 
+// caixas de colisão do mobiliário fixo: [x, y, largura, altura]
+const MOVEIS_SOLIDOS = [
+  // gabinete
+  { x: 222, y: 180, w: 120, h: 58 },    // estantes
+  { x: 340, y: 204, w: 64, h: 96 },     // mesa
+  // copa
+  { x: 548, y: 152, w: 300, h: 50 },    // bancada
+  { x: 869, y: 240, w: 110, h: 46 },    // sofá da copa
+  { x: 680, y: 236, w: 44, h: 34 },     // ilha da copa
+  // recepção
+  { x: 74, y: 738, w: 180, h: 58 },     // balcão
+  { x: 183, y: 846, w: 60, h: 40 },     // mesa de espera
+  // lounge
+  { x: 1070, y: 764, w: 120, h: 40 },   // sofá de cima
+  { x: 1070, y: 884, w: 120, h: 40 },   // sofá de baixo
+  { x: 1112, y: 838, w: 60, h: 38 },    // mesa de centro
+  // sala de reunião
+  { x: 1198, y: 178, w: 64, h: 118 },   // mesa comprida
+];
+
 // sólidos: paredes, mesas, mesa da sala e sofá
 function bloqueado(x, y, sentado) {
   if (x < 26 + RAIO_CORPO || x > LARG - 26 - RAIO_CORPO) return true;
@@ -1691,13 +1711,20 @@ function bloqueado(x, y, sentado) {
         y > d.y + 34 - RAIO_CORPO && y < d.y + d.h) return true;
   }
 
-  const s = Visual.SALA;
-  const E = 0.62;
-  const tx = s.x + (s.w - 140 * E) / 2, ty = s.y + 128 * E;
-  if (x > tx - 8 && x < tx + 148 * E && y > ty - 10 && y < ty + 452 * E) return true;
+  // paredes interiores (alvenaria e vidro), com os vãos de porta
+  const mapa = Visual.MAPA;
+  if (mapa && Array.isArray(mapa.paredes)) {
+    for (const w of mapa.paredes) {
+      if (x > w.x - RAIO_CORPO && x < w.x + w.w + RAIO_CORPO &&
+          y > w.y - RAIO_CORPO && y < w.y + w.h + RAIO_CORPO) return true;
+    }
+  }
 
-  // sofá
-  if (x > 800 && x < 950 && y > 646 && y < 706) return true;
+  // mobiliário sólido (mesas de apoio, sofás, balcões)
+  for (const m of MOVEIS_SOLIDOS) {
+    if (x > m.x - RAIO_CORPO && x < m.x + m.w + RAIO_CORPO &&
+        y > m.y - RAIO_CORPO && y < m.y + m.h + RAIO_CORPO) return true;
+  }
 
   return false;
 }
@@ -1742,18 +1769,14 @@ function desenhar() {
   Visual.chao(ctx, LARG + 640, ALT + 640);
   ctx.restore();
 
+  Visual.pisosZonas(ctx);
   Visual.paredes(ctx, LARG, ALT);
+  Visual.paredesInteriores(ctx);
 
   // móveis do escritório (tapete, estante, café, sofá, plantas)
   Visual.objetos(ctx);
 
-  // sala de reunião: o chão e a parede de vidro ficam no fundo
   Visual.salaChao(ctx);
-
-  // plantas decorativas
-  Visual.planta(ctx, 62, 130, 1);
-  Visual.planta(ctx, 62, 760, 1.1);
-  Visual.planta(ctx, 770, 940, 0.85);
 
   // ---- tudo o que tem profundidade: ordenado pelo "pé" de cada coisa
   const desenhos = [];
@@ -1792,6 +1815,9 @@ function desenhar() {
 
   desenhos.sort((a, b) => a.y - b.y);
   for (const item of desenhos) item.f();
+
+  // rótulos das zonas por cima de tudo
+  Visual.rotulos(ctx);
 }
 
 // desenha um boneco (com a etiqueta do nome, microfone e partilha)
