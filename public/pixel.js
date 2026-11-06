@@ -7,6 +7,47 @@ const Pixel = (() => {
   const ALT = 48;
   const cache = new Map();
 
+  // ---------------------------------------------------------------- sprites prontos
+  // folhas 96x128 (3 quadros x 4 direções), 32x32 por quadro
+  const SPRITES = new Map();
+  const LISTA_SPRITES = [];
+  for (let i = 1; i <= 8; i++) {
+    LISTA_SPRITES.push('Female_' + String(i).padStart(2, '0') + '-1');
+    LISTA_SPRITES.push('Male_' + String(i).padStart(2, '0') + '-1');
+  }
+
+  function carregarSprites(lista) {
+    const nomes = lista || LISTA_SPRITES;
+    return Promise.all(nomes.map((n) => new Promise((ok) => {
+      if (SPRITES.has(n)) return ok();
+      const img = new Image();
+      img.onload = () => { SPRITES.set(n, img); ok(); };
+      img.onerror = () => ok();
+      img.src = 'sprites/' + n + '.png';
+    })));
+  }
+
+  // desenha um quadro da folha: dir 0 frente · 1 costas · 2 esquerda · 3 direita
+  function desenharSprite(ctx, x, y, nome, escala, dir, andando, passo) {
+    const img = SPRITES.get(nome);
+    if (!img) return false;
+
+    const linha = dir === 1 ? 3 : dir === 2 ? 1 : dir === 3 ? 2 : 0;
+    let coluna = 0;
+    if (andando) coluna = [1, 2, 1, 0][Math.min(3, Math.floor((passo || 0) * 4))];
+
+    const e = escala;
+    const w = 32 * e, h = 32 * e;
+    const px0 = Math.round(x - w / 2);
+    const py0 = Math.round(y - h + 2 * e);
+
+    ctx.save();
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(img, coluna * 32, linha * 32, 32, 32, px0, py0, w, h);
+    ctx.restore();
+    return true;
+  }
+
   // ---------------------------------------------------------------- paletas
   const PELES = ['#f6d7b4', '#eec49b', '#dda87c', '#c68a5e', '#a96942', '#8a5030', '#6b3a21', '#4a2515'];
   const CABELOS = ['#171412', '#2f1c12', '#4a2b17', '#6d4526', '#9c6b3b', '#c99a5a', '#e0c07a', '#a8a8a8', '#8e3a2c'];
@@ -507,6 +548,21 @@ const Pixel = (() => {
   function desenhar(ctx, x, y, av, opcoes = {}) {
     const frame = opcoes.sentado ? 5 : (opcoes.andando ? 1 + Math.min(3, ((opcoes.passo || 0) * 4) | 0) : 0);
     const dir = opcoes.direcao || 0;          // 0 frente · 1 costas · 2 esquerda · 3 direita
+
+    // folha pronta (estilo WorkAdventure)
+    if (av && av.sprite && SPRITES.has(av.sprite)) {
+      const escala = (opcoes.escala || 1.15) * 1.55;
+      const sombraL = 12 * escala;
+      ctx.save();
+      ctx.fillStyle = 'rgba(0,0,0,.28)';
+      ctx.beginPath();
+      ctx.ellipse(Math.round(x), Math.round(y + 1), sombraL, sombraL * 0.42, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      desenharSprite(ctx, x, y, av.sprite, escala, dir, !!opcoes.andando, opcoes.passo || 0);
+      return;
+    }
+
     const img = sprite(av || padrao(), frame, dir);
     const escala = opcoes.escala || 2;
     const largura = LARG * escala;
@@ -525,7 +581,8 @@ const Pixel = (() => {
     ctx.restore();
   }
 
-  return { desenhar, sprite, padrao, PELES, CABELOS, ROUPAS, tom, LARG, ALT };
+  return { desenhar, sprite, padrao, carregarSprites, desenharSprite, SPRITES, LISTA_SPRITES,
+           PELES, CABELOS, ROUPAS, tom, LARG, ALT };
 })();
 
 if (typeof window !== 'undefined') window.Pixel = Pixel;

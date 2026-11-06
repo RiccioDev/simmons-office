@@ -75,6 +75,14 @@ Se entrares com a mesma conta no computador e no celular, **não aparecem dois b
 é o mesmo personagem, na mesma posição. Podes andar de qualquer um dos aparelhos — o outro
 acompanha. O boneco só sai do escritório quando o **último** aparelho fecha.
 
+## Personagens
+
+Os personagens são as folhas do **WorkAdventure** (arte de **Pipoya**), com 16 modelos,
+quatro direções e três quadros de caminhada por direção. Ficam em `public/sprites/`,
+numa grelha de 3×4 quadros de 32×32.
+
+Os bonecos desenhados por código continuam como reserva, para avatares antigos.
+
 ## Câmara e personagens (estilo WorkAdventure)
 
 O mapa já não cabe todo no ecrã: a **câmara segue o avatar com zoom** (1,85 no
@@ -128,6 +136,14 @@ A escolha fica guardada na conta e aparece em todos os aparelhos.
 Se entrares com a mesma conta no computador e no celular, **não aparecem dois bonecos**:
 é o mesmo personagem, na mesma posição. Podes andar de qualquer um dos aparelhos — o outro
 acompanha. O boneco só sai do escritório quando o **último** aparelho fecha.
+
+## Personagens
+
+Os personagens são as folhas do **WorkAdventure** (arte de **Pipoya**), com 16 modelos,
+quatro direções e três quadros de caminhada por direção. Ficam em `public/sprites/`,
+numa grelha de 3×4 quadros de 32×32.
+
+Os bonecos desenhados por código continuam como reserva, para avatares antigos.
 
 ## Câmara e personagens (estilo WorkAdventure)
 

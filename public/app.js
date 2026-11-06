@@ -2029,22 +2029,19 @@ let avatarEmEdicao = null;
 function montarCriadorAvatar() {
   const modal = $('modalAparencia');
   if (!modal) return;
-
   const previa = $('previaAvatar');
+  if (!previa) return;
   const ctxp = previa.getContext('2d');
-
-  const copia = () => JSON.parse(JSON.stringify(avatarEmEdicao));
 
   const pintar = () => {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const w = previa.clientWidth || 200;
-    const h = previa.clientHeight || 236;
+    const w = previa.clientWidth || 220;
+    const h = previa.clientHeight || 260;
     previa.width = w * dpr;
     previa.height = h * dpr;
     ctxp.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctxp.clearRect(0, 0, w, h);
 
-    // palco: chão escuro com brilho suave ao centro
     const grad = ctxp.createRadialGradient(w / 2, h * 0.55, 10, w / 2, h * 0.55, Math.max(w, h) * 0.6);
     grad.addColorStop(0, '#252b35');
     grad.addColorStop(1, '#151a21');
@@ -2052,94 +2049,50 @@ function montarCriadorAvatar() {
     ctxp.fillRect(0, 0, w, h);
 
     ctxp.imageSmoothingEnabled = false;
-    const escala = Math.max(2, Math.floor(Math.min((w - 22) / Pixel.LARG, (h - 30) / Pixel.ALT)));
-    Pixel.desenhar(ctxp, w / 2, h - 24, avatarEmEdicao, { escala, dir: 1 });
+    Pixel.desenhar(ctxp, w / 2, h - 26, avatarEmEdicao, { escala: 3.4, direcao: 0 });
   };
   pintarPreviaAtual = pintar;
 
-  // ---- opções
-  const marcar = (id, valor) => {
-    document.querySelectorAll('#' + id + ' button').forEach(b => {
-      b.classList.toggle('escolhido', String(b.dataset.v) === String(valor));
+  const marcar = (valor) => {
+    document.querySelectorAll('#opPersonagens button').forEach(b => {
+      b.classList.toggle('escolhido', b.dataset.v === valor);
     });
   };
 
-  document.querySelectorAll('#opGenero button').forEach(b => {
-    aoTocar(b, () => { avatarEmEdicao.genero = b.dataset.v; marcar('opGenero', b.dataset.v); pintar(); });
-  });
+  const grid = $('opPersonagens');
+  if (grid && !grid.children.length) {
+    grid.innerHTML = Pixel.LISTA_SPRITES.map(nome =>
+      '<button data-v="' + nome + '" title="' + nome.replace(/_/g, ' ').replace('-1', '') +
+      '" style="background-image:url(sprites/' + nome + '.png)"></button>'
+    ).join('');
 
-  const opCabelo = $('opCabelo');
-  opCabelo.querySelectorAll('button').forEach(b => {
-    aoTocar(b, () => { avatarEmEdicao.cabelo = b.dataset.v; marcar('opCabelo', b.dataset.v); pintar(); });
-  });
-
-  document.querySelectorAll('#opTipo button').forEach(b => {
-    aoTocar(b, () => { avatarEmEdicao.tipo = b.dataset.v; marcar('opTipo', b.dataset.v); pintar(); });
-  });
-
-  document.querySelectorAll('#opBarba button').forEach(b => {
-    aoTocar(b, () => { avatarEmEdicao.barba = b.dataset.v === 'sim'; marcar('opBarba', b.dataset.v); pintar(); });
-  });
-
-  document.querySelectorAll('#opOculos button').forEach(b => {
-    aoTocar(b, () => { avatarEmEdicao.oculos = b.dataset.v; marcar('opOculos', b.dataset.v); pintar(); });
-  });
-
-  const montarCores = (id, cores, campo) => {
-    const alvo = $(id);
-    alvo.classList.add('cores');
-    alvo.innerHTML = cores.map((c, i) => '<button data-v="' + i + '" style="background:' + c + '"></button>').join('');
-    alvo.querySelectorAll('button').forEach(b => {
-      aoTocar(b, () => { avatarEmEdicao[campo] = Number(b.dataset.v); marcar(id, b.dataset.v); pintar(); });
+    grid.querySelectorAll('button').forEach(b => {
+      aoTocar(b, () => {
+        avatarEmEdicao = { sprite: b.dataset.v };
+        marcar(b.dataset.v);
+        pintar();
+      });
     });
-  };
-  montarCores('opPele', Pixel.PELES, 'pele');
-  montarCores('opCorCabelo', Pixel.CABELOS, 'corCabelo');
-  montarCores('opRoupa', Pixel.ROUPAS, 'roupa');
+  }
 
-  // ---- abrir
-  window.abrirAparencia = () => {
-    avatarEmEdicao = meuAvatar ? JSON.parse(JSON.stringify(meuAvatar)) : Pixel.padrao();
-    marcar('opGenero', avatarEmEdicao.genero);
-    marcar('opCabelo', avatarEmEdicao.cabelo);
-    marcar('opPele', avatarEmEdicao.pele);
-    marcar('opTipo', avatarEmEdicao.tipo || 'camisa');
-    marcar('opOculos', avatarEmEdicao.oculos || 'nenhum');
-    marcar('opBarba', avatarEmEdicao.barba ? 'sim' : 'nao');
-    marcar('opCorCabelo', avatarEmEdicao.corCabelo);
-    marcar('opRoupa', avatarEmEdicao.roupa);
+  const abrir = () => {
+    const atual = meuAvatar && meuAvatar.sprite ? meuAvatar : { sprite: Pixel.LISTA_SPRITES[2] };
+    avatarEmEdicao = JSON.parse(JSON.stringify(atual));
+    marcar(avatarEmEdicao.sprite);
     modal.classList.remove('oculto');
     setTimeout(pintar, 30);
   };
+  window.abrirAparencia = abrir;
 
-  // ---- acções
   aoTocar($('btnAleatorio'), () => {
-    avatarEmEdicao = {
-      genero: Math.random() < 0.5 ? 'f' : 'm',
-      pele: Math.floor(Math.random() * Pixel.PELES.length),
-      cabelo: ['curto', 'longo', 'coque', 'franja', 'afro', 'rabo', 'careca'][Math.floor(Math.random() * 7)],
-      corCabelo: Math.floor(Math.random() * Pixel.CABELOS.length),
-      roupa: Math.floor(Math.random() * Pixel.ROUPAS.length),
-      tipo: ['camisa', 'terno', 'blazer', 'moletom', 'vestido', 'uniforme'][Math.floor(Math.random() * 6)],
-      oculos: ['nenhum', 'nenhum', 'redondo', 'escuro', 'sol'][Math.floor(Math.random() * 5)],
-      barba: Math.random() < 0.3,
-    };
-    marcar('opGenero', avatarEmEdicao.genero);
-    marcar('opCabelo', avatarEmEdicao.cabelo);
-    marcar('opPele', avatarEmEdicao.pele);
-    marcar('opTipo', avatarEmEdicao.tipo || 'camisa');
-    marcar('opOculos', avatarEmEdicao.oculos || 'nenhum');
-    marcar('opBarba', avatarEmEdicao.barba ? 'sim' : 'nao');
-    marcar('opCorCabelo', avatarEmEdicao.corCabelo);
-    marcar('opRoupa', avatarEmEdicao.roupa);
-    marcar('opTipo', avatarEmEdicao.tipo);
-    marcar('opOculos', avatarEmEdicao.oculos);
-    marcar('opBarba', avatarEmEdicao.barba ? 'sim' : 'nao');
+    const lista = Pixel.LISTA_SPRITES;
+    avatarEmEdicao = { sprite: lista[Math.floor(Math.random() * lista.length)] };
+    marcar(avatarEmEdicao.sprite);
     pintar();
   });
 
   aoTocar($('btnSalvarAvatar'), () => {
-    meuAvatar = copia();
+    meuAvatar = { sprite: avatarEmEdicao.sprite };
     localStorage.setItem('simmons_avatar', JSON.stringify(meuAvatar));
     if (ws && ws.readyState === 1) {
       ws.send(JSON.stringify({ t: 'avatar', avatar: meuAvatar }));
@@ -2149,15 +2102,7 @@ function montarCriadorAvatar() {
     avisar('Personagem salvo.');
   });
 
-  ligarClique('btnAparencia', 'onclick', () => window.abrirAparencia());
-}
-
-// ------------------------------------------------------------ a minha mesa
-let estiloEmEdicao = null;
-
-function minhaMesa() {
-  if (!eu) return null;
-  return desks.find(d => d.owner && d.owner.toLowerCase() === String(eu.name).toLowerCase()) || null;
+  ligarClique('btnAparencia', 'onclick', () => abrir());
 }
 
 function montarMesaCriador() {
@@ -2467,6 +2412,7 @@ function posicionarVideos() {
 }
 
 montarToque();
+Pixel.carregarSprites().then(() => { pintarPreviaAtual && pintarPreviaAtual(); });
 montarCriadorAvatar();
 montarMesaCriador();
 requestAnimationFrame(loop);
