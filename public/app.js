@@ -1686,18 +1686,21 @@ const MOVEIS_SOLIDOS = [
   { x: 222, y: 180, w: 120, h: 58 },    // estantes
   { x: 340, y: 204, w: 64, h: 96 },     // mesa
   // copa
-  { x: 548, y: 152, w: 300, h: 50 },    // bancada
+  { x: 524, y: 126, w: 50, h: 84 },     // geleira
+  { x: 580, y: 152, w: 320, h: 50 },    // bancada
+  { x: 680, y: 236, w: 44, h: 34 },     // ilha
   { x: 869, y: 240, w: 110, h: 46 },    // sofá da copa
-  { x: 680, y: 236, w: 44, h: 34 },     // ilha da copa
   // recepção
   { x: 74, y: 738, w: 180, h: 58 },     // balcão
   { x: 183, y: 846, w: 60, h: 40 },     // mesa de espera
   // lounge
-  { x: 1070, y: 764, w: 120, h: 40 },   // sofá de cima
-  { x: 1070, y: 884, w: 120, h: 40 },   // sofá de baixo
-  { x: 1112, y: 838, w: 60, h: 38 },    // mesa de centro
+  { x: 1077, y: 744, w: 110, h: 46 },   // sofá esquerdo
+  { x: 1235, y: 744, w: 110, h: 46 },   // sofá direito
+  { x: 1192, y: 780, w: 40, h: 38 },    // mesa de centro
+  { x: 1036, y: 852, w: 156, h: 46 },   // ping-pong
+  { x: 1214, y: 866, w: 128, h: 56 },   // pebolim
   // sala de reunião
-  { x: 1198, y: 178, w: 64, h: 118 },   // mesa comprida
+  { x: 1198, y: 160, w: 64, h: 140 },   // mesa comprida
 ];
 
 // sólidos: paredes, mesas, mesa da sala e sofá

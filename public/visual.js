@@ -537,6 +537,50 @@ const Visual = (() => {
       ctx.fillStyle = 'rgba(255,255,255,.10)';
       ctx.fillRect(jx - 8, 64, jw + 16, 2);
     }
+
+    // ---- quadro branco com post-its
+    ctx.fillStyle = '#e8ecef';
+    ctx.fillRect(548, 18, 118, 50);
+    ctx.strokeStyle = '#2b3440';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(548, 18, 118, 50);
+    const notas = ['#f2c14e', '#e07a5f', '#81b29a', '#7aa8d0', '#f2c14e'];
+    notas.forEach((c, i) => {
+      ctx.fillStyle = c;
+      ctx.fillRect(556 + i * 22, 26 + (i % 2) * 12, 16, 14);
+    });
+    ctx.fillStyle = 'rgba(40,50,62,.55)';
+    ctx.fillRect(556, 56, 70, 2);
+    ctx.fillRect(556, 61, 46, 2);
+
+    // ---- quadro com gravura
+    ctx.fillStyle = '#6b4a2a';
+    ctx.fillRect(962, 22, 62, 44);
+    ctx.fillStyle = '#2f4a63';
+    ctx.fillRect(966, 26, 54, 36);
+    ctx.fillStyle = 'rgba(255,255,255,.22)';
+    ctx.fillRect(972, 34, 42, 3);
+    ctx.fillRect(976, 42, 34, 2);
+
+    // ---- relógio de parede
+    ctx.fillStyle = '#1d242c';
+    ctx.beginPath(); ctx.arc(1352, 40, 19, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#e8ecef';
+    ctx.beginPath(); ctx.arc(1352, 40, 15, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#2b3440';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(1352, 40); ctx.lineTo(1352, 30); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(1352, 40); ctx.lineTo(1360, 44); ctx.stroke();
+
+    // ---- painel de avisos
+    ctx.fillStyle = '#4a3521';
+    ctx.fillRect(1410, 20, 130, 50);
+    ctx.fillStyle = '#8a7350';
+    ctx.fillRect(1414, 24, 122, 42);
+    ['#f2c14e', '#e07a5f', '#e8ecef'].forEach((c, i) => {
+      ctx.fillStyle = c;
+      ctx.fillRect(1422 + i * 38, 30, 30, 30);
+    });
   }
 
   // ---- paredes interiores (entram na colisão)
@@ -684,11 +728,34 @@ const Visual = (() => {
     ctx.ellipse(cx, y + h - 4, w * 0.58, 10, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // tampo (sprite do pack; a cor vem da tinta)
-    objeto(ctx, TABELAS[est.mesa] || TABELAS.carvalho, cx, y + h, w);
+    // tampo fino (recorte do sprite do pack) + pernas + painel de fundo
+    const spriteTampo = TABELAS[est.mesa] || TABELAS.carvalho;
+    const topoY = y + 14;                 // o tampo começa 14 abaixo do topo
+    const alturaTampo = 58;
+    const pernasY = topoY + alturaTampo;  // y + 72
+    const img = IMGS.get(spriteTampo);
+
+    // pernas e painel primeiro (ficam por baixo do tampo)
+    ctx.fillStyle = '#4a3521';
+    ctx.fillRect(x + 5, pernasY - 4, 5, h - (pernasY - y) + 2);
+    ctx.fillRect(x + w - 10, pernasY - 4, 5, h - (pernasY - y) + 2);
+    ctx.fillStyle = '#563d26';
+    ctx.fillRect(x + 10, pernasY - 2, w - 20, h - (pernasY - y) - 6);
+    ctx.fillStyle = 'rgba(255,255,255,.07)';
+    ctx.fillRect(x + 10, pernasY - 2, w - 20, 2);
+    ctx.fillStyle = 'rgba(0,0,0,.26)';
+    ctx.fillRect(x, pernasY, w, 3);
+
+    if (img) {
+      // recorta só a superfície da mesa do sprite original
+      objetoParcial(ctx, spriteTampo, 0, 20, 64, 58, x, topoY, w, alturaTampo);
+    } else {
+      ctx.fillStyle = (TAMPOS[est.mesa] || TAMPOS.carvalho).tampo;
+      ctx.fillRect(x, topoY, w, alturaTampo);
+    }
 
     // tudo o que está em cima assenta a esta altura
-    const tampo = y + h - 26;
+    const tampo = y + 46;   // superfície do tampo (o monitor fica do lado de quem senta)
 
     // computador
     const pc = est.pc || 'monitor';
@@ -719,17 +786,17 @@ const Visual = (() => {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       const larg = Math.min(w - 10, ctx.measureText(nome).width + 8);
-      ctx.fillStyle = 'rgba(12,15,20,.5)';
-      ctx.fillRect(cx - larg / 2, y + h - 16, larg, 9);
+      ctx.fillStyle = 'rgba(12,15,20,.55)';
+      ctx.fillRect(cx - larg / 2, y + 62, larg, 8);
       ctx.fillStyle = d.owner ? '#e5c25c' : '#93a0ad';
-      ctx.fillText(nome, cx, y + h - 11.5);
+      ctx.fillText(nome, cx, y + 66);
     }
 
     if (trancada) {
       ctx.font = '7px "Segoe UI Emoji",sans-serif';
       ctx.textAlign = 'right';
       ctx.textBaseline = 'middle';
-      ctx.fillText('🔒', x + w - 4, y + h - 11);
+      ctx.fillText('🔒', x + w - 4, y + 66);
     }
 
   }
@@ -984,6 +1051,17 @@ const Visual = (() => {
     return true;
   }
 
+  // desenha apenas um recorte do sprite (para separar tampo de pernas)
+  function objetoParcial(ctx, nome, sx, sy, sw, sh, dx, dy, dw, dh) {
+    const img = IMGS.get(nome);
+    if (!img) return false;
+    ctx.save();
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(img, sx, sy, sw, sh, Math.round(dx), Math.round(dy), Math.round(dw), Math.round(dh));
+    ctx.restore();
+    return true;
+  }
+
   // ---------------------------------------------------- objetos do escritório
   function objetos(ctx) {
     const p = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
@@ -999,21 +1077,55 @@ const Visual = (() => {
     objeto(ctx, 'Office_Props_Book1', 350, 292, 16);
 
     // ============================================================ COPA (520..1020 × 92..300)
-    // bancada comprida encostada à parede
-    p(548, 156, 300, 46, '#5a4026');
-    p(548, 152, 300, 8, '#6d5132');
-    p(548, 152, 300, 2, 'rgba(255,255,255,.14)');
-    p(548, 196, 300, 6, 'rgba(0,0,0,.28)');
+    // ===== geleira
+    p(520, 210, 56, 10, 'rgba(0,0,0,.26)');
+    p(524, 126, 50, 84, '#8f9aa6');
+    p(524, 126, 50, 3, '#a8b2bd');
+    p(527, 129, 44, 38, '#c3ccd5');       // porta de cima
+    p(527, 169, 44, 38, '#bcc6cf');       // porta de baixo
+    p(527, 166, 44, 3, '#6f7b87');        // divisão
+    p(562, 140, 3, 14, '#5f6a76');        // puxador
+    p(562, 180, 3, 14, '#5f6a76');
+    p(527, 129, 44, 2, 'rgba(255,255,255,.35)');
+
+    // ===== bancada com lava-loiça, forno e micro-ondas
+    p(580, 196, 320, 46, '#5a4026');
+    p(580, 152, 320, 8, '#6d5132');       // tampo
+    p(580, 152, 320, 2, 'rgba(255,255,255,.16)');
+    p(580, 196, 320, 6, 'rgba(0,0,0,.30)');
+
+    // armários
     for (let i = 0; i < 4; i++) {
-      p(554 + i * 74, 162, 68, 34, '#4a3521');
-      p(554 + i * 74, 162, 68, 2, 'rgba(255,255,255,.06)');
-      p(586 + i * 74, 176, 6, 2, '#8a7350');
+      p(586 + i * 78, 162, 72, 34, '#4a3521');
+      p(586 + i * 78, 162, 72, 2, 'rgba(255,255,255,.06)');
+      p(618 + i * 78, 176, 6, 2, '#8a7350');
     }
-    objeto(ctx, 'Office_Props_CoffeeDispenser', 590, 154, 32);
-    objeto(ctx, 'Office_Props_Mugs', 640, 154, 16);
-    objeto(ctx, 'Office_Props_Folders', 700, 154, 20);
-    objeto(ctx, 'Office_Props_Basket', 742, 154, 20);
-    objeto(ctx, 'Office_Props_Book1', 800, 154, 16);
+
+    // lava-loiça
+    p(596, 156, 52, 30, '#8a939d');
+    p(600, 160, 44, 22, '#5b636c');
+    p(604, 164, 36, 14, '#3f4750');
+    p(658, 160, 4, 10, '#b9c2cb');        // torneira
+    p(650, 158, 12, 4, '#b9c2cb');
+
+    // forno (frente com vidro)
+    p(700, 162, 56, 34, '#3a3f46');
+    p(703, 165, 50, 20, '#20262d');
+    p(706, 168, 44, 14, 'rgba(255,170,90,.35)');
+    p(703, 187, 50, 3, '#7d858f');
+    p(722, 162, 4, 6, '#a8b0ba');
+
+    // micro-ondas em cima da bancada
+    p(786, 130, 58, 26, '#2f353c');
+    p(790, 134, 36, 18, '#1a1f25');
+    p(792, 136, 32, 14, 'rgba(255,215,150,.30)');
+    for (let i = 0; i < 3; i++) p(832, 136 + i * 6, 8, 3, '#6d7680');
+    p(790, 132, 34, 2, 'rgba(255,255,255,.18)');
+
+    // máquina de café, canecas, pastas e cesto sobre a bancada
+    objeto(ctx, 'Office_Props_CoffeeDispenser', 866, 154, 30);
+    objeto(ctx, 'Office_Props_Mugs', 900, 154, 16);
+    objeto(ctx, 'Office_Props_Basket', 918, 154, 18);
 
     // ilha central com dois bancos
     objeto(ctx, 'Table_TableSmallWhite', 700, 268, 40);
@@ -1046,15 +1158,45 @@ const Visual = (() => {
     objeto(ctx, 'Shelf_Shelf', 300, 900, 52);
 
     // ============================================================ LOUNGE (1020..1380 × 700..960)
-    p(1060, 760, 130, 40, 'rgba(0,0,0,.20)');
-    objeto(ctx, 'Furniture_Couch_CouchBrownDown', 1130, 800, 120);
-    objeto(ctx, 'Furniture_Couch_CouchGreyDown', 1130, 920, 120);
-    objeto(ctx, 'Table_TableSmallWhite', 1130, 872, 36);
-    objeto(ctx, 'Office_Props_Mugs', 1122, 848, 14);
-    objeto(ctx, 'Office_Plant_Plant', 1060, 840, 62);
-    objeto(ctx, 'Office_Plant_PlantLarge', 1330, 860, 58);
+    // sofás e mesa de centro
+    p(1074, 744, 116, 34, 'rgba(0,0,0,.20)');
+    objeto(ctx, 'Furniture_Couch_CouchBrownDown', 1132, 786, 110);
+    objeto(ctx, 'Furniture_Couch_CouchGreyDown', 1290, 786, 110);
+    objeto(ctx, 'Table_TableSmallWhite', 1210, 806, 36);
+    objeto(ctx, 'Office_Props_Mugs', 1204, 782, 14);
+    objeto(ctx, 'Office_Plant_Plant', 1044, 800, 62);
     objeto(ctx, 'Office_Props_Bin', 1046, 730, 18);
-    objeto(ctx, 'Office_Props_Mirror', 1350, 740, 26);
+    objeto(ctx, 'Office_Props_Mirror', 1360, 744, 26);
+
+    // ===== mesa de ping-pong
+    p(1036, 926, 156, 12, 'rgba(0,0,0,.28)');
+    for (const lx of [1044, 1112, 1180]) p(lx, 894, 5, 34, '#3a3f46');
+    p(1036, 852, 156, 46, '#245b45');
+    p(1039, 855, 150, 40, '#2f7a5a');
+    p(1039, 855, 150, 2, 'rgba(255,255,255,.35)');
+    p(1039, 893, 150, 2, 'rgba(0,0,0,.30)');
+    // rede e linha central
+    p(1113, 852, 3, 46, '#e8eef4');
+    ctx.strokeStyle = 'rgba(255,255,255,.55)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(1039, 875); ctx.lineTo(1189, 875); ctx.stroke();
+    // raquetes
+    p(1060, 862, 8, 10, '#c0392b');
+    p(1160, 878, 8, 10, '#2c3e50');
+
+    // ===== pebolim
+    p(1216, 932, 124, 10, 'rgba(0,0,0,.28)');
+    p(1214, 866, 128, 56, '#5a3f26');
+    p(1218, 870, 120, 40, '#2f6b4f');
+    p(1218, 870, 120, 2, 'rgba(255,255,255,.22)');
+    for (let i = 0; i < 4; i++) {
+      const ry = 876 + i * 10;
+      p(1206, ry, 144, 3, '#b7c0c9');
+      p(1206, ry - 1, 6, 5, '#8d97a1');
+      p(1344, ry - 1, 6, 5, '#8d97a1');
+    }
+    // bolinha
+    p(1272, 888, 5, 5, '#f0e7d2');
 
     // ============================================================ ESTAÇÕES: plantas nos cantos
     objeto(ctx, 'Office_Plant_PlantLarge', 392, 690, 62);
@@ -1231,7 +1373,7 @@ const Visual = (() => {
   return {
     padrao, personagem, mesa, planta, chao, paredes, tapete,
     salaChao, salaMesa, SALA, objetos, carregarObjetos, objeto, cadeiraDaMesa,
-    paredesInteriores, rotulos, MAPA, pisosZonas,
+    paredesInteriores, rotulos, MAPA, pisosZonas, objetoParcial,
     PELES, CABELOS, ROUPAS, corPele, corCabelo, corRoupa, tom,
   };
 })();
