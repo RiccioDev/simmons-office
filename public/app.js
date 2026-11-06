@@ -2455,6 +2455,7 @@ function posicionarVideos() {
 }
 
 montarToque();
+Visual.carregarObjetos();
 montarCriadorAvatar();
 
 // modelos prontos: lê o manifesto e carrega as folhas
