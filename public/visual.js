@@ -840,7 +840,7 @@ const Visual = (() => {
   // Aqui o raio de distância não conta — todos se ouvem.
   const SALA = { x: 930, y: 140, w: 380, h: 700 };
 
-  function salaReuniao(ctx) {
+  function salaChao(ctx) {
     const { x, y, w, h } = SALA;
     const p = (dx, dy, dw, dh, c) => { ctx.fillStyle = c; ctx.fillRect(Math.round(x + dx), Math.round(y + dy), dw, dh); };
 
@@ -881,6 +881,13 @@ const Visual = (() => {
     p(cx - 92, 12, 184, 3, '#151a21');
     p(cx - 88, 15, 176, 8, 'rgba(120,210,220,.28)');
     p(cx - 88, 15, 176, 1, 'rgba(190,240,250,.45)');
+
+  }
+
+  function salaMesa(ctx) {
+    const { x, y, w, h } = SALA;
+    const p = (dx, dy, dw, dh, c) => { ctx.fillStyle = c; ctx.fillRect(Math.round(x + dx), Math.round(y + dy), dw, dh); };
+    const cx = Math.round(w / 2);
 
     // ---- tapete sob a mesa
     const tw = 140, th = 440;
@@ -1091,7 +1098,7 @@ const Visual = (() => {
 
   return {
     padrao, personagem, mesa, planta, chao, paredes, tapete,
-    salaReuniao, SALA, objetos,
+    salaChao, salaMesa, SALA, objetos,
     PELES, CABELOS, ROUPAS, corPele, corCabelo, corRoupa, tom,
   };
 })();

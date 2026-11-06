@@ -1031,11 +1031,16 @@ function loop(t) {
     }
     if (dx || dy) {
       const n = Math.hypot(dx, dy);
+      const preso = bloqueado(p.x, p.y, p.sitting);   // se já está dentro de algo, deixa sair
       const nx = p.x + (dx / n) * VEL;
       const ny = p.y + (dy / n) * VEL;
-      p.x = Math.max(RAIO_AVATAR + 10, Math.min(LARG - RAIO_AVATAR - 10, nx));
-      p.y = Math.max(RAIO_AVATAR + 10, Math.min(ALT - RAIO_AVATAR - 10, ny));
-      resolverColisao(p);
+
+      if (preso || !bloqueado(nx, p.y, p.sitting)) p.x = nx;
+      if (preso || !bloqueado(p.x, ny, p.sitting)) p.y = ny;
+
+      p.x = Math.max(RAIO_AVATAR + 10, Math.min(LARG - RAIO_AVATAR - 10, p.x));
+      p.y = Math.max(RAIO_AVATAR + 10, Math.min(ALT - RAIO_AVATAR - 10, p.y));
+      if (!p.sitting) resolverColisao(p);
       if (t - ultimoEnvio > 45) {
         ws.send(JSON.stringify({ t: 'mover', x: p.x, y: p.y }));
         ultimoEnvio = t;
@@ -1661,6 +1666,29 @@ ligarClique('btnCriarConta', 'onclick', async () => {
 
 
 
+const RAIO_CORPO = 11;
+
+// sólidos: paredes, mesas, mesa da sala e sofá
+function bloqueado(x, y, sentado) {
+  if (x < 26 + RAIO_CORPO || x > LARG - 26 - RAIO_CORPO) return true;
+  if (y < 92 + RAIO_CORPO || y > ALT - 26) return true;
+  if (sentado) return false;
+
+  for (const d of (Array.isArray(desks) ? desks : [])) {
+    if (x > d.x - RAIO_CORPO && x < d.x + d.w + RAIO_CORPO &&
+        y > d.y - RAIO_CORPO && y < d.y + d.h * 0.86) return true;
+  }
+
+  const s = Visual.SALA;
+  const tx = s.x + (s.w - 140) / 2 + 8, ty = s.y + 128;
+  if (x > tx - 14 && x < tx + 154 && y > ty - 16 && y < ty + 456) return true;
+
+  // sofá
+  if (x > 792 && x < 960 && y > 616 && y < 690) return true;
+
+  return false;
+}
+
 function resolverColisao(p) {
   for (const d of (Array.isArray(desks) ? desks : [])) {
     const pertoX = Math.max(d.x, Math.min(p.x, d.x + d.w));
@@ -1706,22 +1734,17 @@ function desenhar() {
   // móveis do escritório (tapete, estante, café, sofá, plantas)
   Visual.objetos(ctx);
 
-  // sala de reunião (zona onde o raio de distância não conta)
-  Visual.salaReuniao(ctx);
+  // sala de reunião: o chão e a parede de vidro ficam no fundo
+  Visual.salaChao(ctx);
 
   // plantas decorativas
   Visual.planta(ctx, 62, 130, 1);
   Visual.planta(ctx, 62, 760, 1.1);
-  Visual.planta(ctx, 1200, 340, 1.05);
-  Visual.planta(ctx, 1200, 720, 0.95);
   Visual.planta(ctx, 770, 940, 0.85);
 
-  // quem está sentado é desenhado ANTES das mesas (fica atrás, como na vida real)
-  for (const p of players.values()) {
-    if (p.sitting) desenharJogador(p);
-  }
+  // ---- tudo o que tem profundidade: ordenado pelo "pé" de cada coisa
+  const desenhos = [];
 
-  // mesas
   for (const d of (Array.isArray(desks) ? desks : [])) {
     const minha = eu && d.owner && d.owner.toLowerCase() === eu.name.toLowerCase();
 
@@ -1730,20 +1753,29 @@ function desenhar() {
       && Math.abs(pl.x - (d.x + d.w / 2)) < 34
       && pl.y > d.y + d.h - 18 && pl.y < d.y + d.h + 44);
 
-    Visual.mesa(ctx, d, { minha, trancada: !!d.locked, ocupada: !!d.occupied || alguemEmPe });
-
-    if (d.locked && d.occupied) {
-      ctx.fillStyle = 'rgba(232,168,90,.9)';
-      ctx.font = '600 6px "Segoe UI",sans-serif';
-      ctx.textAlign = 'left';
-      ctx.fillText('porta fechada · K para bater', d.x + 6, d.y + d.h + 12);
-    }
+    desenhos.push({
+      y: d.y + d.h,
+      f: () => {
+        Visual.mesa(ctx, d, { minha, trancada: !!d.locked, ocupada: !!d.occupied || alguemEmPe });
+        if (d.locked && d.occupied) {
+          ctx.fillStyle = 'rgba(232,168,90,.9)';
+          ctx.font = '600 6px "Segoe UI",sans-serif';
+          ctx.textAlign = 'left';
+          ctx.fillText('porta fechada · K para bater', d.x + 6, d.y + d.h + 12);
+        }
+      },
+    });
   }
 
-  // jogadores de pé
+  // mesa da sala de reunião entra na ordenação
+  desenhos.push({ y: Visual.SALA.y + 590, f: () => Visual.salaMesa(ctx) });
+
   for (const p of players.values()) {
-    if (!p.sitting) desenharJogador(p);
+    desenhos.push({ y: p.y, f: () => desenharJogador(p) });
   }
+
+  desenhos.sort((a, b) => a.y - b.y);
+  for (const item of desenhos) item.f();
 }
 
 // desenha um boneco (com a etiqueta do nome, microfone e partilha)
