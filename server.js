@@ -726,58 +726,25 @@ wss.on('connection', (ws) => {
         broadcastEstado();
         break;
       }
-      case 'pebolimEntrar': {
-        if (pebolim.vencedor !== null) {
-          pebolim.vencedor = null;
-          pebolim.placar = [0, 0];
-        }
-        let lugar = pebolim.jogadores.indexOf(id);
-        if (lugar === -1) {
-          lugar = pebolim.jogadores[0] === null ? 0 : (pebolim.jogadores[1] === null ? 1 : -1);
-        }
-        if (lugar === -1) { enviar(ws, { t: 'aviso', texto: 'O pebolim já tem dois jogadores.' }); return; }
-        pebolim.jogadores[lugar] = id;
-        pebolim.nomes[lugar] = p.name;
-        pebolim.ativa = true;
-        p.sitting = true;
-        p.deskId = null;
-        p.peca = 'pebolim';
-        p.x = lugar === 0 ? 1188 : 1372;
-        p.y = 892;
-        if (pebolim.jogadores[0] && pebolim.jogadores[1] && pebolim.bola.vx === 0 && pebolim.pausa <= 0) {
-          pebolim.vencedor = null;                 // nova partida
-          pebolim.placar = [0, 0];
-          pebolimSaque(Math.random() < 0.5 ? 0 : 1);
-        }
-        broadcastEstado();
-        pebolimDifundir();
+      case 'jogoEntrar': {
+        const chave = JOGOS[msg.jogo] ? msg.jogo : 'pebolim';
+        jogoEntrar(ws, p, id, chave);
         break;
       }
-      case 'pebolimSair': {
-        const lugar = pebolim.jogadores.indexOf(id);
-        if (lugar === -1) return;
-        pebolim.jogadores[lugar] = null;
-        pebolim.nomes[lugar] = '';
-        p.peca = null;
-        p.sitting = false;
-        p.y = 940;
-        if (!pebolim.jogadores[0] && !pebolim.jogadores[1]) {
-          pebolim.ativa = false;
-          pebolim.placar = [0, 0];
-          pebolim.bola = { x: 0.5, y: 0.5, vx: 0, vy: 0 };
-          pebolim.pausa = 0;
-          pebolim.vencedor = null;
+      case 'jogoSair': {
+        for (const chave of Object.keys(JOGOS)) {
+          if (JOGOS[chave].estado.jogadores.includes(id)) jogoSair(p, id, chave);
         }
-        broadcastEstado();
-        pebolimDifundir();
         break;
       }
-      case 'pebolimInput': {
-        const lugar = pebolim.jogadores.indexOf(id);
+      case 'jogoInput': {
+        const chave = JOGOS[msg.jogo] ? msg.jogo : 'pebolim';
+        const e = JOGOS[chave].estado;
+        const lugar = e.jogadores.indexOf(id);
         if (lugar === -1) return;
-        const alvo = Math.max(0.12, Math.min(0.88, Number(msg.y)));
+        const alvo = Number(msg.y);
         if (!Number.isFinite(alvo)) return;
-        pebolim.raquetes[lugar] = alvo;
+        e.raquetes[lugar] = Math.max(0.12, Math.min(0.88, alvo));
         break;
       }
       case 'levantar': {
@@ -1024,16 +991,14 @@ wss.on('connection', (ws) => {
     for (const chave of [...portas]) {
       if (chave.startsWith(id + '|') || chave.endsWith('|' + id)) portas.delete(chave);
     }
-    const lugarPebolim = pebolim.jogadores.indexOf(id);
-    if (lugarPebolim !== -1) {
-      pebolim.jogadores[lugarPebolim] = null;
-      pebolim.nomes[lugarPebolim] = '';
-      if (!pebolim.jogadores[0] && !pebolim.jogadores[1]) {
-        pebolim.ativa = false;
-        pebolim.placar = [0, 0];
-        pebolim.vencedor = null;
-      }
-      pebolimDifundir();
+    for (const chave of Object.keys(JOGOS)) {
+      const e = JOGOS[chave].estado;
+      const lugar = e.jogadores.indexOf(id);
+      if (lugar === -1) continue;
+      e.jogadores[lugar] = null;
+      e.nomes[lugar] = '';
+      if (!e.jogadores[0] && !e.jogadores[1]) Object.assign(JOGOS[chave].estado, estadoJogoInicial());
+      jogoDifundir(chave);
     }
     players.delete(id);
     broadcast({ t: 'saiu', id });
@@ -1041,106 +1006,201 @@ wss.on('connection', (ws) => {
   });
 });
 
-// ---------------------------------------------------------------- pebolim
-// Mini-jogo: duas pessoas, uma raquete cada (varão), bola com física simples.
-const pebolim = {
-  ativa: false,
-  jogadores: [null, null],      // ids
-  nomes: ['', ''],
-  bola: { x: 0.5, y: 0.5, vx: 0, vy: 0 },
-  placar: [0, 0],
-  raquetes: [0.5, 0.5],
-  pausa: 0,                     // segundos de espera antes do saque
-  vencedor: null,
-  ultimo: Date.now(),
-};
-
-function pebolimEstado() {
+// ---------------------------------------------------------------- jogos (pebolim e ping-pong)
+// Cada mesa tem o seu estado; a física corre no servidor a ~25 Hz.
+function estadoJogoInicial() {
   return {
-    ativa: pebolim.ativa,
-    jogadores: pebolim.jogadores,
-    nomes: pebolim.nomes,
-    bola: pebolim.bola,
-    placar: pebolim.placar,
-    raquetes: pebolim.raquetes,
-    pausa: pebolim.pausa,
-    vencedor: pebolim.vencedor,
+    ativa: false,
+    jogadores: [null, null],
+    nomes: ['', ''],
+    bot: [false, false],
+    bola: { x: 0.5, y: 0.5, vx: 0, vy: 0 },
+    placar: [0, 0],
+    raquetes: [0.5, 0.5],
+    pausa: 0,
+    saquePara: 0,
+    vencedor: null,
+    ultimoToque: 0,
   };
 }
 
-function pebolimDifundir() {
-  broadcast({ t: 'pebolim', estado: pebolimEstado() });
+const JOGOS = {
+  pebolim: {
+    nome: 'Pebolim', cx: 1280, cy: 892, w: 120, h: 52,
+    meiaRaquete: 0.17, vel: 0.62, pontos: 5, entrada: 110,
+    onde: { 0: { x: 1190, y: 940 }, 1: { x: 1370, y: 940 } },
+    aceitaBot: false,
+    estado: estadoJogoInicial(),
+  },
+  pingpong: {
+    nome: 'Ping-pong', cx: 1114, cy: 875, w: 150, h: 44,
+    meiaRaquete: 0.13, vel: 0.72, pontos: 7, entrada: 100,
+    onde: { 0: { x: 1004, y: 875 }, 1: { x: 1224, y: 875 } },
+    aceitaBot: true,
+    estado: estadoJogoInicial(),
+  },
+};
+
+function jogoResumo(chave) {
+  const g = JOGOS[chave];
+  return { jogo: chave, nome: g.nome, ...g.estado };
 }
 
-function pebolimSaque(contra) {
-  pebolim.bola = { x: 0.5, y: 0.5, vx: 0, vy: 0 };
-  pebolim.pausa = 1.0;
-  pebolim.saquePara = contra;   // 0 = para a esquerda, 1 = para a direita
+function jogoDifundir(chave) {
+  broadcast({ t: 'jogo', jogo: chave, estado: jogoResumo(chave) });
 }
 
-function pebolimTique() {
-  const agora = Date.now();
-  const dt = Math.min(0.06, (agora - pebolim.ultimo) / 1000);
-  pebolim.ultimo = agora;
-  if (!pebolim.ativa) return;
+function jogoSaque(chave, contra) {
+  const e = JOGOS[chave].estado;
+  e.bola = { x: 0.5, y: 0.5, vx: 0, vy: 0 };
+  e.pausa = 1.0;
+  e.saquePara = contra;
+}
 
-  if (pebolim.pausa > 0) {
-    pebolim.pausa -= dt;
-    if (pebolim.pausa <= 0) {
-      const dir = pebolim.saquePara === 1 ? 1 : -1;
-      pebolim.bola.x = 0.5;
-      pebolim.bola.y = 0.25 + Math.random() * 0.5;
-      pebolim.bola.vx = dir * 0.62;
-      pebolim.bola.vy = (Math.random() - 0.5) * 0.4;
+function jogoEntrar(ws, p, id, chave) {
+  const g = JOGOS[chave];
+  const e = g.estado;
+
+  let lugar = e.jogadores.indexOf(id);
+  if (lugar === -1) lugar = e.bot[0] ? 1 : (e.jogadores[0] === null ? 0 : (e.jogadores[1] === null ? 1 : -1));
+  if (lugar === -1) { enviar(ws, { t: 'aviso', texto: g.nome + ': a mesa já está ocupada.' }); return; }
+
+  // se o lugar tinha um bot, o humano toma conta dele
+  if (e.bot[lugar]) { e.bot[lugar] = false; }
+
+  e.jogadores[lugar] = id;
+  e.nomes[lugar] = p.name;
+  e.ativa = true;
+  p.sitting = true;
+  p.deskId = null;
+  p.peca = chave;
+  p.x = g.onde[lugar].x;
+  p.y = g.onde[lugar].y;
+  p.dir = lugar === 0 ? 3 : 2;
+
+  const outro = lugar === 0 ? 1 : 0;
+  const soUm = e.jogadores[outro] === null && !e.bot[outro];
+
+  if (e.jogadores[0] !== null && (e.jogadores[1] !== null || e.bot[1])) {
+    e.vencedor = null;
+    e.placar = [0, 0];
+    jogoSaque(chave, Math.random() < 0.5 ? 0 : 1);
+  } else if (soUm && g.aceitaBot) {
+    // sem adversário: entra um robô depois de 2 s
+    setTimeout(() => {
+      const ee = JOGOS[chave].estado;
+      if (ee.jogadores[1] === null && !ee.bot[1] && ee.ativa) {
+        ee.bot[1] = true;
+        ee.nomes[1] = 'Robô';
+        ee.vencedor = null;
+        ee.placar = [0, 0];
+        jogoSaque(chave, 0);
+        jogoDifundir(chave);
+      }
+    }, 2000);
+  }
+
+  broadcastEstado();
+  jogoDifundir(chave);
+}
+
+function jogoSair(p, id, chave) {
+  const e = JOGOS[chave].estado;
+  const lugar = e.jogadores.indexOf(id);
+  if (lugar === -1) return;
+  e.jogadores[lugar] = null;
+  e.nomes[lugar] = '';
+  p.peca = null;
+  p.sitting = false;
+  p.y = Math.min(952, p.y + 44);
+  if (!e.jogadores[0] && !e.jogadores[1]) {
+    Object.assign(JOGOS[chave].estado, estadoJogoInicial());
+  }
+  broadcastEstado();
+  jogoDifundir(chave);
+}
+
+function jogoTique(chave, dt) {
+  const g = JOGOS[chave];
+  const e = g.estado;
+  if (!e.ativa) return;
+
+  // robô: segue a bola com velocidade limitada e um pouco de erro
+  for (const lado of [0, 1]) {
+    if (!e.bot[lado]) continue;
+    const avanca = lado === 0 ? e.bola.x < 0.62 : e.bola.x > 0.38;
+    const bolaVem = (lado === 0 ? e.bola.vx < 0 : e.bola.vx > 0) && avanca;
+    const alvo = bolaVem ? e.bola.y + (Math.random() - 0.5) * 0.07 : 0.5;
+    const vel = 0.52 * dt;                     // 0,52 por segundo (batível)
+    const dif = alvo - e.raquetes[lado];
+    e.raquetes[lado] += Math.max(-vel, Math.min(vel, dif));
+    e.raquetes[lado] = Math.max(0.12, Math.min(0.88, e.raquetes[lado]));
+  }
+
+  if (e.pausa > 0) {
+    e.pausa -= dt;
+    if (e.pausa <= 0) {
+      const dir = e.saquePara === 1 ? 1 : -1;
+      e.bola = { x: 0.5, y: 0.25 + Math.random() * 0.5, vx: dir * g.vel, vy: (Math.random() - 0.5) * 0.42 };
     }
-    pebolimDifundir();
     return;
   }
 
-  const b = pebolim.bola;
+  const b = e.bola;
   b.x += b.vx * dt;
   b.y += b.vy * dt;
 
-  // paredes de cima e de baixo
-  if (b.y < 0.07) { b.y = 0.07; b.vy = Math.abs(b.vy); }
-  if (b.y > 0.93) { b.y = 0.93; b.vy = -Math.abs(b.vy); }
+  if (b.y < 0.07) { b.y = 0.07; b.vy = Math.abs(b.vy); e.ultimoToque = Date.now(); }
+  if (b.y > 0.93) { b.y = 0.93; b.vy = -Math.abs(b.vy); e.ultimoToque = Date.now(); }
 
-  // raquetes (varões) — esquerda em 0.26, direita em 0.74
-  const meia = 0.17;
-  if (b.x < 0.32 && b.x > 0.20 && b.vx < 0) {
-    const d = b.y - pebolim.raquetes[0];
+  const meia = g.meiaRaquete;
+  if (b.x < 0.33 && b.x > 0.20 && b.vx < 0) {
+    const d = b.y - e.raquetes[0];
     if (Math.abs(d) < meia) {
-      b.x = 0.33;
-      b.vx = Math.abs(b.vx) * 1.04;
-      b.vy = b.vy * 0.6 + d * 1.6;
+      b.x = 0.34;
+      b.vx = Math.min(1.5, Math.abs(b.vx) * 1.05);
+      b.vy = b.vy * 0.55 + d * 1.7;
+      e.ultimoToque = Date.now();
+      broadcast({ t: 'jogoSom', jogo: chave, som: 'toque' });
     }
   }
-  if (b.x > 0.68 && b.x < 0.80 && b.vx > 0) {
-    const d = b.y - pebolim.raquetes[1];
+  if (b.x > 0.67 && b.x < 0.80 && b.vx > 0) {
+    const d = b.y - e.raquetes[1];
     if (Math.abs(d) < meia) {
-      b.x = 0.67;
-      b.vx = -Math.abs(b.vx) * 1.04;
-      b.vy = b.vy * 0.6 + d * 1.6;
+      b.x = 0.66;
+      b.vx = -Math.min(1.5, Math.abs(b.vx) * 1.05);
+      b.vy = b.vy * 0.55 + d * 1.7;
+      e.ultimoToque = Date.now();
+      broadcast({ t: 'jogoSom', jogo: chave, som: 'toque' });
     }
   }
 
-  // golos
   if (b.x < 0.02) {
-    pebolim.placar[1] += 1;
-    if (pebolim.placar[1] >= 5) { pebolim.vencedor = 1; }
-    pebolimSaque(0);
+    e.placar[1] += 1;
+    broadcast({ t: 'jogoSom', jogo: chave, som: 'golo' });
+    if (e.placar[1] >= g.pontos) { e.vencedor = 1; broadcast({ t: 'jogoSom', jogo: chave, som: 'vitoria' }); }
+    jogoSaque(chave, 0);
   } else if (b.x > 0.98) {
-    pebolim.placar[0] += 1;
-    if (pebolim.placar[0] >= 5) { pebolim.vencedor = 0; }
-    pebolimSaque(1);
+    e.placar[0] += 1;
+    broadcast({ t: 'jogoSom', jogo: chave, som: 'golo' });
+    if (e.placar[0] >= g.pontos) { e.vencedor = 0; broadcast({ t: 'jogoSom', jogo: chave, som: 'vitoria' }); }
+    jogoSaque(chave, 1);
   }
-
-  pebolimDifundir();
 }
 
-setInterval(pebolimTique, 40);
+let ultimoTiqueJogos = Date.now();
+setInterval(() => {
+  const agora = Date.now();
+  const dt = Math.min(0.08, (agora - ultimoTiqueJogos) / 1000);
+  ultimoTiqueJogos = agora;
+  for (const chave of Object.keys(JOGOS)) {
+    const antes = JSON.stringify(JOGOS[chave].estado);
+    jogoTique(chave, dt);
+    if (JSON.stringify(JOGOS[chave].estado) !== antes) jogoDifundir(chave);
+  }
+}, 40);
 
-// ---------------------------------------------------------------- chat guardado
+// ---------------------------------------------------------------- chat guardado// ---------------------------------------------------------------- chat guardado
 chat.iniciar()
   .then((pg) => {
     console.log('mensagens: ' + (pg ? 'Postgres' : 'arquivo local') + ' (7 dias, fixadas para sempre)');

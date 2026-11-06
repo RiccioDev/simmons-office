@@ -1353,8 +1353,6 @@ const Visual = (() => {
     ctx.strokeStyle = 'rgba(255,255,255,.55)';
     ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(1039, 875); ctx.lineTo(1189, 875); ctx.stroke();
-    p(1060, 862, 8, 10, '#c0392b');
-    p(1160, 878, 8, 10, '#2c3e50');
 
     // pebolim
     p(1210, 936, 140, 8, 'rgba(0,0,0,.30)');

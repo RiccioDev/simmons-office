@@ -397,17 +397,22 @@ function ligar(nome) {
       case 'estado':
         aplicarEstado(m);
         break;
-      case 'pebolim': {
-        const antesLugar = meuLugarPebolim();
-        pebolim = m.estado;
-        const agoraLugar = meuLugarPebolim();
-        if (agoraLugar !== -1 && agoraLugar !== antesLugar) raqueteLocal = pebolim.raquetes[agoraLugar] ?? 0.5;
-        if (pebolim.vencedor !== null && antesVencedor === null) {
-          avisar('Pebolim: ganhou ' + (pebolim.nomes[pebolim.vencedor] || 'alguém') + '!');
+      case 'jogo': {
+        const g = JOGOS_CLI[m.jogo];
+        if (!g) break;
+        const antesLugar = meuLugarJogo(m.jogo);
+        const vencedorAntes = g.e ? g.e.vencedor : null;
+        g.e = m.estado;
+        const agoraLugar = meuLugarJogo(m.jogo);
+        if (agoraLugar !== -1 && agoraLugar !== antesLugar) raqueteLocal = g.e.raquetes[agoraLugar] ?? 0.5;
+        if (g.e.vencedor !== null && vencedorAntes === null) {
+          avisar(g.nome + ': ganhou ' + (g.e.nomes[g.e.vencedor] || 'alguém') + '!');
         }
-        antesVencedor = pebolim.vencedor;
         break;
       }
+      case 'jogoSom':
+        somJogo(m.som);
+        break;
       case 'mover': {
         const p = players.get(m.id);
         if (!p) break;
@@ -842,18 +847,14 @@ function alternarSentar() {
   const p = players.get(eu.id);
   if (!p) return;
 
-  // dentro do pebolim: E sai do jogo
-  const lugarJogo = meuLugarPebolim();
-  if (lugarJogo !== -1) { ws.send(JSON.stringify({ t: 'pebolimSair' })); return; }
-  // perto da mesa: E entra no jogo
-  if (Math.abs(p.x - 1280) < 110 && Math.abs(p.y - 892) < 70) {
-    ws.send(JSON.stringify({ t: 'pebolimEntrar' }));
-    return;
-  }
+  const emJogo = jogoEmQueEstou();
+  if (emJogo) { ws.send(JSON.stringify({ t: 'jogoSair' })); return; }
+
+  if (Math.abs(p.x - 1114) < 120 && Math.abs(p.y - 875) < 62) { ws.send(JSON.stringify({ t: 'jogoEntrar', jogo: 'pingpong' })); return; }
+  if (Math.abs(p.x - 1280) < 105 && Math.abs(p.y - 892) < 64) { ws.send(JSON.stringify({ t: 'jogoEntrar', jogo: 'pebolim' })); return; }
 
   if (p.sitting) { ws.send(JSON.stringify({ t: 'levantar' })); return; }
 
-  // assento mais próximo: cadeiras, poltronas, sofás, mesa de reunião
   const assentos = Array.isArray(Visual.ASSENTOS) ? Visual.ASSENTOS : [];
   let melhor = null, melhorDist = 62;
   for (const a of assentos) {
@@ -1058,24 +1059,23 @@ function animarPersonagens() {
   }
 }
 
-let ultimoEnvioPebolim = 0;
-
 function loop(t) {
   animarPersonagens();
   const p = players.get(eu?.id);
 
-  // ---- controlo do pebolim (W/S à esquerda, setas/W-S à direita)
-  const lugarJogo = meuLugarPebolim();
-  if (lugarJogo !== -1) {
+  // ---- controlo dos jogos (W/S à esquerda, setas à direita)
+  const emJogoAgora = jogoEmQueEstou();
+  if (emJogoAgora) {
+    const lugarJ = meuLugarJogo(emJogoAgora);
     let dy = 0;
-    if (teclas.has('w') || (lugarJogo === 1 && teclas.has('arrowup'))) dy -= 1;
-    if (teclas.has('s') || (lugarJogo === 1 && teclas.has('arrowdown'))) dy += 1;
+    if (teclas.has('w') || (lugarJ === 1 && teclas.has('arrowup'))) dy -= 1;
+    if (teclas.has('s') || (lugarJ === 1 && teclas.has('arrowdown'))) dy += 1;
     if (dy) {
       raqueteLocal = Math.max(0.12, Math.min(0.88, raqueteLocal + dy * 0.032));
       const agoraP = performance.now();
-      if (agoraP - ultimoEnvioPebolim > 45) {
-        ultimoEnvioPebolim = agoraP;
-        if (ws && ws.readyState === 1) ws.send(JSON.stringify({ t: 'pebolimInput', y: raqueteLocal }));
+      if (agoraP - ultimoEnvioJogo > 45) {
+        ultimoEnvioJogo = agoraP;
+        if (ws && ws.readyState === 1) ws.send(JSON.stringify({ t: 'jogoInput', jogo: emJogoAgora, y: raqueteLocal }));
       }
     }
   }
@@ -1732,87 +1732,6 @@ ligarClique('btnCriarConta', 'onclick', async () => {
 
 const RAIO_CORPO = 11;
 
-// ------------------------------------------------ pebolim (estado recebido do servidor)
-let pebolim = { ativa: false, jogadores: [null, null], placar: [0, 0], bola: { x: .5, y: .5 }, raquetes: [.5, .5], pausa: 0, vencedor: null, nomes: ['', ''] };
-let raqueteLocal = 0.5;
-let antesVencedor = null;
-
-function meuLugarPebolim() {
-  if (!eu || !pebolim.jogadores) return -1;
-  return pebolim.jogadores.indexOf(eu.id);
-}
-
-function desenharPebolim(ctx) {
-  if (!pebolim || !pebolim.ativa) return;
-  const x0 = 1220, y0 = 868, w = 120, h = 52;
-
-  // raquetes (varões)
-  for (let i = 0; i < 2; i++) {
-    const px = x0 + (i === 0 ? 0.26 : 0.74) * w;
-    const py = y0 + (pebolim.raquetes[i] ?? 0.5) * h;
-    ctx.fillStyle = 'rgba(0,0,0,.30)';
-    ctx.fillRect(px - 2, py - 9, 4, 20);
-    ctx.fillStyle = '#c3ccd5';
-    ctx.fillRect(px - 1, py - 10, 2, 20);
-    ctx.fillStyle = i === 0 ? '#3a6fd0' : '#d94f3d';
-    for (let k = -1; k <= 1; k++) {
-      ctx.fillRect(px - 3, py + k * 6 - 2, 6, 4);
-      ctx.fillStyle = 'rgba(255,255,255,.35)';
-      ctx.fillRect(px - 3, py + k * 6 - 2, 6, 1);
-      ctx.fillStyle = i === 0 ? '#3a6fd0' : '#d94f3d';
-    }
-  }
-
-  // bola
-  const bx = x0 + (pebolim.bola.x ?? 0.5) * w;
-  const by = y0 + (pebolim.bola.y ?? 0.5) * h;
-  ctx.fillStyle = 'rgba(0,0,0,.40)';
-  ctx.beginPath(); ctx.ellipse(bx, by + 3, 3, 1.6, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#fdf8e8';
-  ctx.beginPath(); ctx.arc(bx, by, 2.8, 0, Math.PI * 2); ctx.fill();
-
-  // placar
-  ctx.fillStyle = 'rgba(10,13,18,.88)';
-  ctx.beginPath(); ctx.roundRect(1250, 818, 60, 15, 4); ctx.fill();
-  ctx.fillStyle = '#f2d98a';
-  ctx.font = '700 9px "Segoe UI",sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(pebolim.placar[0] + '  ·  ' + pebolim.placar[1], 1280, 826);
-
-  // nomes dos dois lados
-  ctx.font = '600 6px "Segoe UI",sans-serif';
-  ctx.fillStyle = '#9fc0e0';
-  ctx.fillText((pebolim.nomes[0] || '—').slice(0, 12), 1236, 848);
-  ctx.fillStyle = '#e8a08f';
-  ctx.fillText((pebolim.nomes[1] || '—').slice(0, 12), 1326, 848);
-
-  // aviso de saque / vencedor
-  if (pebolim.vencedor !== null) {
-    ctx.fillStyle = 'rgba(10,13,18,.85)';
-    ctx.beginPath(); ctx.roundRect(1216, 940, 130, 16, 4); ctx.fill();
-    ctx.fillStyle = '#f2d98a';
-    ctx.font = '700 8px "Segoe UI",sans-serif';
-    ctx.fillText('GANHOU: ' + (pebolim.nomes[pebolim.vencedor] || '') + ' — E para sair', 1281, 948);
-  } else if (pebolim.pausa > 0) {
-    ctx.fillStyle = 'rgba(10,13,18,.7)';
-    ctx.fillRect(1246, 890, 68, 10);
-    ctx.fillStyle = '#cfd6df';
-    ctx.font = '600 7px "Segoe UI",sans-serif';
-    ctx.fillText('a bola vai sair…', 1280, 895);
-  }
-
-  // instruções para quem está a jogar
-  const lugar = meuLugarPebolim();
-  if (lugar !== -1) {
-    ctx.fillStyle = 'rgba(10,13,18,.75)';
-    ctx.beginPath(); ctx.roundRect(1200, 960, 162, 14, 4); ctx.fill();
-    ctx.fillStyle = '#cfd6df';
-    ctx.font = '600 7px "Segoe UI",sans-serif';
-    ctx.fillText(lugar === 0 ? 'Você: W / S  ·  E sai' : 'Você: ↑ / ↓  ·  E sai', 1281, 967);
-  }
-}
-
 // em que zona do escritório está um ponto (null = corredor)
 function zonaDe(x, y) {
   const salas = (Visual.MAPA && Visual.MAPA.salas) || [];
@@ -1893,6 +1812,126 @@ function resolverColisao(p) {
   }
 }
 
+// ------------------------------------------------ jogos: pebolim e ping-pong
+const JOGOS_CLI = {
+  pebolim:  { nome: 'Pebolim',   x0: 1220, y0: 868, w: 120, h: 52, e: null },
+  pingpong: { nome: 'Ping-pong', x0: 1039, y0: 855, w: 150, h: 40, e: null },
+};
+let raqueteLocal = 0.5;
+let ultimoEnvioJogo = 0;
+
+function meuLugarJogo(chave) {
+  const g = JOGOS_CLI[chave];
+  if (!eu || !g || !g.e || !g.e.jogadores) return -1;
+  return g.e.jogadores.indexOf(eu.id);
+}
+
+function jogoEmQueEstou() {
+  for (const chave of Object.keys(JOGOS_CLI)) {
+    if (meuLugarJogo(chave) !== -1) return chave;
+  }
+  return null;
+}
+
+function somJogo(tipo) {
+  if (typeof somBatida !== 'undefined' && !somBatida) return;
+  const ctx = contextoAudio();
+  if (!ctx) return;
+  const t = ctx.currentTime + 0.01;
+
+  const nota = (freq, inicio, dur, vol, forma) => {
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = forma || 'square';
+    osc.frequency.setValueAtTime(freq, inicio);
+    g.gain.setValueAtTime(0.0001, inicio);
+    g.gain.exponentialRampToValueAtTime(vol, inicio + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, inicio + dur);
+    osc.connect(g).connect(ctx.destination);
+    osc.start(inicio); osc.stop(inicio + dur + 0.02);
+  };
+
+  if (tipo === 'toque') nota(430 + Math.random() * 40, t, 0.06, 0.16, 'square');
+  else if (tipo === 'golo') { nota(520, t, 0.10, 0.20, 'triangle'); nota(330, t + 0.10, 0.18, 0.18, 'triangle'); }
+  else if (tipo === 'vitoria') [523, 659, 784, 1046].forEach((f, k) => nota(f, t + k * 0.11, 0.16, 0.18, 'triangle'));
+}
+
+function desenharJogo(ctx, chave) {
+  const g = JOGOS_CLI[chave];
+  const e = g.e;
+  if (!e || !e.ativa) return;
+  const { x0, y0, w, h } = g;
+
+  for (let i = 0; i < 2; i++) {
+    const px = x0 + (i === 0 ? 0.26 : 0.74) * w;
+    const py = y0 + (e.raquetes[i] ?? 0.5) * h;
+    ctx.fillStyle = 'rgba(0,0,0,.30)';
+    ctx.fillRect(px - 2, py - 8, 4, 18);
+    ctx.fillStyle = chave === 'pebolim' ? '#c3ccd5' : '#c8954a';
+    ctx.fillRect(px - 1.5, py - 9, 3, 18);
+    ctx.fillStyle = i === 0 ? '#3a6fd0' : '#d94f3d';
+    if (chave === 'pebolim') {
+      for (let k = -1; k <= 1; k++) {
+        ctx.fillRect(px - 3, py + k * 6 - 2, 6, 4);
+        ctx.fillStyle = 'rgba(255,255,255,.35)';
+        ctx.fillRect(px - 3, py + k * 6 - 2, 6, 1);
+        ctx.fillStyle = i === 0 ? '#3a6fd0' : '#d94f3d';
+      }
+    } else {
+      ctx.beginPath();
+      ctx.ellipse(px, py, 3.4, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.3)';
+      ctx.fillRect(px - 3, py - 5, 3, 2);
+    }
+  }
+
+  const bx = x0 + (e.bola.x ?? 0.5) * w;
+  const by = y0 + (e.bola.y ?? 0.5) * h;
+  ctx.fillStyle = 'rgba(0,0,0,.40)';
+  ctx.beginPath(); ctx.ellipse(bx, by + 3, 3, 1.6, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#fdf8e8';
+  ctx.beginPath(); ctx.arc(bx, by, 2.8, 0, Math.PI * 2); ctx.fill();
+
+  const pxp = x0 + w / 2;
+  ctx.fillStyle = 'rgba(10,13,18,.88)';
+  ctx.beginPath(); ctx.roundRect(pxp - 30, y0 - 22, 60, 15, 4); ctx.fill();
+  ctx.fillStyle = '#f2d98a';
+  ctx.font = '700 9px "Segoe UI",sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(e.placar[0] + '  ·  ' + e.placar[1], pxp, y0 - 14);
+
+  ctx.font = '600 6px "Segoe UI",sans-serif';
+  ctx.fillStyle = '#9fc0e0';
+  ctx.fillText((e.nomes[0] || '—').slice(0, 10), x0 + 12, y0 - 4);
+  ctx.fillStyle = '#e8a08f';
+  ctx.fillText((e.nomes[1] || '—').slice(0, 10), x0 + w - 12, y0 - 4);
+
+  if (e.vencedor !== null) {
+    ctx.fillStyle = 'rgba(10,13,18,.88)';
+    ctx.beginPath(); ctx.roundRect(pxp - 66, y0 + h + 12, 132, 15, 4); ctx.fill();
+    ctx.fillStyle = '#f2d98a';
+    ctx.font = '700 8px "Segoe UI",sans-serif';
+    ctx.fillText('GANHOU: ' + (e.nomes[e.vencedor] || '') + ' — E para sair', pxp, y0 + h + 20);
+  } else if (e.pausa > 0) {
+    ctx.fillStyle = 'rgba(10,13,18,.7)';
+    ctx.fillRect(pxp - 34, y0 + h + 8, 68, 10);
+    ctx.fillStyle = '#cfd6df';
+    ctx.font = '600 7px "Segoe UI",sans-serif';
+    ctx.fillText('a bola vai sair…', pxp, y0 + h + 13);
+  }
+
+  const lugar = meuLugarJogo(chave);
+  if (lugar !== -1) {
+    ctx.fillStyle = 'rgba(10,13,18,.78)';
+    ctx.beginPath(); ctx.roundRect(pxp - 70, y0 + h + 30, 140, 14, 4); ctx.fill();
+    ctx.fillStyle = '#cfd6df';
+    ctx.font = '600 7px "Segoe UI",sans-serif';
+    ctx.fillText(lugar === 0 ? 'Você: W / S  ·  E sai' : 'Você: ↑ / ↓  ·  E sai', pxp, y0 + h + 37);
+  }
+}
+
 // ------------------------------------------------------------ desenho
 function seguirAvatar() {
   const euJogador = players.get(eu?.id);
@@ -1968,8 +2007,9 @@ function desenhar() {
   desenhos.sort((a, b) => a.y - b.y);
   for (const item of desenhos) item.f();
 
-  // pebolim por cima da mesa
-  desenharPebolim(ctx);
+  // mesas de jogo por cima de tudo
+  desenharJogo(ctx, 'pingpong');
+  desenharJogo(ctx, 'pebolim');
 
   // rótulos das zonas por cima de tudo
   Visual.rotulos(ctx);
