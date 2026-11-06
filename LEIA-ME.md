@@ -37,7 +37,14 @@ Personalização:
 - **Óculos**: nenhum, redondo, escuro, sol
 
 O terno tem lapelas, camisa branca e gravata; o moletom tem capuz, bolso e cordões; o
-vestido tem decote e saia; o uniforme tem gola polo e faixa.
+vestido tem decote, cinta na cintura, braços à vista e saia em A que balança ao andar; o
+uniforme tem gola, carcela e emblema no peito.
+
+O boneco tem **animação de caminhada** de 4 quadros: as pernas alternam, os braços
+balançam ao contrário, o corpo sobe 1 pixel a cada passo e a saia do vestido balança.
+
+Para ver todas as combinações lado a lado, abre **`/laboratorio-personagens.html`** —
+mostra 12 modelos, cada um parado e com os 4 passos.
 
 ## O escritório
 

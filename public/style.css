@@ -756,7 +756,7 @@ body{
 .caixaAvatar{max-width:640px}
 .avatarTopo{display:flex;gap:24px;margin:6px 0 20px;align-items:flex-start}
 #previaAvatar{
-  flex:0 0 auto;width:200px;height:236px;border-radius:14px;
+  flex:0 0 auto;width:200px;height:250px;border-radius:14px;
   background:radial-gradient(circle at 50% 35%, #2a2f38, #14181e 70%);
   border:1px solid var(--linha);
 }
@@ -785,7 +785,7 @@ body{
   #modalAparencia .modalCaixa{padding:18px 16px 20px}
   #modalAparencia h3{font-size:17px;margin:0 0 10px}
   .avatarTopo{flex-direction:column;align-items:center;gap:12px}
-  #previaAvatar{width:132px;height:150px}
+  #previaAvatar{width:118px;height:186px}
   .avatarControles{width:100%}
   .grupoAvatar{margin-bottom:11px}
   .grupoAvatar > span{font-size:10px;margin-bottom:4px}

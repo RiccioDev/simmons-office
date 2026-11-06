@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Laboratório de personagens</title>
+<style>
+  body { margin:0; background:#171c23; font:12px "Segoe UI",sans-serif; color:#cfd6e0; }
+  h2 { font-size:12px; margin:12px 10px 6px; color:#8fa0b5; letter-spacing:.08em; text-transform:uppercase; }
+  .grade { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; padding:0 10px 10px; }
+  .boneco { background:#20262f; border:1px solid #2c343f; border-radius:6px; padding:5px; text-align:center; }
+  .boneco b { display:block; font-weight:600; font-size:10px; color:#9fb0c4; margin-bottom:3px; }
+  canvas { display:block; image-rendering:pixelated; margin:0 auto; }
+</style>
+</head>
+<body>
+<h2>Variações · parado + 4 passos</h2>
+<div class="grade" id="g1"></div>
+<h2>Zoom · cara, barba e óculos</h2>
+<div class="grade" id="g2"></div>
+<script src="pixel.js"></script>
+<script>
+const E = 3, E2 = 8;
+function cenario(av, escala, frames) {
+  const w = 34 * escala, h = 50 * escala;
+  const c = document.createElement('canvas');
+  c.width = w * frames; c.height = h;
+  const g = c.getContext('2d');
+  g.imageSmoothingEnabled = false;
+  g.fillStyle = '#20262f'; g.fillRect(0, 0, c.width, c.height);
+  for (let f = 0; f < frames; f++) {
+    g.save(); g.translate(f * w, 0);
+    if (f === 0) Pixel.desenhar(g, w / 2, h - 4, av, { escala, dir: 1 });
+    else Pixel.desenhar(g, w / 2, h - 4, av, { escala, dir: 1, andando: true, passo: [0.2, 0.45, 0.7, 0.95][f - 1] });
+    g.restore();
+  }
+  return c;
+}
+function cartao(alvo, av, etiqueta, escala) {
+  const d = document.createElement('div');
+  d.className = 'boneco';
+  const b = document.createElement('b'); b.textContent = etiqueta; d.appendChild(b);
+  d.appendChild(cenario(av, escala, 5));
+  document.getElementById(alvo).appendChild(d);
+}
+const base = (o) => Object.assign({ genero:'m', pele:2, cabelo:'curto', corCabelo:1,
+  roupa:2, tipo:'camisa', oculos:'nenhum', barba:false }, o);
+
+const modelos = [
+  ['terno · barba',          base({ tipo:'terno', barba:true })],
+  ['terno · óculos escuro',  base({ tipo:'terno', oculos:'escuro' })],
+  ['terno · sol',            base({ tipo:'terno', oculos:'sol', pele:4 })],
+  ['blazer · redondo',       base({ tipo:'blazer', oculos:'redondo', cabelo:'franja' })],
+  ['camisa',                 base({ tipo:'camisa', pele:0, corCabelo:0 })],
+  ['moletom · afro',         base({ tipo:'moletom', pele:6, cabelo:'afro', corCabelo:0, roupa:4 })],
+  ['moletom · rabo',         base({ genero:'f', tipo:'moletom', cabelo:'rabo', corCabelo:4, pele:3 })],
+  ['vestido · longo',        base({ genero:'f', tipo:'vestido', cabelo:'longo', corCabelo:8, pele:1, roupa:6 })],
+  ['vestido · coque',        base({ genero:'f', tipo:'vestido', cabelo:'coque', corCabelo:5, pele:4, roupa:0 })],
+  ['uniforme · careca',      base({ tipo:'uniforme', cabelo:'careca', barba:true, pele:5 })],
+  ['uniforme · sol',         base({ genero:'f', tipo:'uniforme', cabelo:'franja', oculos:'sol', pele:2, roupa:8 })],
+  ['camisa · redondo',       base({ tipo:'camisa', oculos:'redondo', corCabelo:7 })],
+];
+modelos.forEach(([n, a]) => cartao('g1', a, n, E));
+
+const caras = [
+  ['sem barba',   base({})],
+  ['barba',       base({ barba:true })],
+  ['escuro',      base({ oculos:'escuro' })],
+  ['sol',         base({ oculos:'sol' })],
+  ['redondo',     base({ oculos:'redondo' })],
+  ['barba + esc', base({ barba:true, oculos:'escuro' })],
+];
+caras.forEach(([n, a]) => cartao('g2', a, n, E2));
+</script>
+</body>
+</html>

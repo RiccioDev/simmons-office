@@ -164,6 +164,7 @@ let ws = null;
 const usuarioInput = document.getElementById('usuario');
 const senhaInput = document.getElementById('senha');
 let token = localStorage.getItem('simmons_token') || null;
+let avisoSemMicrofone = false;
 let euAdmin = false;
 
 usuarioInput.value = localStorage.getItem('simmons_usuario') || '';
@@ -332,13 +333,17 @@ async function entrarComSessao() {
       temVideo = false;
     } catch (e2) {
       meuStream = null;
-      alert('Sem acesso ao microfone. Você pode entrar, mas só vai poder escrever.');
+      avisoSemMicrofone = true;
     }
   }
 
   document.getElementById('entrada').classList.add('oculto');
   document.getElementById('app').classList.remove('oculto');
   ligar(nome);
+
+  if (avisoSemMicrofone) {
+    setTimeout(() => sistema('Sem acesso ao microfone. Você pode entrar, mas só vai poder escrever.'), 600);
+  }
 
   if (euAdmin) document.getElementById('btnAdmin').classList.remove('oculto');
   montarAutoVista();
@@ -944,7 +949,7 @@ function animarPersonagens() {
 
     pl.aAndar = !!moveu;
     if (moveu) {
-      pl.passo = ((pl.passo || 0) + 0.075) % 1;
+      pl.passo = ((pl.passo || 0) + 0.038) % 1;
       const dx = pl.x - antes.x;
       if (Math.abs(dx) > 0.4) pl.dir = dx < 0 ? -1 : 1;
     }
