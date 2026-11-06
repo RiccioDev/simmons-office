@@ -1706,11 +1706,11 @@ function desenhar() {
   Visual.salaReuniao(ctx);
 
   // plantas decorativas
-  Visual.planta(ctx, 62, 150, 1);
-  Visual.planta(ctx, 62, 520, 1.1);
-  Visual.planta(ctx, 1548, 140, 1.05);
-  Visual.planta(ctx, 1548, 700, 0.95);
-  Visual.planta(ctx, 1500, 900, 0.85);
+  Visual.planta(ctx, 62, 130, 1);
+  Visual.planta(ctx, 62, 760, 1.1);
+  Visual.planta(ctx, 1200, 340, 1.05);
+  Visual.planta(ctx, 1200, 720, 0.95);
+  Visual.planta(ctx, 770, 940, 0.85);
 
   // quem está sentado é desenhado ANTES das mesas (fica atrás, como na vida real)
   for (const p of players.values()) {

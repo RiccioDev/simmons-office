@@ -21,8 +21,8 @@ function mesasIniciais() {
       mesas.push({
         id: n,
         label: 'Mesa ' + n,
-        x: 150 + col * 280,
-        y: fila === 0 ? 210 : 610,
+        x: 110 + col * 215,
+        y: fila === 0 ? 180 : 560,
         w: 180,
         h: 90,
         owner: '',      // nome de quem é a mesa
