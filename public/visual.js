@@ -778,20 +778,27 @@ const Visual = (() => {
 
     // ---- cadeiras: 4 de cada lado da mesa
     const cadeiraV = (borda, cy2, paraDireita) => {
+      const OUT = '#141a22', ENC = '#556781', ENC_LUZ = '#7b8ea8', ASS = '#3f4a5b', ASS_LUZ = '#55637a';
       if (!paraDireita) {
-        p(borda, cy2 - 20, 20, 40, '#1c232d');        // encosto
-        p(borda + 2, cy2 - 18, 16, 36, '#4e5d73');
-        p(borda + 2, cy2 - 18, 2, 36, '#6a7c96');
-        p(borda + 20, cy2 - 16, 24, 32, '#1c232d');   // assento
-        p(borda + 22, cy2 - 14, 20, 28, '#39434f');
-        p(borda + 22, cy2 - 14, 20, 2, '#4b5769');
+        p(borda - 2, cy2 - 18, 26, 36, 'rgba(0,0,0,.35)');   // sombra
+        p(borda, cy2 - 22, 22, 44, OUT);                     // encosto
+        p(borda + 2, cy2 - 20, 18, 40, ENC);
+        p(borda + 2, cy2 - 20, 18, 4, ENC_LUZ);
+        p(borda + 4, cy2 - 12, 14, 2, 'rgba(255,255,255,.07)');
+        p(borda + 22, cy2 - 17, 26, 34, OUT);                // assento
+        p(borda + 24, cy2 - 15, 22, 30, ASS);
+        p(borda + 24, cy2 - 15, 22, 3, ASS_LUZ);
+        p(borda + 26, cy2 + 12, 18, 2, 'rgba(0,0,0,.35)');
       } else {
-        p(borda - 20, cy2 - 20, 20, 40, '#1c232d');
-        p(borda - 18, cy2 - 18, 16, 36, '#4e5d73');
-        p(borda - 4, cy2 - 18, 2, 36, '#6a7c96');
-        p(borda - 44, cy2 - 16, 24, 32, '#1c232d');
-        p(borda - 42, cy2 - 14, 20, 28, '#39434f');
-        p(borda - 42, cy2 - 14, 20, 2, '#4b5769');
+        p(borda - 24, cy2 - 18, 26, 36, 'rgba(0,0,0,.35)');
+        p(borda - 22, cy2 - 22, 22, 44, OUT);
+        p(borda - 20, cy2 - 20, 18, 40, ENC);
+        p(borda - 20, cy2 - 20, 18, 4, ENC_LUZ);
+        p(borda - 18, cy2 - 12, 14, 2, 'rgba(255,255,255,.07)');
+        p(borda - 48, cy2 - 17, 26, 34, OUT);
+        p(borda - 46, cy2 - 15, 22, 30, ASS);
+        p(borda - 46, cy2 - 15, 22, 3, ASS_LUZ);
+        p(borda - 44, cy2 + 12, 18, 2, 'rgba(0,0,0,.35)');
       }
     };
 

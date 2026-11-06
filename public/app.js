@@ -2418,7 +2418,7 @@ let canvasCss = { w: 800, h: 600 };
 // No computador continua a caber tudo, como sempre.
 let camera = { x: LARG / 2, y: ALT / 2 };
 
-const ZOOM_MAPA = () => (ehEcraPequeno() ? 2.1 : 1.85);
+const ZOOM_MAPA = () => (ehEcraPequeno() ? 1.7 : 1.42);
 
 function modoCamera() {
   return true;   // a câmara segue sempre o avatar

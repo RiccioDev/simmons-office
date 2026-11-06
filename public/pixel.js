@@ -291,19 +291,25 @@ const Pixel = (() => {
     }
 
     if (dir === 2 || dir === 3) {
-      // de perfil: um olho, nariz saliente, orelha atrás
+      // de perfil: testa, maçã do rosto, nariz e queixo bem marcados
       px(g, 11, 6, 10, 12, pele);
-      px(g, 11, 6, 2, 12, luz);
-      px(g, 19, 6, 2, 12, sombra);
+      px(g, 11, 6, 3, 12, luz);                // testa/maçã iluminada
+      px(g, 19, 8, 2, 8, sombra);              // lateral na sombra
       px(g, 10, 11, 1, 3, sombra);             // orelha
-      px(g, 21, 12, 2, 2, sombra);             // nariz
-      px(g, 21, 14, 1, 1, escuro);
-      // olho
-      px(g, 16, 11, 3, 2, '#f8f8f8');
-      px(g, 18, 11, 1, 2, '#20242a');
-      px(g, 16, 9, 3, 1, tom(c.cabelo, 0.75));  // sobrancelha
-      // boca
-      if (!av.barba) px(g, 18, 15, 2, 1, tom(pele, 0.52));
+      px(g, 10, 12, 1, 1, escuro);
+
+      // perfil: sobrancelha, olho fundo, nariz a sobressair, boca e queixo
+      px(g, 16, 9, 3, 1, tom(c.cabelo, 0.7));  // sobrancelha
+      px(g, 16, 11, 2, 2, '#f8f8f8');          // olho (mais estreito no perfil)
+      px(g, 17, 11, 1, 2, '#20242a');
+      px(g, 16, 10, 2, 1, tom(pele, 0.75));    // pálpebra
+      px(g, 20, 12, 2, 2, sombra);             // nariz saliente
+      px(g, 21, 13, 1, 1, escuro);
+      px(g, 18, 13, 1, 1, tom(pele, 0.86));    // sulco do nariz
+      if (!av.barba) {
+        px(g, 18, 15, 2, 1, tom(pele, 0.5));   // boca
+      }
+      px(g, 17, 16, 3, 1, tom(pele, 0.7));     // queixo
       if (av.barba) {
         px(g, 14, 14, 7, 1, c.cabelo);
         px(g, 13, 12, 1, 4, tom(c.cabelo, 0.78));
