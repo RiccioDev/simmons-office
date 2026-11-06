@@ -766,6 +766,14 @@ function alternarSentar() {
   ws.send(JSON.stringify({ t: 'sentar', deskId: d.id, nome: eu.name }));
 }
 
+// tranca/destranca a MINHA mesa, esteja eu onde estiver (usado no celular)
+function alternarMinhaMesa() {
+  if (!eu) return;
+  const d = desks.find(x => x.owner && x.owner.toLowerCase() === eu.name.toLowerCase());
+  if (!d) { avisar('Você ainda não tem mesa. Chegue perto de uma livre e toque em R.'); return; }
+  ws.send(JSON.stringify({ t: 'fecharMesa', deskId: d.id, nome: eu.name }));
+}
+
 function alternarFecho() {
   const d = minhaMesaMaisProxima();
   if (!d) { avisar('Chegue perto de uma mesa.'); return; }
@@ -974,6 +982,15 @@ function loop(t) {
       }
     }
   }
+
+  try {
+    const btnF = document.querySelector('#acoesToque [data-acao="fechar"]');
+    if (btnF) {
+      const minha = eu && desks.find(d => d.owner && d.owner.toLowerCase() === eu.name.toLowerCase());
+      btnF.classList.toggle('trancada', !!(minha && minha.locked));
+      btnF.title = minha ? (minha.locked ? 'Destrancar a minha mesa' : 'Trancar a minha mesa') : 'Trancar mesa (chegue perto de uma mesa livre)';
+    }
+  } catch (e) {}
 
   try { desenhar(); } catch (e) { relatarErro('desenho', e); }
   try { gerirProximidade(); posicionarVideos(); } catch (e) { relatarErro('proximidade', e); }
@@ -1400,6 +1417,19 @@ ligarClique('btnFecharContas', 'onclick', () => {
   const r = $('resultadoConta'); if (r) r.textContent = '';
 });
 
+aoTocar($('btnLimparMesas'), async () => {
+  const r = await fetch('/api/mesas/limpar', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+  });
+  const d = await r.json().catch(() => ({}));
+  await carregarMesasAdmin();
+  const res = $('resultadoConta');
+  if (res) res.textContent = d.libertadas
+    ? d.libertadas + ' mesa(s) libertada(s).'
+    : 'Nenhuma mesa presa encontrada.';
+});
+
 ligarClique('btnGerarConvite', 'onclick', async () => {
   const caixa = document.getElementById('linkConvite');
   const r = await fetch('/api/convites', {
@@ -1453,14 +1483,14 @@ async function carregarConvites() {
     }).join('');
 
     lista.querySelectorAll('.contaRemover').forEach(b => {
-      b.onclick = async () => {
+      aoTocar(b, async () => {
         await fetch('/api/convites/remover', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
           body: JSON.stringify({ codigo: b.dataset.c }),
         });
         await carregarConvites();
-      };
+      });
     });
   } catch (e) {
     lista.innerHTML = '';
@@ -1491,7 +1521,7 @@ async function carregarMesasAdmin() {
       </div>`).join('');
 
     lista.querySelectorAll('[data-mesa]').forEach(b => {
-      b.onclick = async () => {
+      aoTocar(b, async () => {
         if (!confirm('Libertar esta mesa? Fica livre para qualquer pessoa.')) return;
         await fetch('/api/mesas/libertar', {
           method: 'POST',
@@ -1499,7 +1529,7 @@ async function carregarMesasAdmin() {
           body: JSON.stringify({ deskId: Number(b.dataset.mesa) }),
         });
         await carregarMesasAdmin();
-      };
+      });
     });
   } catch (e) {}
 }
@@ -1519,7 +1549,7 @@ async function carregarContas() {
       </div>`).join('');
 
     lista.querySelectorAll('.contaRemover').forEach(b => {
-      b.onclick = async () => {
+      aoTocar(b, async () => {
         if (!confirm('Remover a conta ' + b.dataset.u + '?')) return;
         await fetch('/api/usuarios/remover', {
           method: 'POST',
@@ -1528,7 +1558,7 @@ async function carregarContas() {
         });
         await carregarContas();
         await carregarMesasAdmin();
-      };
+      });
     });
   } catch (e) {
     lista.innerHTML = '<div class="contaVazia">Sem conexão.</div>';
@@ -1933,6 +1963,14 @@ function montarCriadorAvatar() {
     aoTocar(b, () => { avatarEmEdicao.cabelo = b.dataset.v; marcar('opCabelo', b.dataset.v); pintar(); });
   });
 
+  document.querySelectorAll('#opTipo button').forEach(b => {
+    aoTocar(b, () => { avatarEmEdicao.tipo = b.dataset.v; marcar('opTipo', b.dataset.v); pintar(); });
+  });
+
+  document.querySelectorAll('#opOculos button').forEach(b => {
+    aoTocar(b, () => { avatarEmEdicao.oculos = b.dataset.v; marcar('opOculos', b.dataset.v); pintar(); });
+  });
+
   const montarCores = (id, cores, campo) => {
     const alvo = $(id);
     alvo.classList.add('cores');
@@ -1951,6 +1989,8 @@ function montarCriadorAvatar() {
     marcar('opGenero', avatarEmEdicao.genero);
     marcar('opCabelo', avatarEmEdicao.cabelo);
     marcar('opPele', avatarEmEdicao.pele);
+    marcar('opTipo', avatarEmEdicao.tipo || 'camisa');
+    marcar('opOculos', avatarEmEdicao.oculos || 'nenhum');
     marcar('opCorCabelo', avatarEmEdicao.corCabelo);
     marcar('opRoupa', avatarEmEdicao.roupa);
     modal.classList.remove('oculto');
@@ -1965,12 +2005,18 @@ function montarCriadorAvatar() {
       cabelo: ['curto', 'longo', 'coque', 'franja', 'afro', 'careca'][Math.floor(Math.random() * 6)],
       corCabelo: Math.floor(Math.random() * Visual.CABELOS.length),
       roupa: Math.floor(Math.random() * Visual.ROUPAS.length),
+      tipo: ['camisa', 'terno', 'blazer', 'moletom', 'vestido'][Math.floor(Math.random() * 5)],
+      oculos: ['nenhum', 'nenhum', 'redondo', 'escuro', 'sol'][Math.floor(Math.random() * 5)],
     };
     marcar('opGenero', avatarEmEdicao.genero);
     marcar('opCabelo', avatarEmEdicao.cabelo);
     marcar('opPele', avatarEmEdicao.pele);
+    marcar('opTipo', avatarEmEdicao.tipo || 'camisa');
+    marcar('opOculos', avatarEmEdicao.oculos || 'nenhum');
     marcar('opCorCabelo', avatarEmEdicao.corCabelo);
     marcar('opRoupa', avatarEmEdicao.roupa);
+    marcar('opTipo', avatarEmEdicao.tipo);
+    marcar('opOculos', avatarEmEdicao.oculos);
     pintar();
   });
 
@@ -2008,6 +2054,8 @@ function montarToque() {
     const pequeno = ehEcraPequeno();
     if (joystick) joystick.classList.toggle('oculto', !pequeno);
     if (btnChat) btnChat.classList.toggle('oculto', !pequeno);
+    const acoes = document.getElementById('acoesToque');
+    if (acoes) acoes.classList.toggle('oculto', !pequeno);
     if (!pequeno) lateral.classList.remove('aberta');
     // o canvas acompanha o espaco disponivel
     ajustarCanvas();
@@ -2033,13 +2081,34 @@ function montarToque() {
     btn.addEventListener('pointerleave', soltar);
   });
 
-  joystick.querySelectorAll('[data-acao]').forEach(btn => {
-    btn.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
+  // um ÚNICO ouvinte para todos os botões de ação (sentar, trancar, bater).
+  // Antes era um por botão e, como o montarToque corre várias vezes, o toque
+  // disparava a ação dezenas de vezes seguidas.
+  if (!window.__acoesLigadas) {
+    window.__acoesLigadas = true;
+
+    let ultimoToque = 0;
+
+    const executar = (ev) => {
+      const btn = ev.target && ev.target.closest ? ev.target.closest('[data-acao]') : null;
+      if (!btn) return;
+
+      // um toque gera pointerdown + touchend + click: só a primeira conta
+      const agora = Date.now();
+      if (agora - ultimoToque < 400) return;
+      ultimoToque = agora;
+
+      if (ev.cancelable) ev.preventDefault();
+
       const acao = btn.dataset.acao;
       if (acao === 'sentar') alternarSentar();
-    });
-  });
+      else if (acao === 'fechar') alternarMinhaMesa();
+      else if (acao === 'bater') bater();
+    };
+
+    document.addEventListener('pointerdown', executar, { passive: false });
+    document.addEventListener('touchend', (ev) => { executar(ev); }, { passive: false });
+  }
 
   // ---- gaveta do chat
   const abrirGaveta = () => lateral.classList.toggle('aberta');

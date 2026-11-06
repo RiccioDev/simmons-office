@@ -55,6 +55,7 @@ armazem.carregar().then((guardado) => {
   }
   console.log('mesas carregadas de: ' + armazem.modoArmazenamento());
   broadcastEstado();
+  limparMesasOrfas();
 }).catch((e) => console.log('erro ao carregar mesas:', e.message));
 
 function guardarMesas() {
@@ -280,6 +281,31 @@ const server = http.createServer((req, res) => {
     }
   }
 
+  if (caminho === '/api/mesas/limpar' && req.method === 'POST') {
+    const dados = utilizadorDoPedido();
+    if (!dados || !dados.a) return json(403, { erro: 'só o administrador' });
+
+    return armazem.listarUtilizadores().then((contas) => {
+      const nomes = new Set((contas || []).map(u => String(u.display_name || '').toLowerCase().trim()));
+      const users = new Set((contas || []).map(u => String(u.username || '').toLowerCase()));
+
+      let n = 0;
+      for (const d of desks) {
+        if (!d.owner || d.occupied) continue;
+        const donoUser = String(d.ownerUser || '').toLowerCase();
+        const donoNome = String(d.owner || '').toLowerCase().trim();
+        const temConta = donoUser ? users.has(donoUser) : nomes.has(donoNome);
+        if (temConta) continue;
+
+        d.owner = ''; d.ownerUser = ''; d.locked = false; d.occupied = null;
+        n++; guardarMesas();
+        broadcast({ t: 'mesa', desk: { ...d } });
+      }
+      if (n) broadcastEstado();
+      return json(200, { ok: true, libertadas: n });
+    }).catch(() => json(500, { erro: 'erro ao ler as contas' }));
+  }
+
   if (caminho === '/api/mesas/libertar' && req.method === 'POST') {
     const dados = utilizadorDoPedido();
     if (!dados || !dados.a) return json(403, { erro: 'só o administrador' });
@@ -464,6 +490,44 @@ function broadcast(obj, exceptId) {
   for (const [id, p] of players) {
     if (id === exceptId) continue;
     if (p.ws.readyState === 1) p.ws.send(txt);
+  }
+}
+
+// no arranque: liberta mesas de contas que já não existem (ex.: removidas antes desta regra)
+async function limparMesasOrfas() {
+  try {
+    const contas = await armazem.listarUtilizadores();
+    const nomes = new Set((contas || []).map(u => String(u.display_name || '').toLowerCase().trim()));
+    const users = new Set((contas || []).map(u => String(u.username || '').toLowerCase()));
+
+    let libertadas = 0;
+    for (const d of desks) {
+      if (!d.owner) continue;
+
+      const donoUser = String(d.ownerUser || '').toLowerCase();
+      const donoNome = String(d.owner || '').toLowerCase().trim();
+
+      const temConta = donoUser ? users.has(donoUser) : nomes.has(donoNome);
+      if (temConta) continue;
+
+      // não mexe em mesas com alguém sentado
+      if (d.occupied) continue;
+
+      d.owner = '';
+      d.ownerUser = '';
+      d.locked = false;
+      d.occupied = null;
+      libertadas++;
+      guardarMesas();
+      broadcast({ t: 'mesa', desk: { ...d } });
+    }
+
+    if (libertadas) {
+      broadcastEstado();
+      console.log('mesas libertadas no arranque (contas inexistentes): ' + libertadas);
+    }
+  } catch (e) {
+    console.log('limparMesasOrfas:', e.message);
   }
 }
 

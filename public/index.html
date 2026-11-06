@@ -131,10 +131,15 @@
     <button class="jsBtn" data-dir="up">▲</button>
     <div class="jsMeio">
       <button class="jsBtn" data-dir="left">◀</button>
-      <button class="jsBtn jsAcao" data-acao="sentar">E</button>
+      <button class="jsBtn jsAcao" data-acao="sentar">🪑</button>
       <button class="jsBtn" data-dir="right">▶</button>
     </div>
     <button class="jsBtn" data-dir="down">▼</button>
+  </div>
+
+  <div id="acoesToque" class="oculto">
+    <button class="acaoBtn" data-acao="fechar" title="Trancar / destrancar a minha mesa">🔒</button>
+    <button class="acaoBtn" data-acao="bater" title="Bater à porta de quem está perto">✊</button>
   </div>
 
   <button id="btnChat" class="oculto" title="Abrir o chat">💬</button>
@@ -204,8 +209,29 @@
           </div>
 
           <div class="grupoAvatar">
-            <span>Roupa</span>
+            <span>Estilo da roupa</span>
+            <div class="opcoes" id="opTipo">
+              <button data-v="camisa" class="escolhido">Camisa</button>
+              <button data-v="terno">Terno</button>
+              <button data-v="blazer">Blazer</button>
+              <button data-v="moletom">Moletom</button>
+              <button data-v="vestido">Vestido</button>
+            </div>
+          </div>
+
+          <div class="grupoAvatar">
+            <span>Cor da roupa</span>
             <div class="opcoes" id="opRoupa"></div>
+          </div>
+
+          <div class="grupoAvatar">
+            <span>Óculos</span>
+            <div class="opcoes" id="opOculos">
+              <button data-v="nenhum" class="escolhido">Nenhum</button>
+              <button data-v="redondo">Redondo</button>
+              <button data-v="escuro">Escuro</button>
+              <button data-v="sol">Sol</button>
+            </div>
           </div>
         </div>
       </div>
@@ -256,6 +282,7 @@
       <div class="separador"></div>
       <h4 class="tituloSecao">Mesas ocupadas</h4>
       <div id="listaMesas" class="listaContas"></div>
+      <button id="btnLimparMesas" class="secundario btnLargo">Libertar mesas de contas que já não existem</button>
       <p id="resultadoConta" class="resultadoConta"></p>
       <div class="modalBotoes">
         <button id="btnFecharContas" class="secundario">Fechar</button>

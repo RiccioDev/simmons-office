@@ -13,7 +13,7 @@ const Visual = (() => {
   function corRoupa(i) { return ROUPAS[i % ROUPAS.length]; }
 
   function padrao() {
-    return { genero: 'f', pele: 1, cabelo: 'longo', corCabelo: 1, roupa: 3 };
+    return { genero: 'f', pele: 1, cabelo: 'longo', corCabelo: 1, roupa: 3, tipo: 'camisa', oculos: 'nenhum' };
   }
 
   // escurece/clareia uma cor hex
@@ -71,21 +71,9 @@ const Visual = (() => {
       ctx.fill();
     }
 
-    // tronco
+    // tronco (varia com o tipo de roupa)
     const largura = av.genero === 'm' ? 15 : 13;
-    ctx.fillStyle = roupa;
-    ctx.beginPath();
-    ctx.roundRect(-largura, -40, largura * 2, 30, 7);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(0,0,0,.22)';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-
-    // gola
-    ctx.fillStyle = roupaEscura;
-    ctx.beginPath();
-    ctx.roundRect(-largura + 2, -40, largura * 2 - 4, 6, 4);
-    ctx.fill();
+    desenharTronco(ctx, av, largura, roupa, roupaEscura, pele);
 
     // braços
     ctx.fillStyle = roupaEscura;
@@ -156,9 +144,172 @@ const Visual = (() => {
       ctx.beginPath();
       ctx.arc(dir * 1, cy + 4.6, 2.8, 0.12 * Math.PI, 0.88 * Math.PI);
       ctx.stroke();
+
+      desenharOculos(ctx, av.oculos, cy, dir);
     }
 
     ctx.restore();
+  }
+
+  function desenharTronco(ctx, av, largura, roupa, roupaEscura, pele) {
+    const tipo = av.tipo || 'camisa';
+
+    // base: corpo
+    ctx.fillStyle = roupa;
+    ctx.beginPath();
+    ctx.roundRect(-largura, -40, largura * 2, 30, 7);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,.22)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    if (tipo === 'terno' || tipo === 'blazer') {
+      // camisa branca em V
+      ctx.fillStyle = '#f2f0ea';
+      ctx.beginPath();
+      ctx.moveTo(-6, -40);
+      ctx.lineTo(6, -40);
+      ctx.lineTo(0, -20);
+      ctx.closePath();
+      ctx.fill();
+
+      // lapelas
+      ctx.fillStyle = roupaEscura;
+      ctx.beginPath();
+      ctx.moveTo(-largura, -40);
+      ctx.lineTo(-4, -40);
+      ctx.lineTo(0, -18);
+      ctx.lineTo(-largura + 3, -22);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(largura, -40);
+      ctx.lineTo(4, -40);
+      ctx.lineTo(0, -18);
+      ctx.lineTo(largura - 3, -22);
+      ctx.closePath();
+      ctx.fill();
+
+      if (tipo === 'terno') {
+        // gravata
+        ctx.fillStyle = tom(roupa, 0.45);
+        ctx.beginPath();
+        ctx.moveTo(0, -34);
+        ctx.lineTo(2.6, -31);
+        ctx.lineTo(2, -16);
+        ctx.lineTo(0, -12);
+        ctx.lineTo(-2, -16);
+        ctx.lineTo(-2.6, -31);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      // botão do casaco
+      ctx.fillStyle = tom(roupa, 0.5);
+      ctx.beginPath();
+      ctx.arc(0, -12, 1.4, 0, Math.PI * 2);
+      ctx.fill();
+
+    } else if (tipo === 'moletom') {
+      // capuz atrás do pescoço
+      ctx.fillStyle = roupaEscura;
+      ctx.beginPath();
+      ctx.ellipse(0, -40, 10, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // bolso canguru
+      ctx.fillStyle = roupaEscura;
+      ctx.beginPath();
+      ctx.roundRect(-9, -24, 18, 10, 3);
+      ctx.fill();
+
+      // cordões
+      ctx.strokeStyle = 'rgba(255,255,255,.55)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(-3, -36); ctx.lineTo(-4, -28);
+      ctx.moveTo(3, -36); ctx.lineTo(4, -28);
+      ctx.stroke();
+
+    } else if (tipo === 'vestido') {
+      // decote
+      ctx.fillStyle = pele;
+      ctx.beginPath();
+      ctx.moveTo(-6, -40);
+      ctx.lineTo(6, -40);
+      ctx.lineTo(0, -33);
+      ctx.closePath();
+      ctx.fill();
+
+      // saia a rodear as pernas
+      ctx.fillStyle = roupa;
+      ctx.beginPath();
+      ctx.moveTo(-largura, -14);
+      ctx.lineTo(largura, -14);
+      ctx.lineTo(largura + 4, 2);
+      ctx.lineTo(-largura - 4, 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,.20)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+    } else {
+      // camisa: gola simples
+      ctx.fillStyle = roupaEscura;
+      ctx.beginPath();
+      ctx.roundRect(-largura + 2, -40, largura * 2 - 4, 6, 4);
+      ctx.fill();
+
+      // botões
+      ctx.fillStyle = 'rgba(255,255,255,.35)';
+      for (const by of [-30, -23]) {
+        ctx.beginPath();
+        ctx.arc(0, by, 1.1, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+
+  function desenharOculos(ctx, tipo, cy, dir) {
+    if (!tipo || tipo === 'nenhum') return;
+
+    if (tipo === 'escuro') {
+      ctx.fillStyle = 'rgba(24,26,32,.92)';
+      ctx.beginPath();
+      ctx.roundRect(-9, cy - 3.4, 8, 5.6, 2);
+      ctx.roundRect(1, cy - 3.4, 8, 5.6, 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(24,26,32,.92)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(-1, cy - 1.4);
+      ctx.lineTo(1, cy - 1.4);
+      ctx.stroke();
+      return;
+    }
+
+    // redondos / sol: aros
+    ctx.strokeStyle = tipo === 'sol' ? 'rgba(30,24,18,.95)' : 'rgba(40,36,30,.85)';
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.arc(-4.4 + dir * 0.6, cy + 1, 3.6, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(4.4 + dir * 0.6, cy + 1, 3.6, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-1, cy + 0.6);
+    ctx.lineTo(1, cy + 0.6);
+    ctx.stroke();
+
+    if (tipo === 'sol') {
+      ctx.fillStyle = 'rgba(20,24,30,.75)';
+      ctx.beginPath();
+      ctx.arc(-4.4 + dir * 0.6, cy + 1, 3.2, 0, Math.PI * 2);
+      ctx.arc(4.4 + dir * 0.6, cy + 1, 3.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
 
   function desenharCabelo(ctx, av, cy, cor, dir) {
