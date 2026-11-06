@@ -137,6 +137,7 @@ const server = http.createServer((req, res) => {
       jogadores: players.size,
       armazenamento: armazem.modoArmazenamento(),
       mensagens: chat.modo(),
+      mesasComDono: desks.filter(d => d.owner).length,
     });
   }
 
