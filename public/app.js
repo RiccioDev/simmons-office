@@ -754,6 +754,18 @@ const teclas = new Set();
 let ultimoLevantar = 0;
 let ultimoEnvioLocal = 0;
 window.addEventListener('keydown', (e) => {
+  // Ctrl + / Ctrl - : zoom só do mapa (o chat e a interface não mudam)
+  if (e.ctrlKey || e.metaKey) {
+    const k = e.key;
+    if (k === '+' || k === '=' || k === '-' || k === '_' || k === '0') {
+      e.preventDefault();
+      if (k === '0') zoomAjuste = 1;
+      else if (k === '+' || k === '=') zoomAjuste = Math.min(2.6, zoomAjuste * 1.12);
+      else zoomAjuste = Math.max(0.55, zoomAjuste / 1.12);
+      return;
+    }
+  }
+
   const foco = document.activeElement;
   const aEscrever = foco && (foco.tagName === 'INPUT' || foco.tagName === 'TEXTAREA' || foco.isContentEditable)
     && foco.offsetParent !== null;   // campo escondido não bloqueia o boneco
@@ -2411,7 +2423,8 @@ let canvasCss = { w: 800, h: 600 };
 // No computador continua a caber tudo, como sempre.
 let camera = { x: LARG / 2, y: ALT / 2 };
 
-const ZOOM_MAPA = () => (ehEcraPequeno() ? 2.2 : 1.95);
+let zoomAjuste = 1;   // Ctrl + / Ctrl - mudam só o zoom do mapa
+const ZOOM_MAPA = () => (ehEcraPequeno() ? 1.85 : 1.6) * zoomAjuste;
 
 function modoCamera() {
   return true;   // a câmara segue sempre o avatar

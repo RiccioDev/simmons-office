@@ -103,16 +103,19 @@ body{
   display:flex;flex-direction:column;
 }
 .topo{
-  display:flex;align-items:center;gap:8px;white-space:nowrap;
-  padding:14px 16px;border-bottom:1px solid var(--linha);font-size:12.5px;color:#9aa4b2;
+  display:flex;align-items:center;flex-wrap:wrap;gap:6px;min-width:0;
+  padding:12px 14px 11px;border-bottom:1px solid var(--linha);font-size:12px;color:#9aa4b2;
 }
+.topo #contagem{margin-right:auto;white-space:nowrap}
 .topo .ponto{width:8px;height:8px;border-radius:50%;background:#c0392b}
 .topo .ponto.on{background:var(--verde);box-shadow:0 0 10px rgba(42,157,143,.8)}
 .topo button{
-  margin-left:auto;background:#1d232c;border:1px solid var(--linha);color:var(--tinta);
-  width:34px;height:30px;border-radius:8px;cursor:pointer;font-size:14px;
+  margin:0;padding:0;flex:0 0 auto;display:grid;place-items:center;
+  background:#1d232c;border:1px solid var(--linha);color:var(--tinta);
+  width:31px;height:29px;border-radius:8px;cursor:pointer;font-size:13px;line-height:1;
 }
-.topo button + button{margin-left:6px}
+.topo button:hover{background:#242c36;border-color:#33404f}
+.topo button + button{margin-left:0}
 .topo button.desligado{opacity:.4}
 
 #chat{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:9px;font-size:13.5px}

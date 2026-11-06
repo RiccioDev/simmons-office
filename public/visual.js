@@ -365,21 +365,26 @@ const Visual = (() => {
 
   // ---------------------------------------------------------------- ambiente
   function chao(ctx, largura, altura) {
-    // piso de tábuas de madeira (o mesmo tom do pack do WorkAdventure)
-    const tabua = 32;
+    // tábuas compridas, sem desenho de tijolo: bandas horizontais e veios suaves
+    const tabua = 36;
     for (let y = 0, linha = 0; y < altura; y += tabua, linha++) {
-      const c = linha % 2 ? '#8a6a48' : '#8f6f4c';
-      ctx.fillStyle = c;
+      ctx.fillStyle = linha % 2 ? '#96764f' : '#9c7b55';
       ctx.fillRect(0, y, largura, tabua);
-      // veios
-      ctx.fillStyle = 'rgba(90,64,40,.30)';
-      for (let x = (linha % 2 ? 40 : 0); x < largura; x += 128) {
-        ctx.fillRect(x, y, 2, tabua);
+
+      // emenda entre tábuas (linha fina)
+      ctx.fillStyle = 'rgba(70,48,28,.20)';
+      ctx.fillRect(0, y + tabua - 1, largura, 1);
+
+      // veio: riscos horizontais curtos, sem padrão de tijolo
+      ctx.fillStyle = 'rgba(120,88,54,.16)';
+      for (let x = (linha % 3) * 90; x < largura; x += 260) {
+        ctx.fillRect(x, y + 10 + (linha % 2) * 8, 120, 1);
+        ctx.fillRect(x + 40, y + 22, 70, 1);
       }
-      ctx.fillStyle = 'rgba(60,42,26,.45)';
-      ctx.fillRect(0, y + tabua - 2, largura, 2);
-      ctx.fillStyle = 'rgba(255,235,205,.10)';
-      ctx.fillRect(0, y, largura, 1);
+
+      // realce superior
+      ctx.fillStyle = 'rgba(255,240,214,.05)';
+      ctx.fillRect(0, y + 1, largura, 1);
     }
   }
 
@@ -603,11 +608,6 @@ const Visual = (() => {
       ctx.fillText(nome, cx, y + 26.5);
     }
 
-    // minha mesa: risco dourado discreto na frente
-    if (minha && !trancada) {
-      ctx.fillStyle = 'rgba(229,194,92,.85)';
-      ctx.fillRect(cx - w * 0.22, y + h - 2, w * 0.44, 1.5);
-    }
     if (trancada) {
       ctx.font = '8px "Segoe UI Emoji",sans-serif';
       ctx.textAlign = 'center';
