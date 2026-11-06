@@ -19,6 +19,32 @@ O link público muda cada vez que abres o expor.bat. Para um link fixo é precis
 domínio próprio e uma conta Cloudflare (grátis) com um túnel com nome — pede-me que eu
 monto.
 
+## O teu personagem
+
+Na primeira vez que entras, abre o criador de personagem — e podes voltar sempre pelo botão
+**🎨**, no topo do chat.
+
+Escolhes:
+
+- **Gênero** (feminino / masculino)
+- **Tom de pele** (6 tons)
+- **Cabelo** (curto, longo, coque, franja, afro, careca)
+- **Cor do cabelo** (7 cores)
+- **Roupa** (8 cores)
+
+A prévia à esquerda mostra o resultado em tamanho grande; **Aleatório** gera uma combinação.
+Ao salvar, fica guardado na tua conta — aparece igual em qualquer aparelho, e os colegas
+vêem o teu boneco com essas cores.
+
+## O escritório
+
+O chão é de madeira, com paredes, janelas, tapete e plantas. Cada mesa tem monitor,
+teclado, rato, candeeiro, planta, uma placa com o nome de quem é a mesa e a cadeira (que
+desaparece quando alguém se senta). Mesa trancada fica com o rebordo laranja.
+
+Os bonecos andam de verdade: as pernas alternam ao caminhar e o corpo vira para o lado em
+que andam.
+
 ## No celular e no tablet
 
 Abre o mesmo link — o site adapta-se sozinho. Não há app para instalar.

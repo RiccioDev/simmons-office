@@ -26,6 +26,7 @@ copy /y render.yaml    "%DESTINO%\" >nul
 copy /y public\index.html "%DESTINO%\public\" >nul
 copy /y public\app.js     "%DESTINO%\public\" >nul
 copy /y public\style.css  "%DESTINO%\public\" >nul
+if exist public\visual.js copy /y public\visual.js "%DESTINO%\public\" >nul
 
 echo   Guardado em: %DESTINO%
 echo.

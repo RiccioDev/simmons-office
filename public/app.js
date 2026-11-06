@@ -127,6 +127,14 @@ let meuStream = null;
 let temVideo = false;
 let muted = false, camOn = true;
 
+// aparência do meu personagem
+let meuAvatar = (() => {
+  try {
+    const g = JSON.parse(localStorage.getItem('simmons_avatar') || 'null');
+    return g && typeof g === 'object' ? g : null;
+  } catch (e) { return null; }
+})();
+
 const pares = new Map();  // id -> { pc, videoEl, cardEl }
 const portasAbertas = new Set();
 let streamEcra = null;        // o que EU estou a partilhar
@@ -319,6 +327,8 @@ async function entrarComSessao() {
   if (euAdmin) document.getElementById('btnAdmin').classList.remove('oculto');
   montarAutoVista();
   carregarHistorico();
+
+  if (!meuAvatar && window.abrirAparencia) setTimeout(() => window.abrirAparencia(), 700);
 }
 
 // ------------------------------------------------------------ a minha camara
@@ -339,7 +349,7 @@ function ligar(nome) {
 
   ws.onopen = () => {
     ws.send(JSON.stringify({ t: 'auth', token }));
-    ws.send(JSON.stringify({ t: 'entrar', name: nome }));
+    ws.send(JSON.stringify({ t: 'entrar', name: nome, avatar: meuAvatar }));
     document.getElementById('estadoLigacao').classList.add('on');
   };
 
@@ -385,6 +395,13 @@ function ligar(nome) {
         bolha(m.de, m.cor, m.texto, m.hora, {
           id: m.id, ficheiro: m.ficheiro, fixada: false, quando: m.quando,
         });
+        break;
+      case 'avatar':
+        if (m.avatar) {
+          meuAvatar = m.avatar;
+          localStorage.setItem('simmons_avatar', JSON.stringify(meuAvatar));
+          if (pintarPreviaAtual) pintarPreviaAtual();
+        }
         break;
       case 'fixada':
         aplicarFixada(m.id, m.fixada);
@@ -894,7 +911,25 @@ function pontoNoMapa(clientX, clientY) {
   };
 }
 
+const ultimasPos = new Map();
+
+function animarPersonagens() {
+  for (const pl of players.values()) {
+    const antes = ultimasPos.get(pl.id);
+    const moveu = antes && (Math.abs(pl.x - antes.x) > 0.4 || Math.abs(pl.y - antes.y) > 0.4);
+
+    pl.aAndar = !!moveu;
+    if (moveu) {
+      pl.passo = ((pl.passo || 0) + 0.075) % 1;
+      const dx = pl.x - antes.x;
+      if (Math.abs(dx) > 0.4) pl.dir = dx < 0 ? -1 : 1;
+    }
+    ultimasPos.set(pl.id, { x: pl.x, y: pl.y });
+  }
+}
+
 function loop(t) {
+  animarPersonagens();
   const p = players.get(eu?.id);
 
   if (p && !p.sitting) {
@@ -934,6 +969,7 @@ function loop(t) {
     limparTitulo();
   }
   montarToque();
+montarCriadorAvatar();
 requestAnimationFrame(loop);
 }
   // ------------------------------------------------------------ partilha de ecra
@@ -1534,89 +1570,35 @@ function desenhar() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, canvasCss.w, canvasCss.h);
 
-  // fundo fora do mapa (barras)
-  ctx.fillStyle = '#0a0d12';
+  ctx.fillStyle = '#12100d';
   ctx.fillRect(0, 0, canvasCss.w, canvasCss.h);
 
   const cx = caixaDoMapa();
-
-  // grade em todo o tela, alinhada com o mapa (sem emendas nem barras)
-  const passo = 50 * cx.sx;
-  if (passo > 6) {
-    ctx.strokeStyle = 'rgba(255,255,255,.022)';
-    ctx.lineWidth = 1;
-    for (let x = cx.offX % passo; x < canvasCss.w; x += passo) {
-      ctx.beginPath(); ctx.moveTo(Math.round(x) + .5, 0); ctx.lineTo(Math.round(x) + .5, canvasCss.h); ctx.stroke();
-    }
-    for (let y = cx.offY % passo; y < canvasCss.h; y += passo) {
-      ctx.beginPath(); ctx.moveTo(0, Math.round(y) + .5); ctx.lineTo(canvasCss.w, Math.round(y) + .5); ctx.stroke();
-    }
-  }
-
+  ctx.setTransform(dpr * cx.sx, 0, 0 * cx.sy, dpr * cx.sy, dpr * cx.offX, dpr * cx.offY);
   ctx.setTransform(dpr * cx.sx, 0, 0, dpr * cx.sy, dpr * cx.offX, dpr * cx.offY);
 
-  // tapete central
-  ctx.fillStyle = 'rgba(201,162,39,.045)';
-  ctx.beginPath();
-  ctx.roundRect(80, 110, 1440, 780, 26);
-  ctx.fill();
+  // chão de madeira, paredes e tapete
+  Visual.chao(ctx, LARG, ALT);
+  Visual.tapete(ctx, 80, 110, 1440, 780);
+  Visual.paredes(ctx, LARG, ALT);
+
+  // plantas decorativas
+  Visual.planta(ctx, 62, 150, 1);
+  Visual.planta(ctx, 62, 520, 1.1);
+  Visual.planta(ctx, 1548, 140, 1.05);
+  Visual.planta(ctx, 1548, 700, 0.95);
+  Visual.planta(ctx, 760, 960, 0.85);
 
   // mesas
   for (const d of (Array.isArray(desks) ? desks : [])) {
     const minha = eu && d.owner && d.owner.toLowerCase() === eu.name.toLowerCase();
-    const ocupada = !!d.occupied;
-
-    ctx.save();
-    ctx.shadowColor = 'rgba(0,0,0,.5)';
-    ctx.shadowBlur = 18;
-    ctx.shadowOffsetY = 6;
-    ctx.fillStyle = d.locked ? '#2b2118' : (minha ? '#1e2a33' : '#1a2129');
-    ctx.beginPath();
-    ctx.roundRect(d.x, d.y, d.w, d.h, 12);
-    ctx.fill();
-    ctx.restore();
-
-    ctx.strokeStyle = d.locked ? '#c26a3a' : (minha ? '#c9a227' : '#2b3542');
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.roundRect(d.x, d.y, d.w, d.h, 12);
-    ctx.stroke();
-
-    // tampo
-    ctx.fillStyle = 'rgba(255,255,255,.05)';
-    ctx.beginPath();
-    ctx.roundRect(d.x + 10, d.y + 10, d.w - 20, 26, 7);
-    ctx.fill();
-
-    ctx.fillStyle = ocupada ? '#8fe3d6' : '#7b8593';
-    ctx.font = '600 13px "Segoe UI",sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillText(d.label, d.x + 12, d.y + 30);
-
-    // dono e cadeado
-    const donoTxt = d.owner || 'livre';
-    ctx.fillStyle = d.owner ? '#5f6875' : '#3f4753';
-    ctx.font = '11px "Segoe UI",sans-serif';
-    ctx.fillText(donoTxt.slice(0, 22), d.x + 12, d.y + 52);
-
-    ctx.textAlign = 'right';
-    ctx.font = '15px "Segoe UI Emoji",sans-serif';
-    ctx.fillStyle = d.locked ? '#e08b57' : '#4b545f';
-    ctx.fillText(d.locked ? '🔒' : '🔓', d.x + d.w - 14, d.y + 34);
+    Visual.mesa(ctx, d, { minha, trancada: !!d.locked, ocupada: !!d.occupied });
 
     if (d.locked && d.occupied) {
       ctx.fillStyle = 'rgba(232,168,90,.9)';
       ctx.font = '600 11px "Segoe UI",sans-serif';
       ctx.textAlign = 'left';
-      ctx.fillText('porta fechada · K para bater', d.x + 12, d.y + d.h - 10);
-      ctx.textAlign = 'left';
-    }
-
-    if (d.locked && d.occupied) {
-      ctx.fillStyle = 'rgba(194,106,58,.14)';
-      ctx.beginPath();
-      ctx.roundRect(d.x, d.y, d.w, d.h, 12);
-      ctx.fill();
+      ctx.fillText('porta fechada · K para bater', d.x + 12, d.y + d.h + 20);
     }
   }
 
@@ -1624,63 +1606,53 @@ function desenhar() {
   for (const p of players.values()) {
     const souEu = eu && p.id === eu.id;
 
-    // halo de proximidade
     if (souEu) {
       ctx.beginPath();
       ctx.arc(p.x, p.y, RAIO_CONECTA, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(201,162,39,.045)';
+      ctx.fillStyle = 'rgba(201,162,39,.035)';
       ctx.fill();
-      ctx.strokeStyle = 'rgba(201,162,39,.14)';
+      ctx.strokeStyle = 'rgba(201,162,39,.12)';
       ctx.setLineDash([6, 8]);
       ctx.stroke();
       ctx.setLineDash([]);
     }
 
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, RAIO_AVATAR, 0, Math.PI * 2);
-    ctx.fillStyle = p.cor || '#888';
-    ctx.fill();
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = souEu ? '#fff' : 'rgba(0,0,0,.45)';
-    ctx.stroke();
+    Visual.personagem(ctx, p.x, p.y + 26, avatarDe(p), {
+      dir: p.dir || 1,
+      passo: p.passo || 0,
+      andando: !!p.aAndar,
+      sentado: !!p.sitting,
+      escala: 1.35,
+    });
 
-    // inicial
-    ctx.fillStyle = '#12151a';
-    ctx.font = '700 14px "Segoe UI",sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText((p.name || '?')[0].toUpperCase(), p.x, p.y + 1);
-
-    // nome
     ctx.textBaseline = 'alphabetic';
     ctx.font = '600 12.5px "Segoe UI",sans-serif';
+    ctx.textAlign = 'center';
     const largura = ctx.measureText(p.name).width;
-    ctx.fillStyle = 'rgba(10,13,18,.8)';
+    ctx.fillStyle = 'rgba(10,13,18,.82)';
     ctx.beginPath();
-    ctx.roundRect(p.x - largura / 2 - 7, p.y + RAIO_AVATAR + 5, largura + 14, 20, 6);
+    ctx.roundRect(p.x - largura / 2 - 7, p.y + 33, largura + 14, 19, 6);
     ctx.fill();
-    ctx.fillStyle = souEu ? '#c9a227' : '#cfd6df';
-    ctx.fillText(p.name, p.x, p.y + RAIO_AVATAR + 19);
+    ctx.fillStyle = souEu ? '#e5c25c' : '#cfd6df';
+    ctx.fillText(p.name, p.x, p.y + 47);
 
     if (p.muted) {
       ctx.font = '11px "Segoe UI Emoji",sans-serif';
-      ctx.fillText('🔇', p.x + RAIO_AVATAR - 2, p.y - RAIO_AVATAR + 2);
+      ctx.fillText('🔇', p.x + 20, p.y - 44);
     }
 
-    // quem esta a partilhar o ecra
     if (p.partilha) {
-      ctx.textAlign = 'center';
       ctx.font = '700 9.5px "Segoe UI",sans-serif';
       const txt = 'COMPARTILHANDO';
       const l = ctx.measureText(txt).width;
-      ctx.fillStyle = 'rgba(224,75,75,.95)';
+      ctx.fillStyle = 'rgba(60,200,120,.95)';
       ctx.beginPath();
-      ctx.roundRect(p.x - l / 2 - 8, p.y - RAIO_AVATAR - 24, l + 16, 17, 8);
+      ctx.roundRect(p.x - l / 2 - 8, p.y - 82, l + 16, 16, 8);
       ctx.fill();
-      ctx.fillStyle = '#fff';
-      ctx.fillText(txt, p.x, p.y - RAIO_AVATAR - 11.5);
-      ctx.textAlign = 'left';
+      ctx.fillStyle = '#08210f';
+      ctx.fillText(txt, p.x, p.y - 70);
     }
+
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
   }
@@ -1892,6 +1864,119 @@ function fecharPar(id) {
   atualizarSala();
 }
 
+// ------------------------------------------------------------ personagem
+let pintarPreviaAtual = null;
+let avatarEmEdicao = null;
+
+function montarCriadorAvatar() {
+  const modal = $('modalAparencia');
+  if (!modal) return;
+
+  const previa = $('previaAvatar');
+  const ctxp = previa.getContext('2d');
+
+  const copia = () => JSON.parse(JSON.stringify(avatarEmEdicao));
+
+  const pintar = () => {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = previa.clientWidth || 200;
+    const h = previa.clientHeight || 236;
+    previa.width = w * dpr;
+    previa.height = h * dpr;
+    ctxp.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctxp.clearRect(0, 0, w, h);
+
+    // chão do palco
+    ctxp.fillStyle = 'rgba(255,255,255,.03)';
+    ctxp.beginPath();
+    ctxp.ellipse(w / 2, h - 42, 52, 14, 0, 0, Math.PI * 2);
+    ctxp.fill();
+
+    ctxp.save();
+    ctxp.translate(w / 2, h - 40);
+    const escala = Math.min(w / 90, h / 150);
+    ctxp.scale(escala, escala);
+    Visual.personagem(ctxp, 0, 0, avatarEmEdicao, { dir: 1, andando: false });
+    ctxp.restore();
+  };
+  pintarPreviaAtual = pintar;
+
+  // ---- opções
+  const marcar = (id, valor) => {
+    document.querySelectorAll('#' + id + ' button').forEach(b => {
+      b.classList.toggle('escolhido', String(b.dataset.v) === String(valor));
+    });
+  };
+
+  document.querySelectorAll('#opGenero button').forEach(b => {
+    b.onclick = () => { avatarEmEdicao.genero = b.dataset.v; marcar('opGenero', b.dataset.v); pintar(); };
+  });
+
+  const opCabelo = $('opCabelo');
+  opCabelo.querySelectorAll('button').forEach(b => {
+    b.onclick = () => { avatarEmEdicao.cabelo = b.dataset.v; marcar('opCabelo', b.dataset.v); pintar(); };
+  });
+
+  const montarCores = (id, cores, campo) => {
+    const alvo = $(id);
+    alvo.classList.add('cores');
+    alvo.innerHTML = cores.map((c, i) => '<button data-v="' + i + '" style="background:' + c + '"></button>').join('');
+    alvo.querySelectorAll('button').forEach(b => {
+      b.onclick = () => { avatarEmEdicao[campo] = Number(b.dataset.v); marcar(id, b.dataset.v); pintar(); };
+    });
+  };
+  montarCores('opPele', Visual.PELES, 'pele');
+  montarCores('opCorCabelo', Visual.CABELOS, 'corCabelo');
+  montarCores('opRoupa', Visual.ROUPAS, 'roupa');
+
+  // ---- abrir
+  window.abrirAparencia = () => {
+    avatarEmEdicao = meuAvatar ? JSON.parse(JSON.stringify(meuAvatar)) : Visual.padrao();
+    marcar('opGenero', avatarEmEdicao.genero);
+    marcar('opCabelo', avatarEmEdicao.cabelo);
+    marcar('opPele', avatarEmEdicao.pele);
+    marcar('opCorCabelo', avatarEmEdicao.corCabelo);
+    marcar('opRoupa', avatarEmEdicao.roupa);
+    modal.classList.remove('oculto');
+    setTimeout(pintar, 30);
+  };
+
+  // ---- acções
+  ligarClique('btnAleatorio', 'onclick', () => {
+    avatarEmEdicao = {
+      genero: Math.random() < 0.5 ? 'f' : 'm',
+      pele: Math.floor(Math.random() * Visual.PELES.length),
+      cabelo: ['curto', 'longo', 'coque', 'franja', 'afro', 'careca'][Math.floor(Math.random() * 6)],
+      corCabelo: Math.floor(Math.random() * Visual.CABELOS.length),
+      roupa: Math.floor(Math.random() * Visual.ROUPAS.length),
+    };
+    marcar('opGenero', avatarEmEdicao.genero);
+    marcar('opCabelo', avatarEmEdicao.cabelo);
+    marcar('opPele', avatarEmEdicao.pele);
+    marcar('opCorCabelo', avatarEmEdicao.corCabelo);
+    marcar('opRoupa', avatarEmEdicao.roupa);
+    pintar();
+  });
+
+  ligarClique('btnSalvarAvatar', 'onclick', () => {
+    meuAvatar = copia();
+    localStorage.setItem('simmons_avatar', JSON.stringify(meuAvatar));
+    if (ws && ws.readyState === 1) {
+      ws.send(JSON.stringify({ t: 'avatar', avatar: meuAvatar }));
+    }
+    modal.classList.add('oculto');
+    avisar('Personagem salvo.');
+  });
+
+  ligarClique('btnAparencia', 'onclick', () => window.abrirAparencia());
+}
+
+// desenha o meu personagem no mapa mesmo antes de o servidor responder
+function avatarDe(p) {
+  if (eu && p.id === eu.id && meuAvatar) return meuAvatar;
+  return p.avatar || Visual.padrao();
+}
+
 // ------------------------------------------------------------ controlos de toque
 function ehEcraPequeno() {
   return window.matchMedia('(max-width:820px)').matches ||
@@ -2041,8 +2126,9 @@ function caixaDoMapa() {
 
   // Telemóvel/tablet: mostra ~780 unidades de largura e segue o avatar.
   // Só segue nos eixos em que o mapa é maior que o tela (senão ficaria deslocado).
-  const vista = canvasCss.w < 520 ? 780 : 1000;
-  const e = canvasCss.w / vista;
+  // escala que enche o ecrã (sem faixas pretas); a câmara segue o avatar
+  const vista = canvasCss.w < 520 ? 900 : 1200;
+  const e = Math.max(canvasCss.w / vista, canvasCss.h / ALT);
 
   const largVis = canvasCss.w / e;
   const altVis = canvasCss.h / e;
@@ -2083,4 +2169,5 @@ function posicionarVideos() {
 }
 
 montarToque();
+montarCriadorAvatar();
 requestAnimationFrame(loop);

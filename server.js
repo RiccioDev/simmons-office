@@ -511,7 +511,7 @@ function estadoPublico() {
     players: [...players.values()].map(p => ({
       id: p.id, name: p.name, x: p.x, y: p.y, cor: p.cor,
       sitting: p.sitting, deskId: p.deskId, muted: p.muted, camOn: p.camOn,
-      partilha: !!p.partilha,
+      partilha: !!p.partilha, avatar: p.avatar || null, dir: p.dir || 1,
     })),
     desks: desks.map(d => ({
       id: d.id, label: d.label, x: d.x, y: d.y, w: d.w, h: d.h,
@@ -556,9 +556,20 @@ wss.on('connection', (ws) => {
         muted: false,
         camOn: true,
         usuario: String(ws.usuario.u || '').toLowerCase(),
+        avatar: msg.avatar && typeof msg.avatar === 'object' ? msg.avatar : null,
+        dir: 1,
+        passo: 0,
       };
       players.set(id, jogador);
       enviar(ws, { t: 'bemvindo', id, ...estadoPublico() });
+
+      if (!jogador.avatar) {
+        armazem.lerAvatar(jogador.usuario).then((a) => {
+          if (a) { jogador.avatar = a; broadcastEstado(); enviar(ws, { t: 'avatar', avatar: a }); }
+        }).catch(() => {});
+      } else {
+        armazem.guardarAvatar(jogador.usuario, jogador.avatar).catch(() => {});
+      }
       broadcast({ t: 'entrou', id, name: jogador.name }, id);
       broadcastEstado();
       return;
@@ -728,6 +739,14 @@ wss.on('connection', (ws) => {
         if (outro) enviar(outro.ws, { t: 'porta', com: id, aberta: false });
         enviar(ws, { t: 'porta', com, aberta: false });
         enviar(ws, { t: 'aviso', texto: 'Porta fechada.' });
+        break;
+      }
+
+      case 'avatar': {
+        if (!p) return;
+        p.avatar = msg.avatar && typeof msg.avatar === 'object' ? msg.avatar : p.avatar;
+        if (p.avatar) armazem.guardarAvatar(p.usuario, p.avatar).catch(() => {});
+        broadcastEstado();
         break;
       }
 

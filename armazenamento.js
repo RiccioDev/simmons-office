@@ -44,6 +44,9 @@ async function iniciar() {
   // quem é o dono (username), para libertar a mesa quando a conta sai do sistema
   await pool.query(`ALTER TABLE mesas ADD COLUMN IF NOT EXISTS owner_user TEXT NOT NULL DEFAULT ''`);
 
+  // aparência do personagem
+  await pool.query(`ALTER TABLE utilizadores ADD COLUMN IF NOT EXISTS avatar TEXT NOT NULL DEFAULT ''`);
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS utilizadores (
       username     TEXT PRIMARY KEY,
@@ -384,3 +387,51 @@ module.exports = {
   criarConvite, buscarConvite, usarConvite, listarConvites, removerConvite,
   modoArmazenamento, diagnostico, pronto,
 };
+
+
+// ---------------------------------------------------------------- avatar
+async function lerAvatar(username) {
+  await pronto;
+  const u = String(username || '').toLowerCase();
+  if (!u) return null;
+
+  if (pool) {
+    try {
+      const r = await pool.query('SELECT avatar FROM utilizadores WHERE username = $1', [u]);
+      if (!r.rows.length) return null;
+      return r.rows[0].avatar ? JSON.parse(r.rows[0].avatar) : null;
+    } catch (e) { return null; }
+  }
+
+  try {
+    const lista = lerUtilizadoresFicheiro();
+    const u2 = lista.find(x => String(x.username).toLowerCase() === u);
+    return u2 && u2.avatar ? JSON.parse(u2.avatar) : null;
+  } catch (e) { return null; }
+}
+
+async function guardarAvatar(username, avatar) {
+  await pronto;
+  const u = String(username || '').toLowerCase();
+  if (!u) return false;
+  const txt = JSON.stringify(avatar || {});
+
+  if (pool) {
+    try {
+      await pool.query('UPDATE utilizadores SET avatar = $2 WHERE username = $1', [u, txt]);
+      return true;
+    } catch (e) { return false; }
+  }
+
+  try {
+    const lista = lerUtilizadoresFicheiro();
+    const u2 = lista.find(x => String(x.username).toLowerCase() === u);
+    if (!u2) return false;
+    u2.avatar = txt;
+    gravarUtilizadoresFicheiro(lista);
+    return true;
+  } catch (e) { return false; }
+}
+
+module.exports.lerAvatar = lerAvatar;
+module.exports.guardarAvatar = guardarAvatar;

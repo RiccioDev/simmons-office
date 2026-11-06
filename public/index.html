@@ -146,6 +146,7 @@
       <button id="btnSom" title="Ligar/desligar seu microfone">🎤</button>
       <button id="btnCam" title="Ligar/desligar sua câmera">📷</button>
       <button id="btnTela" title="Compartilhar minha tela (Ctrl+Shift+T)">🖥️</button>
+      <button id="btnAparencia" title="Mudar meu personagem">🎨</button>
       <button id="btnSino" title="Som quando alguém bate à porta">🔔</button>
       <button id="btnAdmin" class="oculto" title="Contas e convites da equipe">👥</button>
     </div>
@@ -163,6 +164,58 @@
     <b>R</b> reclamar mesa · <b>K</b> bater à porta · <b>M</b> micro · <b>C</b> câmera
   </div>
   <div id="aviso"></div>
+
+  <!-- criador de personagem -->
+  <div id="modalAparencia" class="modal oculto">
+    <div class="modalCaixa caixaAvatar">
+      <h3>Meu personagem</h3>
+
+      <div class="avatarTopo">
+        <canvas id="previaAvatar" width="220" height="260"></canvas>
+        <div class="avatarControles">
+          <div class="grupoAvatar">
+            <span>Gênero</span>
+            <div class="opcoes" id="opGenero">
+              <button data-v="f" class="escolhido">Feminino</button>
+              <button data-v="m">Masculino</button>
+            </div>
+          </div>
+
+          <div class="grupoAvatar">
+            <span>Tom de pele</span>
+            <div class="opcoes" id="opPele"></div>
+          </div>
+
+          <div class="grupoAvatar">
+            <span>Cabelo</span>
+            <div class="opcoes" id="opCabelo">
+              <button data-v="curto">Curto</button>
+              <button data-v="longo" class="escolhido">Longo</button>
+              <button data-v="coque">Coque</button>
+              <button data-v="franja">Franja</button>
+              <button data-v="afro">Afro</button>
+              <button data-v="careca">Careca</button>
+            </div>
+          </div>
+
+          <div class="grupoAvatar">
+            <span>Cor do cabelo</span>
+            <div class="opcoes" id="opCorCabelo"></div>
+          </div>
+
+          <div class="grupoAvatar">
+            <span>Roupa</span>
+            <div class="opcoes" id="opRoupa"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modalBotoes">
+        <button id="btnAleatorio" class="secundario">Aleatório</button>
+        <button id="btnSalvarAvatar">Salvar personagem</button>
+      </div>
+    </div>
+  </div>
 
   <!-- aviso de batida na porta -->
   <div id="modalBatida" class="modal oculto">
@@ -225,6 +278,7 @@
   </div>
 </div>
 
+<script src="visual.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
