@@ -1775,6 +1775,7 @@ function desenhar() {
   Visual.pisosZonas(ctx);
   Visual.paredes(ctx, LARG, ALT);
   Visual.paredesInteriores(ctx);
+  Visual.luz(ctx);
 
   // móveis do escritório (tapete, estante, café, sofá, plantas)
   Visual.objetos(ctx);

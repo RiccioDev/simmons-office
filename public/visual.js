@@ -619,6 +619,51 @@ const Visual = (() => {
     }
   }
 
+  // ---- luz: feixes das janelas e sombras das paredes no chão
+  function luz(ctx) {
+    // feixes de luz que entram pelas janelas
+    for (const [jx, jw] of [[300, 200], [700, 200], [1100, 200]]) {
+      const g = ctx.createLinearGradient(0, 92, 0, 330);
+      g.addColorStop(0, 'rgba(255,244,214,.20)');
+      g.addColorStop(0.55, 'rgba(255,240,205,.10)');
+      g.addColorStop(1, 'rgba(255,240,205,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.moveTo(jx, 92);
+      ctx.lineTo(jx + jw, 92);
+      ctx.lineTo(jx + jw + 56, 330);
+      ctx.lineTo(jx - 56, 330);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // sombra projetada pelas paredes interiores
+    for (const w of MAPA.paredes) {
+      if (w.vidro) continue;
+      if (w.w > w.h) {
+        // parede horizontal: sombra para baixo
+        const g = ctx.createLinearGradient(0, w.y + w.h, 0, w.y + w.h + 26);
+        g.addColorStop(0, 'rgba(0,0,0,.34)');
+        g.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = g;
+        ctx.fillRect(w.x - 2, w.y + w.h, w.w + 6, 26);
+      } else {
+        const g = ctx.createLinearGradient(w.x + w.w, 0, w.x + w.w + 22, 0);
+        g.addColorStop(0, 'rgba(0,0,0,.30)');
+        g.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = g;
+        ctx.fillRect(w.x + w.w, w.y - 2, 22, w.h + 6);
+      }
+    }
+
+    // sombra suave debaixo da parede de cima
+    const g2 = ctx.createLinearGradient(0, 92, 0, 150);
+    g2.addColorStop(0, 'rgba(0,0,0,.26)');
+    g2.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g2;
+    ctx.fillRect(0, 92, LARG, 58);
+  }
+
   // ---- rótulos das zonas
   function rotulos(ctx) {
     ctx.textAlign = 'left';
@@ -704,7 +749,7 @@ const Visual = (() => {
   // desenha um tampo fino com pernas e painel, pronto a receber objetos em cima
   function tampoMesa(ctx, x, y, w, h, sprite) {
     const topoY = y + 14;
-    const alturaTampo = 58;
+    const alturaTampo = 44;
     const pernasY = topoY + alturaTampo;
 
     // pernas
@@ -728,13 +773,17 @@ const Visual = (() => {
     }
 
     // bisel: aresta de cima iluminada, frente em sombra, lados escurecidos
-    ctx.fillStyle = 'rgba(255,255,255,.20)';
+    ctx.fillStyle = 'rgba(255,255,255,.22)';
     ctx.fillRect(x, topoY, w, 2);
-    ctx.fillStyle = 'rgba(0,0,0,.26)';
-    ctx.fillRect(x, topoY + alturaTampo - 4, w, 4);
-    ctx.fillStyle = 'rgba(0,0,0,.14)';
+    ctx.fillStyle = 'rgba(0,0,0,.30)';
+    ctx.fillRect(x, topoY + alturaTampo - 5, w, 5);
+    ctx.fillStyle = 'rgba(0,0,0,.16)';
     ctx.fillRect(x, topoY, 2, alturaTampo);
     ctx.fillRect(x + w - 2, topoY, 2, alturaTampo);
+    // veio de madeira: duas linhas discretas
+    ctx.fillStyle = 'rgba(90,62,38,.18)';
+    ctx.fillRect(x + 4, topoY + 12, w - 8, 1);
+    ctx.fillRect(x + 4, topoY + 26, w - 16, 1);
   }
 
   // ---------------------------------------------------- mesa de trabalho
@@ -820,13 +869,43 @@ const Visual = (() => {
   function cadeiraDaMesa(ctx, d) {
     const est = d.estilo || {};
     const cx = Math.round(d.x + d.w / 2);
-    const sprite = {
-      escritorio: 'Chair_ChairBlueUp',
-      gamer: 'Chair_ChairRedUp',
-      madeira: 'Chair_ChairGreenUp',
-      banco: 'Chair_ChairGreyUp',
-    }[est.cadeira] || 'Chair_ChairBlueUp';
-    objeto(ctx, sprite, cx, d.y + 20, 34);
+    const base = d.y + 24;
+    const cores = {
+      escritorio: ['#3a49bd', '#2b3792', '#5563d6'],
+      gamer:      ['#c0392b', '#8e2a20', '#e05a4a'],
+      madeira:    ['#5a8c5a', '#3f6b3f', '#7aae7a'],
+      banco:      ['#8a939d', '#666f78', '#a8b2bc'],
+    }[est.cadeira] || ['#3a49bd', '#2b3792', '#5563d6'];
+
+    const l = 26, altEncosto = 20;
+    const x = cx - l / 2;
+    const yEncosto = base - 34;
+
+    // poste e base (por baixo do encosto)
+    ctx.fillStyle = '#2b3138';
+    ctx.fillRect(cx - 2, yEncosto + altEncosto, 4, 10);
+    ctx.fillRect(cx - 9, yEncosto + altEncosto + 10, 18, 3);
+    ctx.fillStyle = '#1d2227';
+    ctx.fillRect(cx - 10, yEncosto + altEncosto + 12, 4, 3);
+    ctx.fillRect(cx + 6, yEncosto + altEncosto + 12, 4, 3);
+
+    // encosto com cantos arredondados
+    ctx.fillStyle = cores[1];
+    ctx.beginPath();
+    ctx.roundRect(x, yEncosto, l, altEncosto, 5);
+    ctx.fill();
+    ctx.fillStyle = cores[0];
+    ctx.beginPath();
+    ctx.roundRect(x + 1.5, yEncosto + 1.5, l - 3, altEncosto - 5, 4);
+    ctx.fill();
+    // realce superior
+    ctx.fillStyle = cores[2];
+    ctx.beginPath();
+    ctx.roundRect(x + 3, yEncosto + 3, l - 6, 3, 1.5);
+    ctx.fill();
+    // soleira do encosto
+    ctx.fillStyle = 'rgba(0,0,0,.25)';
+    ctx.fillRect(x + 2, yEncosto + altEncosto - 4, l - 4, 2);
   }
 
   // ---------------------------------------------------- computador (de costas)
@@ -1090,55 +1169,74 @@ const Visual = (() => {
     objeto(ctx, 'Office_Props_Book1', 350, 292, 16);
 
     // ============================================================ COPA (520..1020 × 92..300)
-    // ===== geleira
-    p(520, 210, 56, 10, 'rgba(0,0,0,.26)');
-    p(524, 126, 50, 84, '#8f9aa6');
-    p(524, 126, 50, 3, '#a8b2bd');
-    p(527, 129, 44, 38, '#c3ccd5');       // porta de cima
-    p(527, 169, 44, 38, '#bcc6cf');       // porta de baixo
-    p(527, 166, 44, 3, '#6f7b87');        // divisão
-    p(562, 140, 3, 14, '#5f6a76');        // puxador
-    p(562, 180, 3, 14, '#5f6a76');
-    p(527, 129, 44, 2, 'rgba(255,255,255,.35)');
+    // ===== geleira (com bisel e sombra)
+    p(520, 212, 58, 8, 'rgba(0,0,0,.30)');
+    p(524, 124, 50, 88, '#8f9aa6');
+    p(524, 124, 50, 3, '#aab4be');
+    p(524, 124, 3, 88, '#7c8794');            // lateral em sombra
+    p(526, 127, 46, 40, '#c6ced7');           // porta de cima
+    p(526, 170, 46, 38, '#bcc6cf');           // porta de baixo
+    p(526, 166, 46, 3, '#6f7b87');            // divisão
+    p(526, 127, 46, 2, 'rgba(255,255,255,.45)');
+    p(526, 170, 46, 2, 'rgba(255,255,255,.30)');
+    p(564, 138, 3, 16, '#5f6a76');            // puxadores
+    p(564, 180, 3, 16, '#5f6a76');
+    p(526, 190, 46, 3, 'rgba(0,0,0,.18)');
 
-    // ===== bancada com lava-loiça, forno e micro-ondas
-    p(580, 196, 320, 46, '#5a4026');
-    p(580, 152, 320, 8, '#6d5132');       // tampo
-    p(580, 152, 320, 2, 'rgba(255,255,255,.16)');
-    p(580, 196, 320, 6, 'rgba(0,0,0,.30)');
-
-    // armários
-    for (let i = 0; i < 4; i++) {
-      p(586 + i * 78, 162, 72, 34, '#4a3521');
-      p(586 + i * 78, 162, 72, 2, 'rgba(255,255,255,.06)');
-      p(618 + i * 78, 176, 6, 2, '#8a7350');
+    // ===== backsplash (azulejo) entre a bancada e a parede
+    p(572, 104, 336, 46, '#39424e');
+    for (let i = 0; i < 28; i++) {
+      for (let j = 0; j < 4; j++) {
+        p(574 + i * 12, 106 + j * 11, 10, 9, (i + j) % 2 ? '#48535f' : '#424c58');
+      }
     }
 
-    // lava-loiça
-    p(596, 156, 52, 30, '#8a939d');
-    p(600, 160, 44, 22, '#5b636c');
-    p(604, 164, 36, 14, '#3f4750');
-    p(658, 160, 4, 10, '#b9c2cb');        // torneira
-    p(650, 158, 12, 4, '#b9c2cb');
+    // ===== sombra e corpo da bancada
+    p(568, 206, 344, 12, 'rgba(0,0,0,.30)');
+    p(572, 164, 336, 44, '#4a3521');
+    p(572, 164, 336, 2, 'rgba(255,255,255,.06)');
+    // rodapé recuado
+    p(578, 200, 324, 8, '#2f2416');
+    // portas dos armários
+    for (let i = 0; i < 4; i++) {
+      const dx = 578 + i * 82;
+      p(dx, 168, 76, 30, '#55402a');
+      p(dx, 168, 76, 2, 'rgba(255,255,255,.10)');
+      p(dx, 194, 76, 2, 'rgba(0,0,0,.30)');
+      p(dx + 60, 176, 11, 3, '#9a8358');
+    }
 
-    // forno (frente com vidro)
-    p(700, 162, 56, 34, '#3a3f46');
-    p(703, 165, 50, 20, '#20262d');
-    p(706, 168, 44, 14, 'rgba(255,170,90,.35)');
-    p(703, 187, 50, 3, '#7d858f');
-    p(722, 162, 4, 6, '#a8b0ba');
+    // ===== tampo com bisel
+    p(568, 148, 344, 18, '#6d5132');
+    p(568, 148, 344, 3, '#8f6d45');
+    p(568, 148, 344, 1, 'rgba(255,255,255,.35)');
+    p(568, 163, 344, 3, 'rgba(0,0,0,.32)');
 
-    // micro-ondas em cima da bancada
-    p(786, 130, 58, 26, '#2f353c');
-    p(790, 134, 36, 18, '#1a1f25');
-    p(792, 136, 32, 14, 'rgba(255,215,150,.30)');
-    for (let i = 0; i < 3; i++) p(832, 136 + i * 6, 8, 3, '#6d7680');
-    p(790, 132, 34, 2, 'rgba(255,255,255,.18)');
+    // ===== lava-loiça
+    p(596, 151, 54, 12, '#8a939d');
+    p(599, 153, 48, 8, '#4d555e');
+    p(603, 155, 40, 4, '#333a42');
+    p(662, 146, 4, 9, '#b9c2cb');
+    p(654, 144, 12, 4, '#b9c2cb');
 
-    // máquina de café, canecas, pastas e cesto sobre a bancada
-    objeto(ctx, 'Office_Props_CoffeeDispenser', 866, 154, 30);
-    objeto(ctx, 'Office_Props_Mugs', 900, 154, 16);
-    objeto(ctx, 'Office_Props_Basket', 918, 154, 18);
+    // ===== forno embutido
+    p(700, 166, 58, 32, '#3a3f46');
+    p(703, 169, 52, 18, '#20262d');
+    p(706, 171, 46, 13, 'rgba(255,170,90,.40)');
+    p(703, 189, 52, 3, '#7d858f');
+    p(722, 166, 4, 6, '#a8b0ba');
+
+    // ===== micro-ondas em cima da bancada
+    p(786, 128, 58, 26, '#2f353c');
+    p(790, 132, 36, 18, '#1a1f25');
+    p(792, 134, 32, 14, 'rgba(255,215,150,.32)');
+    for (let i = 0; i < 3; i++) p(832, 134 + i * 6, 8, 3, '#6d7680');
+    p(790, 130, 34, 2, 'rgba(255,255,255,.22)');
+
+    // ===== máquina de café, canecas e cesto sobre o tampo
+    objeto(ctx, 'Office_Props_CoffeeDispenser', 862, 150, 30);
+    objeto(ctx, 'Office_Props_Mugs', 898, 150, 16);
+    objeto(ctx, 'Office_Props_Basket', 916, 150, 18);
 
     // ilha central com dois bancos
     objeto(ctx, 'Table_TableSmallWhite', 700, 268, 40);
@@ -1386,7 +1484,7 @@ const Visual = (() => {
   return {
     padrao, personagem, mesa, planta, chao, paredes, tapete,
     salaChao, salaMesa, SALA, objetos, carregarObjetos, objeto, cadeiraDaMesa,
-    paredesInteriores, rotulos, MAPA, pisosZonas, objetoParcial, tampoMesa,
+    paredesInteriores, rotulos, MAPA, pisosZonas, objetoParcial, tampoMesa, luz,
     PELES, CABELOS, ROUPAS, corPele, corCabelo, corRoupa, tom,
   };
 })();
