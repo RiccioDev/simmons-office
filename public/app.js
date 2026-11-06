@@ -500,7 +500,8 @@ function aplicarEstado(m) {
     // (menos de 60 unidades de diferença), mantenho o meu
     if (meuAntes && eu && players.has(eu.id)) {
       const euAgora = players.get(eu.id);
-      if (Math.hypot(euAgora.x - meuAntes.x, euAgora.y - meuAntes.y) < 60) {
+      const mudouPostura = !!euAgora.sitting !== !!meuAntes.sitting;
+      if (!mudouPostura && Math.hypot(euAgora.x - meuAntes.x, euAgora.y - meuAntes.y) < 60) {
         euAgora.x = meuAntes.x;
         euAgora.y = meuAntes.y;
       }
@@ -1703,6 +1704,11 @@ function desenhar() {
   Visual.planta(ctx, 1548, 700, 0.95);
   Visual.planta(ctx, 760, 960, 0.85);
 
+  // quem está sentado é desenhado ANTES das mesas (fica atrás, como na vida real)
+  for (const p of players.values()) {
+    if (p.sitting) desenharJogador(p);
+  }
+
   // mesas
   for (const d of (Array.isArray(desks) ? desks : [])) {
     const minha = eu && d.owner && d.owner.toLowerCase() === eu.name.toLowerCase();
@@ -1716,9 +1722,15 @@ function desenhar() {
     }
   }
 
-  // jogadores
+  // jogadores de pé
   for (const p of players.values()) {
-    const souEu = eu && p.id === eu.id;
+    if (!p.sitting) desenharJogador(p);
+  }
+}
+
+// desenha um boneco (com a etiqueta do nome, microfone e partilha)
+function desenharJogador(p) {
+  const souEu = eu && p.id === eu.id;
 
     if (souEu) {
       ctx.beginPath();
@@ -1731,7 +1743,7 @@ function desenhar() {
       ctx.setLineDash([]);
     }
 
-    Pixel.desenhar(ctx, p.x, p.y + 26, avatarDe(p), {
+    Pixel.desenhar(ctx, p.x, p.y + (p.sitting ? 8 : 26), avatarDe(p), {
       dir: p.dir || 1,
       passo: p.passo || 0,
       andando: !!p.aAndar,
@@ -1769,7 +1781,6 @@ function desenhar() {
 
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
-  }
 }
 
 // ------------------------------------------------------------ proximidade / WebRTC

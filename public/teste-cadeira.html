@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Teste da cadeira</title>
+<style>body{margin:0;background:#171c23}canvas{display:block;image-rendering:pixelated}</style>
+</head>
+<body>
+<canvas id="c" width="1400" height="760"></canvas>
+<script src="pixel.js"></script>
+<script src="visual.js"></script>
+<script>
+const c = document.getElementById('c');
+const g = c.getContext('2d');
+g.imageSmoothingEnabled = false;
+g.scale(2, 2);                       // zoom para inspeção
+
+// chão
+Visual.chao(g, 700, 380);
+
+const mesas = [
+  { id: 1, x: 40, y: 40, w: 180, h: 90, label: 'Mesa 1', owner: '', locked: false },
+  { id: 2, x: 270, y: 40, w: 180, h: 90, label: 'Mesa 2', owner: 'Joao', locked: false },
+  { id: 3, x: 500, y: 40, w: 180, h: 90, label: 'Mesa 3', owner: 'Ana', locked: true },
+];
+Visual.mesa(g, mesas[0], { minha: false, trancada: false, ocupada: false });
+Visual.mesa(g, mesas[1], { minha: true, trancada: false, ocupada: false });
+Visual.mesa(g, mesas[2], { minha: false, trancada: true, ocupada: false });
+
+// uma mesa com alguém sentado, para comparar
+Visual.mesa(g, { id: 4, x: 40, y: 220, w: 180, h: 90, label: 'Mesa 4', owner: 'Rita', locked: false },
+  { minha: false, trancada: false, ocupada: true });
+Pixel.desenhar(g, 130, 300, { genero: 'f', pele: 2, cabelo: 'longo', corCabelo: 4, roupa: 3, tipo: 'camisa', oculos: 'nenhum', barba: false }, { escala: 1.9 });
+</script>
+</body>
+</html>

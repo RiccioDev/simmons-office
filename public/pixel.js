@@ -49,6 +49,20 @@ const Pixel = (() => {
     const sapato = '#23262c';
     const sapatoLuz = '#3b414a';
 
+    // sentado: pernas mais curtas e pés à frente
+    if (frame === 5) {
+      const calcaS = calca, sapS = sapato;
+      px(g, 10, 34, 5, 5, calcaS);
+      px(g, 17, 34, 5, 5, calcaS);
+      px(g, 10, 34, 5, 1, calcaLuz);
+      px(g, 17, 34, 5, 1, calcaLuz);
+      px(g, 9, 39, 6, 3, sapS);
+      px(g, 17, 39, 6, 3, sapS);
+      px(g, 9, 39, 6, 1, sapatoLuz);
+      px(g, 17, 39, 6, 1, sapatoLuz);
+      return;
+    }
+
     let esq = 0, dir = 0, sobeEsq = 0, sobeDir = 0;
 
     if (frame === 1) { esq = -2; dir = 2; sobeEsq = 1; }
@@ -370,7 +384,7 @@ const Pixel = (() => {
   }
 
   function desenhar(ctx, x, y, av, opcoes = {}) {
-    const frame = opcoes.andando ? 1 + Math.min(3, ((opcoes.passo || 0) * 4) | 0) : 0;
+    const frame = opcoes.sentado ? 5 : (opcoes.andando ? 1 + Math.min(3, ((opcoes.passo || 0) * 4) | 0) : 0);
     const img = sprite(av || padrao(), frame);
     const escala = opcoes.escala || 2;
     const largura = LARG * escala;

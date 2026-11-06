@@ -708,7 +708,7 @@ wss.on('connection', (ws) => {
         p.sitting = true;
         p.deskId = d.id;
         p.x = d.x + d.w / 2;
-        p.y = d.y + d.h / 2;
+        p.y = d.y + 34;   // sentado atrás da mesa (a mesa desenha-se por cima)
         broadcastEstado();
         break;
       }
@@ -719,6 +719,8 @@ wss.on('connection', (ws) => {
         }
         p.sitting = false;
         p.deskId = null;
+        p.x = Math.max(40, Math.min(1560, p.x));
+        p.y = Math.min(960, p.y + 90);   // levanta-se e sai para a frente da mesa
         broadcastEstado();
         break;
       }

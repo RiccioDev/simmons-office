@@ -547,15 +547,62 @@ const Visual = (() => {
       ctx.fillText('🔒', x + w - 3 * B, y + h - 6 * B);
     }
 
-    // cadeira (só com a mesa vazia)
-    if (!ocupada) {
-      ctx.fillStyle = 'rgba(0,0,0,.28)';
-      ctx.fillRect(mx - 9 * B, y + h + B, 18 * B, 3 * B);
-      ctx.fillStyle = '#2b333d';
-      ctx.fillRect(mx - 8 * B, y + h - B, 16 * B, 4 * B);
-      ctx.fillStyle = 'rgba(255,255,255,.08)';
-      ctx.fillRect(mx - 7 * B, y + h, 14 * B, B);
-    }
+    // cadeira de escritório (com alguém sentado não se vê: a pessoa está lá)
+    if (!ocupada) cadeira(ctx, mx, y + h - 2 * B);
+  }
+
+  // cadeira de escritório em pixel art: encosto com malha, braços, assento,
+  // coluna e base de cinco pontas com rodas
+  function cadeira(ctx, cx, y0) {
+    const B = 2;
+    const p = (x, y, w, h, c) => {
+      ctx.fillStyle = c;
+      ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+    };
+
+    const pano = '#3a4553', panoLuz = '#4d5a6a', panoEsc = '#242c36';
+    const metal = '#5b6674', metalLuz = '#8695a6', metalEsc = '#333a44';
+
+    // sombra no chão
+    p(cx - 34, y0 + 60, 68, 5, 'rgba(0,0,0,.30)');
+
+    // encosto (moldura + almofada + malha)
+    p(cx - 30, y0, 60, 26, panoEsc);
+    p(cx - 27, y0 + 2, 54, 21, pano);
+    p(cx - 27, y0 + 2, 54, 3, panoLuz);
+    for (let i = 0; i < 3; i++) p(cx - 25, y0 + 8 + i * 5, 50, 1, 'rgba(255,255,255,.07)');
+    p(cx - 6, y0 + 2, 3, 21, 'rgba(255,255,255,.05)');
+
+    // braços
+    p(cx - 38, y0 + 20, 9, 12, metalEsc);
+    p(cx + 29, y0 + 20, 9, 12, metalEsc);
+    p(cx - 40, y0 + 18, 12, 4, metal);
+    p(cx + 28, y0 + 18, 12, 4, metal);
+    p(cx - 40, y0 + 18, 12, 1, metalLuz);
+    p(cx + 28, y0 + 18, 12, 1, metalLuz);
+
+    // assento
+    p(cx - 33, y0 + 28, 66, 14, panoEsc);
+    p(cx - 31, y0 + 30, 62, 10, pano);
+    p(cx - 31, y0 + 30, 62, 3, panoLuz);
+    p(cx - 31, y0 + 38, 62, 2, '#1b222a');
+
+    // coluna
+    p(cx - 3, y0 + 42, 6, 10, metalEsc);
+    p(cx - 2, y0 + 42, 2, 10, metalLuz);
+    p(cx - 7, y0 + 41, 14, 3, metal);
+
+    // base de cinco pontas
+    p(cx - 21, y0 + 52, 42, 4, metalEsc);
+    p(cx - 21, y0 + 52, 42, 1, metal);
+    p(cx - 27, y0 + 55, 12, 3, metalEsc);
+    p(cx + 15, y0 + 55, 12, 3, metalEsc);
+
+    // rodas
+    p(cx - 29, y0 + 58, 7, 5, '#1a1f26');
+    p(cx - 9, y0 + 58, 7, 5, '#1a1f26');
+    p(cx + 3, y0 + 58, 7, 5, '#1a1f26');
+    p(cx + 23, y0 + 58, 7, 5, '#1a1f26');
   }
 
   function planta(ctx, x, y, tam = 1) {
