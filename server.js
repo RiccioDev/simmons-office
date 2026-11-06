@@ -21,8 +21,8 @@ function mesasIniciais() {
       mesas.push({
         id: n,
         label: 'Mesa ' + n,
-        x: 48 + col * 96,
-        y: fila === 0 ? 150 : 330,
+        x: 40 + col * 104,
+        y: fila === 0 ? 140 : 360,
         w: 64,
         h: 96,
         owner: '',      // nome de quem é a mesa
@@ -711,7 +711,7 @@ wss.on('connection', (ws) => {
         p.sitting = true;
         p.deskId = d.id;
         p.x = d.x + d.w / 2;
-        p.y = d.y;        // sentado atrás da mesa: cabeça e ombros acima do tampo
+        p.y = d.y + 20;   // sentado atrás da mesa: cabeça e ombros acima do tampo
         broadcastEstado();
         break;
       }

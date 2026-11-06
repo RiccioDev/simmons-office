@@ -1800,7 +1800,7 @@ function desenharJogador(p) {
       passo: p.passo || 0,
       andando: !!p.aAndar,
       sentado: !!p.sitting,
-      escala: 1,
+      escala: 1.35,
     });
 
     // sentado leva a placa da mesa com o nome: não repetir a etiqueta
@@ -2411,7 +2411,7 @@ let canvasCss = { w: 800, h: 600 };
 // No computador continua a caber tudo, como sempre.
 let camera = { x: LARG / 2, y: ALT / 2 };
 
-const ZOOM_MAPA = () => (ehEcraPequeno() ? 2.6 : 2.3);
+const ZOOM_MAPA = () => (ehEcraPequeno() ? 2.2 : 1.95);
 
 function modoCamera() {
   return true;   // a câmara segue sempre o avatar
