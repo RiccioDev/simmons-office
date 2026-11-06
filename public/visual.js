@@ -747,6 +747,43 @@ const Visual = (() => {
     }
   }
 
+  // balcão: tampo com bisel, frente com painéis e rodapé
+  function balcao(ctx, x, y, w, h) {
+    const alturaTampo = 14;
+    // sombra
+    ctx.fillStyle = 'rgba(0,0,0,.30)';
+    ctx.fillRect(x + 4, y + h, w, 8);
+    // frente
+    ctx.fillStyle = '#4a3521';
+    ctx.fillRect(x, y + alturaTampo, w, h - alturaTampo);
+    ctx.fillStyle = 'rgba(0,0,0,.20)';
+    ctx.fillRect(x + w - 6, y + alturaTampo, 6, h - alturaTampo);
+    // painéis rebaixados
+    const n = Math.max(2, Math.round(w / 70));
+    const larg = (w - 16) / n;
+    for (let i = 0; i < n; i++) {
+      const px = x + 8 + i * larg;
+      ctx.fillStyle = '#55402a';
+      ctx.fillRect(px, y + alturaTampo + 8, larg - 8, h - alturaTampo - 18);
+      ctx.fillStyle = 'rgba(255,255,255,.07)';
+      ctx.fillRect(px, y + alturaTampo + 8, larg - 8, 2);
+      ctx.fillStyle = 'rgba(0,0,0,.25)';
+      ctx.fillRect(px, y + h - 12, larg - 8, 2);
+    }
+    // rodapé recuado
+    ctx.fillStyle = '#2f2416';
+    ctx.fillRect(x + 4, y + h - 6, w - 8, 6);
+    // tampo
+    ctx.fillStyle = '#6d5132';
+    ctx.fillRect(x - 4, y, w + 8, alturaTampo);
+    ctx.fillStyle = '#8f6d45';
+    ctx.fillRect(x - 4, y, w + 8, 3);
+    ctx.fillStyle = 'rgba(255,255,255,.30)';
+    ctx.fillRect(x - 4, y, w + 8, 1);
+    ctx.fillStyle = 'rgba(0,0,0,.32)';
+    ctx.fillRect(x - 4, y + alturaTampo - 3, w + 8, 3);
+  }
+
   // ---------------------------------------------------- tampo de mesa reutilizável
   // desenha um tampo fino com pernas e painel, pronto a receber objetos em cima
   function tampoMesa(ctx, x, y, w, h, sprite) {
@@ -838,7 +875,7 @@ const Visual = (() => {
     // decorações dos cantos
     const decor = (nome, px) => {
       const spr = DECORACOES[nome];
-      if (spr) objeto(ctx, spr, px, tampo - 16, 18);
+      if (spr) objeto(ctx, spr, px, tampo + 6, 26);
     };
     decor(est.decor, x + 11);
     decor(est.decor2, x + w - 11);
@@ -1170,32 +1207,45 @@ const Visual = (() => {
   function objetos(ctx) {
     const p = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
 
-    // ============================================================ GABINETE (200..470 × 92..330)
-    p(214, 150, 60, 8, 'rgba(0,0,0,.28)');
-    objeto(ctx, 'Shelf_ShelfBig', 250, 236, 56);
-    objeto(ctx, 'Shelf_Shelf', 300, 236, 56);
+    // ============================================================ GABINETE (privado)
+    p(238, 246, 196, 74, '#3b3327');
+    p(241, 249, 190, 68, '#4a4034');
+    objeto(ctx, 'Shelf_ShelfBig', 232, 254, 56);
     tampoMesa(ctx, 340, 204, 64, 96, 'Table_TableDarkBrown');
-    objeto(ctx, 'Office_Computer_ScreenBlackUp', 372, 236, 30);
-    objeto(ctx, 'Chair_ChairBlueUp', 372, 200, 28);
-    objeto(ctx, 'Office_Plant_Plant', 440, 320, 56);
-    objeto(ctx, 'Office_Props_Book1', 350, 292, 16);
+    objeto(ctx, 'Office_Computer_ScreenBlackUp', 356, 250, 30);
+    objeto(ctx, 'Office_Computer_ScreenBlackUp', 388, 250, 30);
+    objeto(ctx, 'Office_Props_Folders', 372, 246, 16);
+    ctx.save();
+    ctx.translate(372, 232);
+    ctx.fillStyle = '#2b3792';
+    ctx.beginPath(); ctx.roundRect(-13, -20, 26, 20, 5); ctx.fill();
+    ctx.fillStyle = '#3a49bd';
+    ctx.beginPath(); ctx.roundRect(-11.5, -18.5, 23, 15, 4); ctx.fill();
+    ctx.fillStyle = '#5563d6';
+    ctx.beginPath(); ctx.roundRect(-9, -15, 18, 3, 1.5); ctx.fill();
+    ctx.fillStyle = '#2b3138';
+    ctx.fillRect(-2, 0, 4, 8);
+    ctx.restore();
+    objeto(ctx, 'Furniture_Couch_CouchBrownDown', 424, 300, 66);
+    objeto(ctx, 'Office_Plant_Plant', 250, 322, 50);
+    objeto(ctx, 'Office_Props_Bin', 300, 322, 16);
 
     // ============================================================ COPA (520..1020 × 92..300)
-    // ===== geleira (com bisel e sombra)
+    // geleira
     p(520, 212, 58, 8, 'rgba(0,0,0,.30)');
     p(524, 124, 50, 88, '#8f9aa6');
     p(524, 124, 50, 3, '#aab4be');
-    p(524, 124, 3, 88, '#7c8794');            // lateral em sombra
-    p(526, 127, 46, 40, '#c6ced7');           // porta de cima
-    p(526, 170, 46, 38, '#bcc6cf');           // porta de baixo
-    p(526, 166, 46, 3, '#6f7b87');            // divisão
+    p(524, 124, 3, 88, '#7c8794');
+    p(526, 127, 46, 40, '#c6ced7');
+    p(526, 170, 46, 38, '#bcc6cf');
+    p(526, 166, 46, 3, '#6f7b87');
     p(526, 127, 46, 2, 'rgba(255,255,255,.45)');
     p(526, 170, 46, 2, 'rgba(255,255,255,.30)');
-    p(564, 138, 3, 16, '#5f6a76');            // puxadores
+    p(564, 138, 3, 16, '#5f6a76');
     p(564, 180, 3, 16, '#5f6a76');
     p(526, 190, 46, 3, 'rgba(0,0,0,.18)');
 
-    // ===== backsplash (azulejo) entre a bancada e a parede
+    // backsplash
     p(572, 104, 336, 46, '#39424e');
     for (let i = 0; i < 28; i++) {
       for (let j = 0; j < 4; j++) {
@@ -1203,13 +1253,11 @@ const Visual = (() => {
       }
     }
 
-    // ===== sombra e corpo da bancada
+    // bancada
     p(568, 206, 344, 12, 'rgba(0,0,0,.30)');
     p(572, 164, 336, 44, '#4a3521');
     p(572, 164, 336, 2, 'rgba(255,255,255,.06)');
-    // rodapé recuado
     p(578, 200, 324, 8, '#2f2416');
-    // portas dos armários
     for (let i = 0; i < 4; i++) {
       const dx = 578 + i * 82;
       p(dx, 168, 76, 30, '#55402a');
@@ -1217,44 +1265,40 @@ const Visual = (() => {
       p(dx, 194, 76, 2, 'rgba(0,0,0,.30)');
       p(dx + 60, 176, 11, 3, '#9a8358');
     }
-
-    // ===== tampo com bisel
     p(568, 148, 344, 18, '#6d5132');
     p(568, 148, 344, 3, '#8f6d45');
     p(568, 148, 344, 1, 'rgba(255,255,255,.35)');
     p(568, 163, 344, 3, 'rgba(0,0,0,.32)');
 
-    // ===== lava-loiça
+    // lava-loiça e forno
     p(596, 151, 54, 12, '#8a939d');
     p(599, 153, 48, 8, '#4d555e');
     p(603, 155, 40, 4, '#333a42');
     p(662, 146, 4, 9, '#b9c2cb');
     p(654, 144, 12, 4, '#b9c2cb');
-
-    // ===== forno embutido
     p(700, 166, 58, 32, '#3a3f46');
     p(703, 169, 52, 18, '#20262d');
     p(706, 171, 46, 13, 'rgba(255,170,90,.40)');
     p(703, 189, 52, 3, '#7d858f');
     p(722, 166, 4, 6, '#a8b0ba');
 
-    // ===== micro-ondas em cima da bancada
+    // micro-ondas
     p(786, 128, 58, 26, '#2f353c');
     p(790, 132, 36, 18, '#1a1f25');
     p(792, 134, 32, 14, 'rgba(255,215,150,.32)');
     for (let i = 0; i < 3; i++) p(832, 134 + i * 6, 8, 3, '#6d7680');
     p(790, 130, 34, 2, 'rgba(255,255,255,.22)');
 
-    // ===== máquina de café, canecas e cesto sobre o tampo
-    objeto(ctx, 'Office_Props_CoffeeDispenser', 862, 150, 30);
-    objeto(ctx, 'Office_Props_Mugs', 898, 150, 16);
-    objeto(ctx, 'Office_Props_Basket', 916, 150, 18);
+    // objetos sobre o tampo
+    objeto(ctx, 'Office_Props_CoffeeDispenser', 858, 150, 32);
+    objeto(ctx, 'Office_Props_Mugs', 900, 150, 24);
+    objeto(ctx, 'Office_Props_Basket', 922, 150, 20);
 
     // ilha central com dois bancos
-    objeto(ctx, 'Table_TableSmallWhite', 700, 268, 40);
-    objeto(ctx, 'Chair_ChairGreyUp', 668, 276, 24);
-    objeto(ctx, 'Chair_ChairGreyUp', 732, 276, 24);
-    objeto(ctx, 'Office_Props_Mugs', 700, 238, 14);
+    objeto(ctx, 'Table_TableSmallWhite', 700, 268, 44);
+    objeto(ctx, 'Chair_ChairGreyUp', 668, 276, 26);
+    objeto(ctx, 'Chair_ChairGreyUp', 732, 276, 26);
+    objeto(ctx, 'Office_Props_Mugs', 690, 244, 22);
 
     // sofá e plantas da copa
     p(866, 240, 116, 36, 'rgba(0,0,0,.18)');
@@ -1264,97 +1308,149 @@ const Visual = (() => {
     objeto(ctx, 'Office_Props_Clock', 860, 150, 22);
 
     // ============================================================ RECEPÇÃO (40..360 × 700..960)
-    // balcão de recepção
-    p(74, 742, 180, 54, '#4b3524');
-    p(74, 738, 180, 8, '#634728');
-    p(74, 738, 180, 2, 'rgba(255,255,255,.16)');
-    p(74, 790, 180, 6, 'rgba(0,0,0,.30)');
-    objeto(ctx, 'Office_Computer_ScreenWhiteUp', 150, 736, 28);
-    objeto(ctx, 'Office_Props_Basket', 196, 736, 16);
-    // mesa de espera + cadeiras
-    tampoMesa(ctx, 178, 786, 44, 94, 'Table_TableSmallWhite');
-    objeto(ctx, 'Chair_ChairGreyUp', 164, 888, 26);
-    objeto(ctx, 'Chair_ChairGreyUp', 236, 888, 26);
-    objeto(ctx, 'Chair_ChairBlueUp', 200, 830, 26);
-    objeto(ctx, 'Office_Plant_PlantLarge', 66, 940, 60);
-    objeto(ctx, 'Office_Plant_PlantSmall', 320, 760, 28);
-    objeto(ctx, 'Shelf_Shelf', 300, 900, 52);
+    p(76, 812, 190, 130, '#3b3327');
+    p(79, 815, 184, 124, '#4a4034');
+    balcao(ctx, 62, 742, 176, 62);
+    objeto(ctx, 'Office_Computer_ScreenWhiteUp', 150, 754, 26);
+    objeto(ctx, 'Office_Props_Basket', 200, 754, 16);
+    objeto(ctx, 'Office_Props_Book1', 96, 752, 16);
+    ctx.save();
+    ctx.translate(150, 734);
+    ctx.fillStyle = '#2b3792';
+    ctx.beginPath(); ctx.roundRect(-12, -18, 24, 18, 5); ctx.fill();
+    ctx.fillStyle = '#3a49bd';
+    ctx.beginPath(); ctx.roundRect(-10.5, -16.5, 21, 13, 4); ctx.fill();
+    ctx.fillStyle = '#5563d6';
+    ctx.beginPath(); ctx.roundRect(-8, -13, 16, 3, 1.5); ctx.fill();
+    ctx.restore();
+    objeto(ctx, 'Table_TableSmallWhite', 150, 900, 40);
+    objeto(ctx, 'Chair_ChairGreyDown', 106, 906, 28);
+    objeto(ctx, 'Chair_ChairGreyDown', 194, 906, 28);
+    objeto(ctx, 'Office_Props_Mugs', 142, 876, 18);
+    objeto(ctx, 'Shelf_ShelfBig', 306, 856, 52);
+    objeto(ctx, 'Office_Plant_PlantLarge', 66, 944, 56);
+    objeto(ctx, 'Office_Plant_PlantSmall', 330, 736, 26);
+    objeto(ctx, 'Office_Props_Bin', 246, 800, 16);
 
     // ============================================================ LOUNGE (1020..1380 × 700..960)
-    // sofás e mesa de centro
     p(1074, 744, 116, 34, 'rgba(0,0,0,.20)');
     objeto(ctx, 'Furniture_Couch_CouchBrownDown', 1132, 786, 110);
     objeto(ctx, 'Furniture_Couch_CouchGreyDown', 1290, 786, 110);
-    objeto(ctx, 'Table_TableSmallWhite', 1210, 806, 36);
-    objeto(ctx, 'Office_Props_Mugs', 1204, 782, 14);
+    objeto(ctx, 'Table_TableSmallWhite', 1210, 806, 40);
+    objeto(ctx, 'Office_Props_Mugs', 1204, 786, 18);
     objeto(ctx, 'Office_Plant_Plant', 1044, 800, 62);
     objeto(ctx, 'Office_Props_Bin', 1046, 730, 18);
     objeto(ctx, 'Office_Props_Mirror', 1360, 744, 26);
 
-    // ===== mesa de ping-pong
+    // mesa de ping-pong
     p(1036, 926, 156, 12, 'rgba(0,0,0,.28)');
-    for (const lx of [1044, 1112, 1180]) p(lx, 894, 5, 34, '#3a3f46');
+    for (const lx of [1048, 1114, 1180]) p(lx, 894, 5, 34, '#3a3f46');
     p(1036, 852, 156, 46, '#245b45');
     p(1039, 855, 150, 40, '#2f7a5a');
     p(1039, 855, 150, 2, 'rgba(255,255,255,.35)');
     p(1039, 893, 150, 2, 'rgba(0,0,0,.30)');
-    // rede e linha central
     p(1113, 852, 3, 46, '#e8eef4');
     ctx.strokeStyle = 'rgba(255,255,255,.55)';
     ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(1039, 875); ctx.lineTo(1189, 875); ctx.stroke();
-    // raquetes
     p(1060, 862, 8, 10, '#c0392b');
     p(1160, 878, 8, 10, '#2c3e50');
 
-    // ===== pebolim
-    p(1216, 932, 124, 10, 'rgba(0,0,0,.28)');
-    p(1214, 866, 128, 56, '#5a3f26');
-    p(1218, 870, 120, 40, '#2f6b4f');
-    p(1218, 870, 120, 2, 'rgba(255,255,255,.22)');
+    // pebolim
+    p(1210, 936, 140, 8, 'rgba(0,0,0,.30)');
+    ctx.fillStyle = '#4a3521';
+    ctx.fillRect(1214, 862, 132, 66);
+    ctx.fillStyle = '#6d5132';
+    ctx.fillRect(1214, 858, 132, 10);
+    ctx.fillStyle = '#8f6d45';
+    ctx.fillRect(1214, 858, 132, 3);
+    ctx.fillStyle = '#245b45';
+    ctx.fillRect(1220, 868, 120, 52);
+    ctx.fillStyle = 'rgba(255,255,255,.08)';
+    ctx.fillRect(1220, 868, 120, 2);
+    ctx.fillStyle = 'rgba(255,255,255,.55)';
+    ctx.fillRect(1279, 868, 2, 52);
+    ctx.fillStyle = 'rgba(255,255,255,.30)';
+    ctx.fillRect(1220, 872, 8, 44);
+    ctx.fillRect(1332, 872, 8, 44);
     for (let i = 0; i < 4; i++) {
-      const ry = 876 + i * 10;
-      p(1206, ry, 144, 3, '#b7c0c9');
-      p(1206, ry - 1, 6, 5, '#8d97a1');
-      p(1344, ry - 1, 6, 5, '#8d97a1');
+      const ry = 876 + i * 12;
+      ctx.fillStyle = '#c3ccd5';
+      ctx.fillRect(1204, ry, 152, 3);
+      ctx.fillStyle = '#8d97a1';
+      ctx.fillRect(1204, ry - 2, 7, 7);
+      ctx.fillRect(1349, ry - 2, 7, 7);
+      for (let k = 0; k < 3; k++) {
+        const jx = 1238 + k * 32 + (i % 2) * 8;
+        ctx.fillStyle = i % 2 ? '#d94f3d' : '#3a6fd0';
+        ctx.fillRect(jx, ry - 6, 6, 9);
+        ctx.fillStyle = 'rgba(0,0,0,.30)';
+        ctx.fillRect(jx, ry + 1, 6, 2);
+      }
     }
-    // bolinha
-    p(1272, 888, 5, 5, '#f0e7d2');
+    ctx.fillStyle = '#f6efdc';
+    ctx.beginPath(); ctx.arc(1272, 890, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(12,15,20,.75)';
+    ctx.fillRect(1254, 846, 52, 11);
+    ctx.fillStyle = '#f2d98a';
+    ctx.font = '700 7px "Segoe UI",sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('0  ·  0', 1280, 852);
 
     // ============================================================ ZONA TRANQUILA (470..890 × 716..942)
     p(470, 716, 420, 226, 'rgba(0,0,0,.18)');
     p(474, 720, 412, 218, '#3f4a5a');
-    for (let i = 0; i < 412; i += 26) {
-      p(474 + i, 720, 1, 218, 'rgba(255,255,255,.025)');
-    }
-    // duas poltronas frente a frente
-    objeto(ctx, 'Furniture_Armchair_ArmchairBlueDown', 620, 890, 56);
-    objeto(ctx, 'Furniture_Armchair_ArmchairGreyDown', 700, 890, 56);
-    objeto(ctx, 'Furniture_Armchair_ArmchairBlueDown', 660, 760, 52);
-    // mesa de centro e pufes
-    objeto(ctx, 'Table_TableSmallWhite', 660, 862, 40);
-    objeto(ctx, 'Office_Props_Mugs', 652, 838, 14);
-    objeto(ctx, 'Furniture_PoufOrange', 560, 830, 26);
-    objeto(ctx, 'Furniture_PoufBrown', 800, 830, 26);
-    // estante e plantas
-    objeto(ctx, 'Shelf_Shelf', 520, 756, 52);
-    objeto(ctx, 'Shelf_ShelfBig', 830, 772, 52);
-    objeto(ctx, 'Office_Plant_PlantLarge', 500, 930, 58);
-    objeto(ctx, 'Office_Plant_Plant', 866, 930, 56);
-    objeto(ctx, 'Office_Props_Clock', 660, 730, 22);
+    for (let i = 0; i < 412; i += 26) p(474 + i, 720, 1, 218, 'rgba(255,255,255,.025)');
+    objeto(ctx, 'Furniture_Armchair_ArmchairBlueDown', 620, 908, 54);
+    objeto(ctx, 'Furniture_Armchair_ArmchairGreyDown', 700, 908, 54);
+    objeto(ctx, 'Furniture_Armchair_ArmchairBlueDown', 660, 772, 52);
+    objeto(ctx, 'Table_TableSmallWhite', 660, 880, 42);
+    objeto(ctx, 'Office_Props_Mugs', 652, 856, 18);
+    objeto(ctx, 'Furniture_PoufOrange', 560, 846, 28);
+    objeto(ctx, 'Furniture_PoufBrown', 802, 846, 28);
+    objeto(ctx, 'Shelf_Shelf', 520, 760, 52);
+    objeto(ctx, 'Shelf_ShelfBig', 830, 776, 52);
+    objeto(ctx, 'Office_Plant_PlantLarge', 500, 936, 56);
+    objeto(ctx, 'Office_Plant_Plant', 868, 936, 54);
+    objeto(ctx, 'Office_Props_Clock', 660, 734, 22);
 
     // ============================================================ ESTAÇÕES: plantas nos cantos
-    objeto(ctx, 'Office_Plant_PlantLarge', 392, 690, 62);
-    objeto(ctx, 'Office_Plant_PlantLarge', 920, 690, 62);
-    objeto(ctx, 'Office_Plant_PlantSmall', 392, 356, 28);
-    objeto(ctx, 'Office_Plant_PlantSmall', 930, 356, 28);
-    objeto(ctx, 'Office_Props_Bin', 912, 470, 18);
+    objeto(ctx, 'Office_Plant_PlantLarge', 392, 690, 58);
+    objeto(ctx, 'Office_Plant_PlantLarge', 922, 690, 58);
+    objeto(ctx, 'Office_Plant_PlantSmall', 392, 356, 26);
+    objeto(ctx, 'Office_Plant_PlantSmall', 930, 356, 26);
+    objeto(ctx, 'Office_Props_Bin', 912, 470, 16);
   }
 
   // ---------------------------------------------------- sala de reunião  // ---------------------------------------------------- sala de reunião  // ---------------------------------------------------- sala de reunião
   // fica à direita do escritório: caminha-se para a direita para entrar.
   // Aqui o raio de distância não conta — todos se ouvem.
   const SALA = { x: 1080, y: 92, w: 300, h: 338 };
+
+  // assentos espalhados pelo escritório (E senta, E levanta)
+  const ASSENTOS = [
+    { x: 372, y: 226, dir: 0, nome: 'cadeira do gabinete' },
+    { x: 668, y: 270, dir: 0, nome: 'banco da copa' },
+    { x: 732, y: 270, dir: 0, nome: 'banco da copa' },
+    { x: 924, y: 278, dir: 0, nome: 'sofá da copa' },
+    { x: 150, y: 728, dir: 0, nome: 'cadeira da recepção' },
+    { x: 106, y: 900, dir: 0, nome: 'espera' },
+    { x: 194, y: 900, dir: 0, nome: 'espera' },
+    { x: 1157, y: 234, dir: 0, nome: 'reunião' },
+    { x: 1157, y: 292, dir: 0, nome: 'reunião' },
+    { x: 1157, y: 350, dir: 0, nome: 'reunião' },
+    { x: 1303, y: 234, dir: 0, nome: 'reunião' },
+    { x: 1303, y: 292, dir: 0, nome: 'reunião' },
+    { x: 1303, y: 350, dir: 0, nome: 'reunião' },
+    { x: 1230, y: 200, dir: 0, nome: 'reunião' },
+    { x: 1230, y: 392, dir: 0, nome: 'reunião' },
+    { x: 1132, y: 778, dir: 0, nome: 'sofá' },
+    { x: 1290, y: 778, dir: 0, nome: 'sofá' },
+    { x: 620, y: 882, dir: 0, nome: 'poltrona' },
+    { x: 700, y: 882, dir: 0, nome: 'poltrona' },
+    { x: 660, y: 752, dir: 0, nome: 'poltrona' },
+  ];
 
   function salaChao(ctx) {
     // o piso da sala é a zona "xadrez" da planta; aqui só a porta de vidro
@@ -1383,18 +1479,46 @@ const Visual = (() => {
   }
 
   function salaMesa(ctx) {
-    const cx = Math.round(SALA.x + SALA.w / 2);
+    const cx = 1230;
+    const x = cx - 55;          // tampo de 110 de largura
+    const yTampo = 186;
+    const altTampo = 178;
 
-    // mesa comprida (três módulos do pack)
-    for (let i = 0; i < 2; i++) {
-      tampoMesa(ctx, cx - 32, 140 + i * 58, 64, 96, 'Table_TableBrown');
+    // pernas grossas nos cantos
+    ctx.fillStyle = '#4a3521';
+    ctx.fillRect(x + 6, yTampo + altTampo - 6, 7, 26);
+    ctx.fillRect(x + 97, yTampo + altTampo - 6, 7, 26);
+    ctx.fillStyle = 'rgba(0,0,0,.22)';
+    ctx.fillRect(x, yTampo + altTampo + 16, 110, 8);
+
+    // tampo grande com bisel
+    ctx.fillStyle = '#6d5132';
+    ctx.fillRect(x, yTampo, 110, altTampo);
+    ctx.fillStyle = '#8f6d45';
+    ctx.fillRect(x, yTampo, 110, 4);
+    ctx.fillStyle = 'rgba(255,255,255,.28)';
+    ctx.fillRect(x, yTampo, 110, 1.5);
+    ctx.fillStyle = 'rgba(0,0,0,.30)';
+    ctx.fillRect(x, yTampo + altTampo - 5, 110, 5);
+    ctx.fillStyle = 'rgba(90,62,38,.16)';
+    for (let i = 1; i < 5; i++) {
+      ctx.fillRect(x + 4, yTampo + i * 34, 102, 1);
     }
 
-    // três cadeiras de cada lado (vistas de lado)
+    // objetos em cima da mesa
+    objeto(ctx, 'Office_Props_Folders', cx - 26, yTampo + 40, 20);
+    objeto(ctx, 'Office_Props_Mugs', cx + 8, yTampo + 88, 20);
+    objeto(ctx, 'Office_Props_Book1', cx - 10, yTampo + 138, 20);
+    objeto(ctx, 'Office_Plant_PlantSmall', cx + 30, yTampo + 34, 24);
+
+    // cadeiras ao longo dos dois lados
     for (let i = 0; i < 3; i++) {
-      cadeiraLado(ctx, cx - 50, 262 + i * 44, -1);
-      cadeiraLado(ctx, cx + 50, 262 + i * 44, 1);
+      cadeiraLado(ctx, x - 18, 240 + i * 58, -1);
+      cadeiraLado(ctx, x + 128, 240 + i * 58, 1);
     }
+    // cabeceiras
+    objeto(ctx, 'Chair_ChairBlueUp', cx, yTampo + 12, 30);
+    objeto(ctx, 'Chair_ChairBlueDown', cx, yTampo + altTampo + 22, 30);
 
     // ecrã de projeção na parede
     ctx.fillStyle = '#1b2530';
@@ -1405,9 +1529,9 @@ const Visual = (() => {
     ctx.fillStyle = g;
     ctx.fillRect(cx - 51, 107, 102, 34);
 
-    // plantas aos cantos
-    objeto(ctx, 'Office_Plant_PlantSmall', SALA.x + 24, 260, 30);
-    objeto(ctx, 'Office_Plant_PlantSmall', SALA.x + SALA.w - 22, 260, 30);
+    // plantas aos cantos da sala
+    objeto(ctx, 'Office_Plant_PlantSmall', SALA.x + 22, 300, 30);
+    objeto(ctx, 'Office_Plant_PlantSmall', SALA.x + SALA.w - 20, 300, 30);
   }
 
   // ---------------------------------------------------- cadeiras  // ---------------------------------------------------- cadeiras
@@ -1540,7 +1664,7 @@ const Visual = (() => {
   return {
     padrao, personagem, mesa, planta, chao, paredes, tapete,
     salaChao, salaMesa, SALA, objetos, carregarObjetos, objeto, cadeiraDaMesa,
-    paredesInteriores, rotulos, MAPA, pisosZonas, objetoParcial, tampoMesa, luz,
+    paredesInteriores, rotulos, MAPA, pisosZonas, objetoParcial, tampoMesa, luz, ASSENTOS,
     PELES, CABELOS, ROUPAS, corPele, corCabelo, corRoupa, tom,
   };
 })();

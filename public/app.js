@@ -1,8 +1,8 @@
 // Simmons Office — cliente
 // Mapa 2D, avatares, mesas com fecho, chat e voz/vídeo por proximidade.
 
-const RAIO_CONECTA = 250;   // a partir daqui liga áudio/vídeo
-const RAIO_CORTA   = 320;   // a partir daqui desliga (histerese)
+const RAIO_CONECTA = 132;   // a partir daqui liga áudio/vídeo (4 tiles, como no Gather)
+const RAIO_CORTA   = 178;   // a partir daqui desliga (histerese)
 const VEL = 4.2;
 const RAIO_AVATAR = 16;
 
@@ -832,8 +832,21 @@ function alternarSentar() {
   if (!p) return;
   if (p.sitting) { ws.send(JSON.stringify({ t: 'levantar' })); return; }
 
+  // assento mais próximo: cadeiras, poltronas, sofás, mesa de reunião
+  const assentos = Array.isArray(Visual.ASSENTOS) ? Visual.ASSENTOS : [];
+  let melhor = null, melhorDist = 62;
+  for (const a of assentos) {
+    const dist = Math.hypot(a.x - p.x, a.y - p.y);
+    if (dist < melhorDist) { melhorDist = dist; melhor = a; }
+  }
+
   const d = mesaParaSentar();
-  if (!d) { avisar('Chegue mais perto de uma mesa para se sentar.'); return; }
+  if (melhor && (!d || melhorDist < 70)) {
+    ws.send(JSON.stringify({ t: 'sentar', spot: melhor }));
+    return;
+  }
+
+  if (!d) { avisar('Chegue mais perto de uma mesa ou cadeira para se sentar.'); return; }
   ws.send(JSON.stringify({ t: 'sentar', deskId: d.id, nome: eu.name }));
 }
 
@@ -1680,6 +1693,15 @@ ligarClique('btnCriarConta', 'onclick', async () => {
 
 const RAIO_CORPO = 11;
 
+// em que zona do escritório está um ponto (null = corredor)
+function zonaDe(x, y) {
+  const salas = (Visual.MAPA && Visual.MAPA.salas) || [];
+  for (const s of salas) {
+    if (x >= s.x && x <= s.x + s.w && y >= s.y && y <= s.y + s.h) return s.nome;
+  }
+  return null;
+}
+
 // caixas de colisão do mobiliário fixo: [x, y, largura, altura]
 const MOVEIS_SOLIDOS = [
   // gabinete
@@ -1935,7 +1957,19 @@ function gerirProximidade() {
       continue;
     }
 
-    if (ambosNaSala || dist < RAIO_CONECTA) {
+    // regra por zona: dentro da mesma sala todos se ouvem; em salas
+    // diferentes nunca se ouvem, mesmo encostados à parede
+    const zonaEu = zonaDe(euJogador.x, euJogador.y);
+    const zonaDele = zonaDe(outro.x, outro.y);
+    const mesmaZona = zonaEu && zonaDele && zonaEu === zonaDele;
+    const zonasDiferentes = zonaEu && zonaDele && zonaEu !== zonaDele;
+
+    if (zonasDiferentes) {
+      if (par) fecharPar(outro.id);
+      continue;
+    }
+
+    if (mesmaZona || ambosNaSala || dist < RAIO_CONECTA) {
       if (!par) criarPar(outro.id, eu.id < outro.id);
     } else if (par && dist > RAIO_CORTA) {
       fecharPar(outro.id);

@@ -696,6 +696,17 @@ wss.on('connection', (ws) => {
         break;
       }
       case 'sentar': {
+        // assento genérico (poltrona, cadeira da recepção, mesa de reunião...)
+        if (msg.spot && typeof msg.spot === 'object') {
+          p.sitting = true;
+          p.deskId = null;
+          p.x = Number(msg.spot.x) || p.x;
+          p.y = Number(msg.spot.y) || p.y;
+          if (typeof msg.spot.dir === 'number') p.dir = msg.spot.dir;
+          broadcastEstado();
+          break;
+        }
+
         const d = desks.find(x => x.id === msg.deskId);
         if (!d) return;
         if (d.occupied && d.occupied !== id) { enviar(ws, { t: 'aviso', texto: 'Essa mesa está ocupada.' }); return; }
