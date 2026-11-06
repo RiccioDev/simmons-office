@@ -1794,24 +1794,28 @@ function desenharJogador(p) {
       ctx.setLineDash([]);
     }
 
-    Pixel.desenhar(ctx, p.x, p.y + (p.sitting ? 8 : 26), avatarDe(p), {
-      direcao: typeof p.dir === 'number' && p.dir >= 0 ? p.dir : 0,
+    Pixel.desenhar(ctx, p.x, p.y + (p.sitting ? 2 : 12), avatarDe(p), {
+      // sentado mostra sempre a frente (a cara), nunca as costas
+      direcao: p.sitting ? 0 : (typeof p.dir === 'number' && p.dir >= 0 ? p.dir : 0),
       passo: p.passo || 0,
       andando: !!p.aAndar,
       sentado: !!p.sitting,
-      escala: 1.15,
+      escala: 1,
     });
 
+    // sentado leva a placa da mesa com o nome: não repetir a etiqueta
     ctx.textBaseline = 'alphabetic';
     ctx.font = '600 6.5px "Segoe UI",sans-serif';
     ctx.textAlign = 'center';
-    const largura = ctx.measureText(p.name).width;
-    ctx.fillStyle = 'rgba(10,13,18,.82)';
-    ctx.beginPath();
-    ctx.roundRect(p.x - largura / 2 - 4, p.y + 12, largura + 8, 10, 3);
-    ctx.fill();
-    ctx.fillStyle = souEu ? '#e5c25c' : '#cfd6df';
-    ctx.fillText(p.name, p.x, p.y + 19.5);
+    if (!p.sitting) {
+      const largura = ctx.measureText(p.name).width;
+      ctx.fillStyle = 'rgba(10,13,18,.82)';
+      ctx.beginPath();
+      ctx.roundRect(p.x - largura / 2 - 4, p.y + 12, largura + 8, 10, 3);
+      ctx.fill();
+      ctx.fillStyle = souEu ? '#e5c25c' : '#cfd6df';
+      ctx.fillText(p.name, p.x, p.y + 19.5);
+    }
 
     if (p.muted) {
       ctx.font = '11px "Segoe UI Emoji",sans-serif';

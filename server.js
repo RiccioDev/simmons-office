@@ -711,7 +711,7 @@ wss.on('connection', (ws) => {
         p.sitting = true;
         p.deskId = d.id;
         p.x = d.x + d.w / 2;
-        p.y = d.y + 56;   // sentado atrás da mesa (a mesa desenha-se por cima)
+        p.y = d.y;        // sentado atrás da mesa: cabeça e ombros acima do tampo
         broadcastEstado();
         break;
       }
