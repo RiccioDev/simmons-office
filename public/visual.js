@@ -364,41 +364,41 @@ const Visual = (() => {
   }
 
   // ---------------------------------------------------------------- ambiente
-  function chao(ctx, largura, altura, escala) {
-    // piso de madeira: tábuas longas, juntas alternadas, variação subtil
-    ctx.fillStyle = '#2b2218';
+  function chao(ctx, largura, altura) {
+    // piso em blocos (2 unidades = 1 "pixel" grande), estilo pixel art
+    const B = 2;                       // tamanho do bloco
+    const tabua = 46;                  // altura da tábua (em unidades)
+
+    ctx.fillStyle = '#54402a';
     ctx.fillRect(0, 0, largura, altura);
 
-    const alt = 54;              // altura da tábua
-    const comprimento = 460;     // comprimento médio
-
-    let fila = 0;
-    for (let y = 0; y < altura; y += alt) {
-      const deslocamento = (fila % 2) * (comprimento / 2);
-      fila++;
-
-      for (let x = -comprimento; x < largura + comprimento; x += comprimento) {
-        const px = x + deslocamento;
-        const semente = Math.abs(Math.sin((px * 0.017) + (y * 0.031)));
-        const variacao = 0.016 + semente * 0.015;
-
-        ctx.fillStyle = 'rgba(226,198,150,' + variacao.toFixed(3) + ')';
-        ctx.fillRect(px + 1, y + 1, comprimento - 2, alt - 2);
-
-        // veio da madeira
-        ctx.fillStyle = 'rgba(0,0,0,' + (0.030 + semente * 0.030).toFixed(3) + ')';
-        ctx.fillRect(px + comprimento * 0.35, y + alt * 0.28, comprimento * 0.3, 1.5);
-        ctx.fillRect(px + comprimento * 0.18, y + alt * 0.62, comprimento * 0.45, 1.2);
-
-        // junta vertical
-        ctx.fillStyle = 'rgba(0,0,0,.13)';
-        ctx.fillRect(px, y, 1.2, alt);
+    for (let y = 0; y < altura; y += tabua) {
+      const linha = Math.round(y / tabua);
+      for (let x = 0; x < largura; x += 14 * B) {
+        const semente = Math.abs(Math.sin(x * 0.013 + linha * 1.7));
+        const claro = semente > 0.55;
+        ctx.fillStyle = claro ? 'rgba(255,236,196,.075)' : 'rgba(0,0,0,.035)';
+        ctx.fillRect(x, y + B, 14 * B - B, tabua - B * 2);
       }
 
-      // junta horizontal
-      ctx.fillStyle = 'rgba(0,0,0,.15)';
-      ctx.fillRect(0, y + alt - 1, largura, 1.2);
+      // veio
+      ctx.fillStyle = 'rgba(0,0,0,.13)';
+      ctx.fillRect(0, y + tabua - B, largura, B);
+
+      // junta curta alternada
+      const desloc = (linha % 2) * 45 * B;
+      for (let x = desloc; x < largura; x += 90 * B) {
+        ctx.fillRect(x, y, B, tabua);
+      }
     }
+
+    // vinheta escura nas bordas
+    const g = ctx.createLinearGradient(0, 0, 0, altura);
+    g.addColorStop(0, 'rgba(0,0,0,.30)');
+    g.addColorStop(0.25, 'rgba(0,0,0,0)');
+    g.addColorStop(1, 'rgba(0,0,0,.22)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, largura, altura);
   }
 
   function paredes(ctx, largura, altura) {
@@ -461,154 +461,127 @@ const Visual = (() => {
     ctx.stroke();
   }
 
-  // mesa vista de cima: tampo de madeira, monitor, teclado, cadeira
+  // mesa em pixel art: tampo de madeira, monitor, teclado, candeeiro, planta
   function mesa(ctx, d, estado = {}) {
     const { x, y, w, h } = d;
     const minha = !!estado.minha;
     const trancada = !!estado.trancada;
     const ocupada = !!estado.ocupada;
+    const B = 2;
 
-    ctx.save();
+    const madeira = trancada ? '#6b5233' : (minha ? '#7a5c36' : '#6d5233');
+    const topo = tom(madeira, 1.22);
+    const escuro = tom(madeira, 0.66);
 
     // sombra
-    ctx.fillStyle = 'rgba(0,0,0,.30)';
-    ctx.beginPath();
-    ctx.roundRect(x + 4, y + 8, w, h, 10);
-    ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,.34)';
+    ctx.fillRect(x + 3 * B, y + 4 * B, w, h);
+    ctx.fillStyle = 'rgba(0,0,0,.16)';
+    ctx.fillRect(x + 4 * B, y + 5 * B, w, h);
 
     // tampo
-    ctx.fillStyle = trancada ? '#5a4632' : (minha ? '#6a5439' : '#5f4b34');
-    ctx.beginPath();
-    ctx.roundRect(x, y, w, h, 10);
-    ctx.fill();
+    ctx.fillStyle = madeira;
+    ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = topo;
+    ctx.fillRect(x + B, y + B, w - 2 * B, B * 2);          // brilho superior
+    ctx.fillStyle = escuro;
+    ctx.fillRect(x, y + h - B * 3, w, B * 3);              // espessura
 
-    // veio da madeira
-    ctx.save();
-    ctx.beginPath();
-    ctx.roundRect(x, y, w, h, 10);
-    ctx.clip();
-    for (let i = 0; i < 5; i++) {
-      ctx.fillStyle = 'rgba(255,255,255,' + (0.020 + i * 0.006) + ')';
-      ctx.fillRect(x, y + 8 + i * 17, w, 6);
-    }
-    ctx.restore();
-
-    // espessura (frente do tampo)
-    ctx.fillStyle = tom(trancada ? '#5a4632' : (minha ? '#6a5439' : '#5f4b34'), 0.72);
-    ctx.beginPath();
-    ctx.roundRect(x + 3, y + h - 6, w - 6, 9, 5);
-    ctx.fill();
+    // tábuas
+    ctx.fillStyle = 'rgba(0,0,0,.12)';
+    for (let tx = x + 12 * B; tx < x + w; tx += 16 * B) ctx.fillRect(tx, y + B, B, h - 3 * B);
 
     // rebordo
-    ctx.strokeStyle = trancada ? '#c26a3a' : (minha ? '#c9a227' : 'rgba(0,0,0,.45)');
-    ctx.lineWidth = trancada || minha ? 2 : 1.5;
-    ctx.beginPath();
-    ctx.roundRect(x, y, w, h, 10);
-    ctx.stroke();
+    ctx.strokeStyle = trancada ? '#e08b57' : (minha ? '#e5c25c' : 'rgba(0,0,0,.45)');
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
 
-    // monitor (ao centro/fundo do tampo)
-    const mx = x + w / 2, my = y + 26;
-    ctx.fillStyle = '#15181d';
-    ctx.beginPath();
-    ctx.roundRect(mx - 30, my - 14, 60, 26, 4);
-    ctx.fill();
-    ctx.fillStyle = ocupada ? '#2f6f66' : '#22303d';
-    ctx.beginPath();
-    ctx.roundRect(mx - 26, my - 11, 52, 18, 2);
-    ctx.fill();
+    const mx = Math.round(x + w / 2);
+
+    // monitor
+    ctx.fillStyle = '#14171c';
+    ctx.fillRect(mx - 15 * B, y + 5 * B, 30 * B, 12 * B);
+    ctx.fillStyle = ocupada ? '#2f7f72' : '#213040';
+    ctx.fillRect(mx - 14 * B, y + 6 * B, 28 * B, 10 * B);
+    ctx.fillStyle = 'rgba(255,255,255,.14)';
+    ctx.fillRect(mx - 13 * B, y + 7 * B, 26 * B, B);
+    // base do monitor
+    ctx.fillStyle = '#1b1f25';
+    ctx.fillRect(mx - 4 * B, y + 17 * B, 8 * B, 2 * B);
+
     // teclado
-    ctx.fillStyle = '#20262e';
-    ctx.beginPath();
-    ctx.roundRect(mx - 22, my + 16, 44, 12, 3);
-    ctx.fill();
+    ctx.fillStyle = '#20252c';
+    ctx.fillRect(mx - 11 * B, y + 21 * B, 22 * B, 5 * B);
+    ctx.fillStyle = 'rgba(255,255,255,.10)';
+    for (let kx = mx - 10 * B; kx < mx + 10 * B; kx += 3 * B) ctx.fillRect(kx, y + 22 * B, 2 * B, 3 * B);
     // rato
-    ctx.beginPath();
-    ctx.ellipse(mx + 30, my + 22, 4, 5, 0, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.fillStyle = '#20252c';
+    ctx.fillRect(mx + 13 * B, y + 22 * B, 3 * B, 4 * B);
 
     // candeeiro
-    ctx.fillStyle = '#8a7a55';
-    ctx.beginPath();
-    ctx.arc(x + 20, y + 18, 5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = 'rgba(255,236,180,.30)';
-    ctx.beginPath();
-    ctx.arc(x + 20, y + 18, 13, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.fillStyle = '#3a3f48';
+    ctx.fillRect(x + 4 * B, y + 4 * B, 3 * B, 2 * B);
+    ctx.fillStyle = 'rgba(255,235,170,.55)';
+    ctx.fillRect(x + 4 * B, y + 6 * B, 3 * B, 2 * B);
 
-    // planta pequena
-    ctx.fillStyle = '#3f6b46';
-    ctx.beginPath();
-    ctx.arc(x + w - 22, y + 18, 7, 0, Math.PI * 2);
-    ctx.arc(x + w - 30, y + 21, 5, 0, Math.PI * 2);
-    ctx.fill();
+    // planta
+    ctx.fillStyle = '#6b4b2f';
+    ctx.fillRect(x + w - 9 * B, y + 4 * B, 4 * B, 3 * B);
+    ctx.fillStyle = '#35764c';
+    ctx.fillRect(x + w - 10 * B, y + 2 * B, 6 * B, 2 * B);
+    ctx.fillRect(x + w - 8 * B, y + 1 * B, 2 * B, 2 * B);
 
-    // cadeira: só aparece quando a mesa está vazia (com alguém, a pessoa tapa-a)
-    if (!ocupada) {
-      ctx.fillStyle = 'rgba(0,0,0,.20)';
-      ctx.beginPath();
-      ctx.ellipse(mx, y + h + 8, 22, 8, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = '#2b333d';
-      ctx.beginPath();
-      ctx.roundRect(mx - 19, y + h - 1, 38, 11, 5);
-      ctx.fill();
-
-      ctx.fillStyle = 'rgba(255,255,255,.06)';
-      ctx.beginPath();
-      ctx.roundRect(mx - 15, y + h + 2, 30, 3, 1.5);
-      ctx.fill();
-    }
-
-    // placa com o nome de quem é a mesa
-    ctx.fillStyle = 'rgba(0,0,0,.35)';
-    ctx.beginPath();
-    ctx.roundRect(x + 10, y + h - 26, Math.min(w - 20, 116), 18, 5);
-    ctx.fill();
-    ctx.fillStyle = d.owner ? '#e5c25c' : '#7b8593';
+    // placa com o nome
+    const larg = Math.min(w - 6 * B, 56 * B);
+    ctx.fillStyle = 'rgba(0,0,0,.42)';
+    ctx.fillRect(x + 3 * B, y + h - 11 * B, larg, 7 * B);
+    ctx.fillStyle = d.owner ? '#e5c25c' : '#8d97a4';
     ctx.font = '600 11px "Segoe UI",sans-serif';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText((d.owner || d.label).slice(0, 16), x + 17, y + h - 17);
+    ctx.fillText((d.owner || d.label).slice(0, 16), x + 5 * B, y + h - 7.5 * B);
 
-    // cadeado
     if (trancada) {
-      ctx.font = '13px "Segoe UI Emoji",sans-serif';
+      ctx.font = '12px "Segoe UI Emoji",sans-serif';
       ctx.textAlign = 'right';
-      ctx.fillText('🔒', x + w - 12, y + h - 16);
+      ctx.fillText('🔒', x + w - 3 * B, y + h - 6 * B);
     }
 
-    ctx.restore();
+    // cadeira (só com a mesa vazia)
+    if (!ocupada) {
+      ctx.fillStyle = 'rgba(0,0,0,.28)';
+      ctx.fillRect(mx - 9 * B, y + h + B, 18 * B, 3 * B);
+      ctx.fillStyle = '#2b333d';
+      ctx.fillRect(mx - 8 * B, y + h - B, 16 * B, 4 * B);
+      ctx.fillStyle = 'rgba(255,255,255,.08)';
+      ctx.fillRect(mx - 7 * B, y + h, 14 * B, B);
+    }
   }
 
   function planta(ctx, x, y, tam = 1) {
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.scale(tam, tam);
+    const B = 2 * tam;
 
-    ctx.fillStyle = 'rgba(0,0,0,.28)';
-    ctx.beginPath();
-    ctx.ellipse(0, 4, 16, 6, 0, 0, Math.PI * 2);
-    ctx.fill();
+    // sombra
+    ctx.fillStyle = 'rgba(0,0,0,.30)';
+    ctx.fillRect(x - 6 * B, y + 2 * B, 12 * B, 2 * B);
 
-    ctx.fillStyle = '#6b4b2f';
-    ctx.beginPath();
-    ctx.roundRect(-11, -6, 22, 16, 4);
-    ctx.fill();
+    // vaso
+    ctx.fillStyle = '#7a4c2c';
+    ctx.fillRect(x - 5 * B, y - 4 * B, 10 * B, 6 * B);
+    ctx.fillStyle = '#9a6238';
+    ctx.fillRect(x - 5 * B, y - 4 * B, 10 * B, B);
+    ctx.fillStyle = '#5c3720';
+    ctx.fillRect(x + 3 * B, y - 3 * B, 2 * B, 5 * B);
 
+    // folhas
     ctx.fillStyle = '#2f6b45';
-    for (const [dx, dy, r] of [[-8, -16, 11], [7, -18, 12], [0, -26, 13], [-12, -26, 9], [12, -25, 9]]) {
-      ctx.beginPath();
-      ctx.arc(dx, dy, r, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.fillStyle = 'rgba(255,255,255,.08)';
-    ctx.beginPath();
-    ctx.arc(-3, -28, 7, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.restore();
+    ctx.fillRect(x - 5 * B, y - 12 * B, 10 * B, 8 * B);
+    ctx.fillRect(x - 7 * B, y - 9 * B, 14 * B, 5 * B);
+    ctx.fillStyle = '#3f8a58';
+    ctx.fillRect(x - 3 * B, y - 14 * B, 6 * B, 4 * B);
+    ctx.fillRect(x - 7 * B, y - 9 * B, 4 * B, 3 * B);
+    ctx.fillStyle = '#1f4a30';
+    ctx.fillRect(x + 3 * B, y - 7 * B, 4 * B, 3 * B);
   }
 
   function tapete(ctx, x, y, w, h) {

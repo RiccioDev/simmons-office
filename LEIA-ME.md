@@ -19,7 +19,27 @@ O link público muda cada vez que abres o expor.bat. Para um link fixo é precis
 domínio próprio e uma conta Cloudflare (grátis) com um túnel com nome — pede-me que eu
 monto.
 
-## O teu personagem
+## O teu personagem (pixel art)
+
+Os personagens são desenhados em pixel art de verdade: o boneco é composto num canvas de
+32×44 pixéis e depois ampliado sem suavização — é isso que dá o aspecto nítido, com
+contorno, sombreado e sombra no chão.
+
+Personalização:
+
+- **Gênero** feminino / masculino
+- **Tom de pele**: 8
+- **Cabelo**: curto, longo, coque, franja, afro, rabo de cavalo, careca
+- **Cor do cabelo**: 9
+- **Estilo da roupa**: camisa, terno, blazer, moletom, vestido, uniforme
+- **Cor da roupa**: 10
+- **Barba**: com / sem
+- **Óculos**: nenhum, redondo, escuro, sol
+
+O terno tem lapelas, camisa branca e gravata; o moletom tem capuz, bolso e cordões; o
+vestido tem decote e saia; o uniforme tem gola polo e faixa.
+
+## O escritório
 
 Na primeira vez que entras, abre o criador de personagem — e podes voltar sempre pelo botão
 **🎨**, no topo do chat.

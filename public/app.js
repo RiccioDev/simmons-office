@@ -1623,9 +1623,12 @@ function desenhar() {
   ctx.setTransform(dpr * cx.sx, 0, 0 * cx.sy, dpr * cx.sy, dpr * cx.offX, dpr * cx.offY);
   ctx.setTransform(dpr * cx.sx, 0, 0, dpr * cx.sy, dpr * cx.offX, dpr * cx.offY);
 
-  // chão de madeira, paredes e tapete
-  Visual.chao(ctx, LARG, ALT);
-  Visual.tapete(ctx, 80, 110, 1440, 780);
+  // chão de madeira cobrindo também a margem (sem faixas pretas)
+  ctx.save();
+  ctx.translate(-320, -320);
+  Visual.chao(ctx, LARG + 640, ALT + 640);
+  ctx.restore();
+
   Visual.paredes(ctx, LARG, ALT);
 
   // plantas decorativas
@@ -1663,12 +1666,12 @@ function desenhar() {
       ctx.setLineDash([]);
     }
 
-    Visual.personagem(ctx, p.x, p.y + 26, avatarDe(p), {
+    Pixel.desenhar(ctx, p.x, p.y + 26, avatarDe(p), {
       dir: p.dir || 1,
       passo: p.passo || 0,
       andando: !!p.aAndar,
       sentado: !!p.sitting,
-      escala: 1.35,
+      escala: 1.9,
     });
 
     ctx.textBaseline = 'alphabetic';
@@ -1932,18 +1935,16 @@ function montarCriadorAvatar() {
     ctxp.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctxp.clearRect(0, 0, w, h);
 
-    // chão do palco
-    ctxp.fillStyle = 'rgba(255,255,255,.03)';
-    ctxp.beginPath();
-    ctxp.ellipse(w / 2, h - 42, 52, 14, 0, 0, Math.PI * 2);
-    ctxp.fill();
+    // palco: chão escuro com brilho suave ao centro
+    const grad = ctxp.createRadialGradient(w / 2, h * 0.55, 10, w / 2, h * 0.55, Math.max(w, h) * 0.6);
+    grad.addColorStop(0, '#252b35');
+    grad.addColorStop(1, '#151a21');
+    ctxp.fillStyle = grad;
+    ctxp.fillRect(0, 0, w, h);
 
-    ctxp.save();
-    ctxp.translate(w / 2, h - 40);
-    const escala = Math.min(w / 72, h / 118);
-    ctxp.scale(escala, escala);
-    Visual.personagem(ctxp, 0, 0, avatarEmEdicao, { dir: 1, andando: false });
-    ctxp.restore();
+    ctxp.imageSmoothingEnabled = false;
+    const escala = Math.max(2, Math.floor(Math.min((w - 22) / Pixel.LARG, (h - 30) / Pixel.ALT)));
+    Pixel.desenhar(ctxp, w / 2, h - 24, avatarEmEdicao, { escala, dir: 1 });
   };
   pintarPreviaAtual = pintar;
 
@@ -1967,6 +1968,10 @@ function montarCriadorAvatar() {
     aoTocar(b, () => { avatarEmEdicao.tipo = b.dataset.v; marcar('opTipo', b.dataset.v); pintar(); });
   });
 
+  document.querySelectorAll('#opBarba button').forEach(b => {
+    aoTocar(b, () => { avatarEmEdicao.barba = b.dataset.v === 'sim'; marcar('opBarba', b.dataset.v); pintar(); });
+  });
+
   document.querySelectorAll('#opOculos button').forEach(b => {
     aoTocar(b, () => { avatarEmEdicao.oculos = b.dataset.v; marcar('opOculos', b.dataset.v); pintar(); });
   });
@@ -1979,18 +1984,19 @@ function montarCriadorAvatar() {
       aoTocar(b, () => { avatarEmEdicao[campo] = Number(b.dataset.v); marcar(id, b.dataset.v); pintar(); });
     });
   };
-  montarCores('opPele', Visual.PELES, 'pele');
-  montarCores('opCorCabelo', Visual.CABELOS, 'corCabelo');
-  montarCores('opRoupa', Visual.ROUPAS, 'roupa');
+  montarCores('opPele', Pixel.PELES, 'pele');
+  montarCores('opCorCabelo', Pixel.CABELOS, 'corCabelo');
+  montarCores('opRoupa', Pixel.ROUPAS, 'roupa');
 
   // ---- abrir
   window.abrirAparencia = () => {
-    avatarEmEdicao = meuAvatar ? JSON.parse(JSON.stringify(meuAvatar)) : Visual.padrao();
+    avatarEmEdicao = meuAvatar ? JSON.parse(JSON.stringify(meuAvatar)) : Pixel.padrao();
     marcar('opGenero', avatarEmEdicao.genero);
     marcar('opCabelo', avatarEmEdicao.cabelo);
     marcar('opPele', avatarEmEdicao.pele);
     marcar('opTipo', avatarEmEdicao.tipo || 'camisa');
     marcar('opOculos', avatarEmEdicao.oculos || 'nenhum');
+    marcar('opBarba', avatarEmEdicao.barba ? 'sim' : 'nao');
     marcar('opCorCabelo', avatarEmEdicao.corCabelo);
     marcar('opRoupa', avatarEmEdicao.roupa);
     modal.classList.remove('oculto');
@@ -2001,22 +2007,25 @@ function montarCriadorAvatar() {
   aoTocar($('btnAleatorio'), () => {
     avatarEmEdicao = {
       genero: Math.random() < 0.5 ? 'f' : 'm',
-      pele: Math.floor(Math.random() * Visual.PELES.length),
-      cabelo: ['curto', 'longo', 'coque', 'franja', 'afro', 'careca'][Math.floor(Math.random() * 6)],
-      corCabelo: Math.floor(Math.random() * Visual.CABELOS.length),
-      roupa: Math.floor(Math.random() * Visual.ROUPAS.length),
-      tipo: ['camisa', 'terno', 'blazer', 'moletom', 'vestido'][Math.floor(Math.random() * 5)],
+      pele: Math.floor(Math.random() * Pixel.PELES.length),
+      cabelo: ['curto', 'longo', 'coque', 'franja', 'afro', 'rabo', 'careca'][Math.floor(Math.random() * 7)],
+      corCabelo: Math.floor(Math.random() * Pixel.CABELOS.length),
+      roupa: Math.floor(Math.random() * Pixel.ROUPAS.length),
+      tipo: ['camisa', 'terno', 'blazer', 'moletom', 'vestido', 'uniforme'][Math.floor(Math.random() * 6)],
       oculos: ['nenhum', 'nenhum', 'redondo', 'escuro', 'sol'][Math.floor(Math.random() * 5)],
+      barba: Math.random() < 0.3,
     };
     marcar('opGenero', avatarEmEdicao.genero);
     marcar('opCabelo', avatarEmEdicao.cabelo);
     marcar('opPele', avatarEmEdicao.pele);
     marcar('opTipo', avatarEmEdicao.tipo || 'camisa');
     marcar('opOculos', avatarEmEdicao.oculos || 'nenhum');
+    marcar('opBarba', avatarEmEdicao.barba ? 'sim' : 'nao');
     marcar('opCorCabelo', avatarEmEdicao.corCabelo);
     marcar('opRoupa', avatarEmEdicao.roupa);
     marcar('opTipo', avatarEmEdicao.tipo);
     marcar('opOculos', avatarEmEdicao.oculos);
+    marcar('opBarba', avatarEmEdicao.barba ? 'sim' : 'nao');
     pintar();
   });
 
@@ -2036,7 +2045,7 @@ function montarCriadorAvatar() {
 // desenha o meu personagem no mapa mesmo antes de o servidor responder
 function avatarDe(p) {
   if (eu && p.id === eu.id && meuAvatar) return meuAvatar;
-  return p.avatar || Visual.padrao();
+  return p.avatar || Pixel.padrao();
 }
 
 // ------------------------------------------------------------ controlos de toque
